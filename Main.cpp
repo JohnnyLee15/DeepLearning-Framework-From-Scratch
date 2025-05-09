@@ -4,6 +4,7 @@
 #include <sstream>
 #include "NeuralNet.h"
 #include "Data.h"
+#include <iomanip>
 
 using namespace std;
 
@@ -13,9 +14,9 @@ int main() {
     reader.readTest("mnist_test.csv", 0);
     reader.minmax();
     NeuralNet nn({784, 32, 16, 10});
-    nn.train(reader.getTrainFeatures(), reader.getTrainTarget(), 0.0003, 0.95, 20);
+    nn.train(reader.getTrainFeatures(), reader.getTrainTarget(), 0.0003, 0.97, 20);
     double accuracy = nn.test(reader.getTestFeatures(), reader.getTestTarget());
-    cout << accuracy << endl;
+    cout << endl << "Test Accuracy: " << fixed << setprecision(2) << (accuracy * 100) << "%" << endl;
     return 0;
 }
 

@@ -14,19 +14,21 @@ class NeuralNet {
         // Constants
         static const double LOSS_EPSILON;
         static const double GRADIENT_THRESHOLD;
+        static const int PROGRESS_BAR_LENGTH;
         
         // Methods
         void applySoftmax();
         void backprop(int, double, const vector<double>&);
         void updateLayerParameters(Layer&, const vector<double>&, double, const vector<double>&);
         void forwardPass(const vector<double>&);
-        void reportEpochProgress(int, int, double) const;
+        void reportEpochProgress(int, int, double, double) const;
+        void printProgressBar(int, int) const;
 
         double updateOutputDerivative(const Layer&, const vector<double>&, int);
-        double getPrediction();
+        int getPrediction();
         double getAccurary(const vector<double>&, const vector<int>&) const;
         double clipDerivative(double);
-        double runEpoch(const vector<vector<double> >&, const vector<double>&, double);
+        double runEpoch(const vector<vector<double> >&, const vector<double>&, double, vector<int>&);
         double calculateLoss(int);
 
         vector<double> calculateOutputGradient(int);

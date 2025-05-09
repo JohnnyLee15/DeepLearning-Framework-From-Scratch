@@ -2,11 +2,13 @@
 #include <cmath>
 #include <iostream>
 #include <algorithm>
+#include <iomanip>
 
 using namespace std;
 
 const double NeuralNet::GRADIENT_THRESHOLD = 1.0;
 const double NeuralNet::LOSS_EPSILON = 1e-10;
+const int NeuralNet::PROGRESS_BAR_LENGTH = 50;
 
 NeuralNet::NeuralNet(vector<int> neuronsPerLayer):
     outputActivations(neuronsPerLayer[neuronsPerLayer.size() - 1], 0) {
@@ -27,32 +29,58 @@ void NeuralNet::train(
     double learningDecay,
     int numEpochs) {
     for (int k = 0; k < numEpochs; k++) {
-        cout << endl << "Epoch: " << k+1 << endl;
-        double avgLoss = runEpoch(data, labels, learningRate);
-        reportEpochProgress(k+1, numEpochs, avgLoss);
+        vector<int> predictions;
+        cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
+        double avgLoss = runEpoch(data, labels, learningRate, predictions);
+        double accuracy = getAccurary(labels, predictions);
+        reportEpochProgress(k+1, numEpochs, avgLoss, accuracy);
         avgLosses.push_back(avgLoss);
         learningRate *= learningDecay;
     }
 }
 
-void NeuralNet::reportEpochProgress(int epoch, int numEpochs, double avgLoss) const {
-    cout << "Average Loss: " << avgLoss << endl;
+void NeuralNet::reportEpochProgress(int epoch, int numEpochs, double avgLoss, double accuracy) const {
+    cout << endl << "Average Loss: " << avgLoss << endl;
+    cout << "Accuracy: " << fixed << setprecision(2) << (100 * accuracy) << "%" << endl;
+    cout << defaultfloat << setprecision(6);
+}
+
+void NeuralNet::printProgressBar(int currentSample, int totalSamples) const {
+    double progress = (double) currentSample / totalSamples;
+    int progressChar = (int) (progress * PROGRESS_BAR_LENGTH);
+
+    const string GREEN = "\033[32m";
+    const string RESET = "\033[0m";
+
+    cout << "|";
+    for (int i = 0; i < PROGRESS_BAR_LENGTH; i++) {
+        if (i <= progressChar) {
+            cout << GREEN << "█" << RESET;
+        } else {
+            cout << " ";
+        }
+    }
+
+    cout << "| " << fixed << setprecision(2) << (progress * 100) <<"%\r";
+    cout << defaultfloat << setprecision(6);
+    cout.flush();
 }
 
 double NeuralNet::runEpoch(
     const vector<vector<double> >&data,
     const vector<double> &labels,
-    double learningRate
+    double learningRate,
+    vector<int> &predictions
 ) {
     double totalLoss = 0.0;
-    for (int i = 0; i < data.size(); i++) {
+    int numSamples = data.size();
+    for (int i = 0; i < numSamples; i++) {
         forwardPass(data[i]);
         applySoftmax();
+        predictions.push_back(getPrediction());
         totalLoss += calculateLoss(labels[i]);
         backprop(labels[i], learningRate, data[i]);
-        if (i%1000 == 999 || i == 0) {
-            cout << "Progress: " << i+1 << "/" << data.size() << endl;
-        }
+        printProgressBar(i, numSamples);
     }
     return totalLoss/data.size();
 }
@@ -181,7 +209,7 @@ double NeuralNet::getAccurary(const vector<double> &labels, const vector<int> &p
     return correct/predictions.size();
 }
 
-double NeuralNet::getPrediction() {
+int NeuralNet::getPrediction() {
     int prediction = -1;
     double prob = -1;
     for (int i = 0; i < outputActivations.size(); i++) { 
