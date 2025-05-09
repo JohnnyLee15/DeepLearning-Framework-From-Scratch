@@ -42,7 +42,8 @@ void NeuralNet::reportEpochProgress(int epoch, int numEpochs, double avgLoss) co
 double NeuralNet::runEpoch(
     const vector<vector<double> >&data,
     const vector<double> &labels,
-    double learningRate) {
+    double learningRate
+) {
     double totalLoss = 0.0;
     for (int i = 0; i < data.size(); i++) {
         forwardPass(data[i]);
@@ -129,9 +130,11 @@ void NeuralNet::updateLayerParameters(
     }
 }
 
-vector<double> NeuralNet::updateOutputGradient(const Layer &layer,
+vector<double> NeuralNet::updateOutputGradient(
+    const Layer &layer,
     const vector<double> &prevOutputGradient,
-    const vector<double> &prevActivations) {
+    const vector<double> &prevActivations
+) {
 
     vector<double> outputGradient(prevActivations.size(), 0.0);
     for (int j = 0; j < prevActivations.size(); j++) {
@@ -144,9 +147,11 @@ vector<double> NeuralNet::updateOutputGradient(const Layer &layer,
     return outputGradient;
 }
 
-double NeuralNet::updateOutputDerivative(const Layer &layer,
+double NeuralNet::updateOutputDerivative(
+    const Layer &layer,
     const vector<double> &prevOutputGradient,
-    int weightIdx) {
+    int weightIdx
+) {
 
     double dz = 0;
     for (int i = 0; i < layer.getNumNeurons(); i++) {

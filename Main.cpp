@@ -11,9 +11,11 @@ int main() {
     Data reader;
     reader.readTrain("mnist_train.csv", 0);
     reader.readTest("mnist_test.csv", 0);
+    reader.minmax();
     NeuralNet nn({784, 32, 16, 10});
     nn.train(reader.getTrainFeatures(), reader.getTrainTarget(), 0.0003, 0.95, 20);
     double accuracy = nn.test(reader.getTestFeatures(), reader.getTestTarget());
     cout << accuracy << endl;
     return 0;
 }
+
