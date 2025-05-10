@@ -6,6 +6,8 @@
 
 Data::Data(): isDataLoaded(false) {}
 
+const double Data::MAX_GREYSCALE_VALUE = 255.0;
+
 void Data::readTrain(string filename, int targetIdx) {
     readData(filename, true, targetIdx);
 }
@@ -55,7 +57,7 @@ void Data::parseLine(
         if (i == targetIdx) {
             target.push_back(value); 
         } else {
-            sample.push_back(value/255.0);
+            sample.push_back(value);
         }
         i++;
     }
@@ -96,32 +98,64 @@ void Data::readData(string filename, bool isTrainData, int targetIdx) {
     isDataLoaded = true;
 }
 
-void Data::getMinAndMax(double &minVal, double &maxVal) const {
-    for (int i = 0; i < trainFeatures.size(); i++) {
-        for (int j = 0; j < trainFeatures[i].size(); j++) {
-            if (trainFeatures[i][j] < minVal) {
-                minVal = trainFeatures[i][j];
-            }
-            if (trainFeatures[i][j] > maxVal) {
-                maxVal = trainFeatures[i][j];
-            }
+void Data::minmaxNormalizeColumn(
+    vector<vector<double> > &features, 
+    double minVal, 
+    double maxVal, 
+    int colIdx
+) {
+    double range = maxVal - minVal;
+    if (range == 0) {
+        range = 1.0;
+    }
+    for (int i = 0; i < features.size(); i++) {
+        features[i][colIdx] = (features[i][colIdx] - minVal) / (range);
+    }
+}
+
+void Data::getMinMaxColumn(
+    vector<vector<double> > &features, 
+    double &minVal, 
+    double &maxVal, 
+    int colIdx
+) {
+    minVal = INFINITY;
+    maxVal = -INFINITY;
+    for (int i = 0; i < features.size(); i++) {
+        if (features[i][colIdx] < minVal) {
+            minVal = features[i][colIdx];
+        }
+        if (features[i][colIdx] > maxVal) {
+            maxVal = features[i][colIdx];
         }
     }
 }
 
-void Data::minmaxNormalize(double minVal, double maxVal) {
-    for (int i = 0; i < trainFeatures.size(); i++) {
-        for (int j = 0; j < trainFeatures[i].size(); j++) {
-            trainFeatures[i][j] = (trainFeatures[i][j] - minVal) / (maxVal - minVal);
-        }
+void Data::minmaxData() {
+    double minVal, maxVal;
+    for (int j = 0; j < trainFeatures[0].size(); j++) {
+        getMinMaxColumn(trainFeatures, minVal, maxVal, j);
+        minmaxNormalizeColumn(trainFeatures, minVal, maxVal, j);
+        minmaxNormalizeColumn(testFeatures, minVal, maxVal, j);
     }
 }
 
 void Data::minmax() {
     if (isDataLoaded) {
-        double minVal, maxVal;
-        getMinAndMax(minVal, maxVal);
-        minmaxNormalize(minVal, maxVal);
+        minmaxData();
     }
+}
+
+void Data::normalizeGreyScale(vector<vector<double> > &features) {
+    for (int i = 0; i < features.size(); i++) {
+        for (int j = 0; j < features[i].size(); j++) {
+            features[i][j] /= MAX_GREYSCALE_VALUE;
+        }
+    }
+}
+
+void Data::minmaxGreyScale() {
+    normalizeGreyScale(trainFeatures);
+    normalizeGreyScale(testFeatures);
 }
 

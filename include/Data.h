@@ -11,14 +11,17 @@ class Data {
         vector<vector<double> > testFeatures;
         vector<double> testTarget;
         bool isDataLoaded;
+        static const double MAX_GREYSCALE_VALUE;
 
         // Private Methods
         void readData(string, bool, int);
-        void getMinAndMax(double&, double&) const;
-        void minmaxNormalize(double, double);
+        void minmaxData();
+        void minmaxNormalizeColumn(vector<vector<double> >&, double, double, int);
+        void getMinMaxColumn(vector<vector<double> >&, double&, double&, int);
         void checkFile(string);
         void parseLine(string, vector<vector<double> >&, vector<double>&, int);
         void setData(vector<vector<double> >&, vector<double>&, bool);
+        void normalizeGreyScale(vector<vector<double> >&); 
     
     public:
         Data();
@@ -30,4 +33,5 @@ class Data {
         vector<double> getTrainTarget() const;
         vector<double> getTestTarget() const;
         void minmax();
+        void minmaxGreyScale();
 };

@@ -13,8 +13,8 @@ int main() {
     reader.readTrain("mnist_train.csv", 0);
     reader.readTest("mnist_test.csv", 0);
     reader.minmax();
-    NeuralNet nn({784, 32, 16, 10});
-    nn.train(reader.getTrainFeatures(), reader.getTrainTarget(), 0.0003, 0.97, 20);
+    NeuralNet nn({784, 16, 8, 10});
+    nn.train(reader.getTrainFeatures(), reader.getTrainTarget(), 0.0004, 0.97, 30);
     double accuracy = nn.test(reader.getTestFeatures(), reader.getTestTarget());
     cout << endl << "Test Accuracy: " << fixed << setprecision(2) << (accuracy * 100) << "%" << endl;
     return 0;
