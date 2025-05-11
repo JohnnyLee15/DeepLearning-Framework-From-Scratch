@@ -8,7 +8,9 @@ random_device Neuron::rd;
 mt19937 Neuron::generator(Neuron::rd());
 const double Neuron::RELU_BIAS = 0.01;
 
-Neuron::Neuron(int numWeights, bool isOutputNeuron): isOutputNeuron(isOutputNeuron) {
+Neuron::Neuron(int numWeights, bool isOutputNeuron): 
+    weights(numWeights, 0.0), isOutputNeuron(isOutputNeuron)
+{
     initWeights(numWeights);
     initBias();
 }
@@ -31,7 +33,7 @@ void Neuron::initWeights(int numWeights) {
 
     normal_distribution<double> distribution(0, std);
     for (int i = 0; i < numWeights; i++) {
-        weights.push_back(distribution(generator));
+        weights[i] = distribution(generator);
     }
 }
 

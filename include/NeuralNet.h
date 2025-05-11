@@ -28,12 +28,14 @@ class NeuralNet {
         int getPrediction();
         double getAccurary(const vector<double>&, const vector<int>&) const;
         double clipDerivative(double);
-        double runEpoch(const vector<vector<double> >&, const vector<double>&, double, vector<int>&);
+        double runEpoch(const vector<vector<double> >&, const vector<double>&, double, vector<int>&, const vector<int>&);
         double calculateLoss(int);
 
         vector<double> calculateOutputGradient(int);
         vector<double> updateOutputGradient(const Layer&, const  vector<double>&, const vector<double>&);
         vector<double> getPrevActivations(int, const vector<double> &) const;
+        void shuffleTrainIndices(vector<int>&) const;
+        vector<int> generateIndices(const vector<vector<double> > &) const;
 
     public:
         NeuralNet(vector<int>);

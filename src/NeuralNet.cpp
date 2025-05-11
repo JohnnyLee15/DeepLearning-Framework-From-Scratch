@@ -22,20 +22,39 @@ NeuralNet::NeuralNet(vector<int> neuronsPerLayer):
     ));
 }
 
+vector<int> NeuralNet::generateIndices(const vector<vector<double> > &data) const {
+    vector<int> indices(data.size(), -1);
+
+    for (int i = 0; i < data.size(); i++) {
+        indices[i] = i;
+    }
+    return indices;
+}
+
+void NeuralNet::shuffleTrainIndices(vector<int> &indices) const {
+    random_device rd;
+    mt19937 generator(rd());
+    shuffle(indices.begin(), indices.end(), generator);
+}
+
 void NeuralNet::train(
     const vector<vector<double> > &data,
     const vector<double> &labels,
     double learningRate,
     double learningDecay,
-    int numEpochs) {
+    int numEpochs
+) {
+    vector<int> shuffledIndices = generateIndices(data);
+    double initialLR = learningRate;
     for (int k = 0; k < numEpochs; k++) {
-        vector<int> predictions;
+        vector<int> predictions(data.size(), -1);
+        shuffleTrainIndices(shuffledIndices);
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
-        double avgLoss = runEpoch(data, labels, learningRate, predictions);
+        double avgLoss = runEpoch(data, labels, learningRate, predictions, shuffledIndices);
         double accuracy = getAccurary(labels, predictions);
         reportEpochProgress(k+1, numEpochs, avgLoss, accuracy);
         avgLosses.push_back(avgLoss);
-        learningRate *= learningDecay;
+        learningRate = initialLR/(1 + learningDecay*k);
     }
 }
 
@@ -70,16 +89,18 @@ double NeuralNet::runEpoch(
     const vector<vector<double> >&data,
     const vector<double> &labels,
     double learningRate,
-    vector<int> &predictions
+    vector<int> &predictions,
+    const vector<int> &shuffledIndices
 ) {
     double totalLoss = 0.0;
     int numSamples = data.size();
     for (int i = 0; i < numSamples; i++) {
-        forwardPass(data[i]);
+        int rdIdx = shuffledIndices[i];
+        forwardPass(data[rdIdx]);
         applySoftmax();
-        predictions.push_back(getPrediction());
-        totalLoss += calculateLoss(labels[i]);
-        backprop(labels[i], learningRate, data[i]);
+        predictions[rdIdx] = getPrediction();
+        totalLoss += calculateLoss(labels[rdIdx]);
+        backprop(labels[rdIdx], learningRate, data[rdIdx]);
         printProgressBar(i, numSamples);
     }
     return totalLoss/data.size();
@@ -131,12 +152,12 @@ vector<double> NeuralNet::getPrevActivations(int layerIdx, const vector<double> 
 }
 
 vector<double> NeuralNet::calculateOutputGradient(int label) {
-    vector<double> gradient;
+    vector<double> gradient(outputActivations.size(), 0.0);
     for (int i = 0; i < outputActivations.size(); i++) {
         if (i == label) {
-            gradient.push_back(clipDerivative(outputActivations[i] - 1));
+            gradient[i] = clipDerivative(outputActivations[i] - 1);
         } else {
-            gradient.push_back(clipDerivative(outputActivations[i]));
+            gradient[i] = clipDerivative(outputActivations[i]);
         }
     }
     return gradient;
@@ -189,11 +210,11 @@ double NeuralNet::updateOutputDerivative(
 }
 
 double NeuralNet::test(const vector<vector<double> > &data, const vector<double> &labels) {
-    vector<int> predictions;
+    vector<int> predictions(data.size(), -1);
     for (int i = 0; i < data.size(); i++) {
         forwardPass(data[i]);
         applySoftmax();
-        predictions.push_back(getPrediction());
+        predictions[i] = getPrediction();
     }
     return getAccurary(labels, predictions);
 }
