@@ -9,6 +9,8 @@ using namespace std;
 const double NeuralNet::GRADIENT_THRESHOLD = 1.0;
 const double NeuralNet::LOSS_EPSILON = 1e-10;
 const int NeuralNet::PROGRESS_BAR_LENGTH = 50;
+random_device NeuralNet::rd;
+mt19937 NeuralNet::generator(NeuralNet::rd());
 
 NeuralNet::NeuralNet(vector<int> neuronsPerLayer):
     outputActivations(neuronsPerLayer[neuronsPerLayer.size() - 1], 0) {
@@ -31,12 +33,6 @@ vector<int> NeuralNet::generateIndices(const vector<vector<double> > &data) cons
     return indices;
 }
 
-void NeuralNet::shuffleTrainIndices(vector<int> &indices) const {
-    random_device rd;
-    mt19937 generator(rd());
-    shuffle(indices.begin(), indices.end(), generator);
-}
-
 void NeuralNet::train(
     const vector<vector<double> > &data,
     const vector<double> &labels,
@@ -48,7 +44,7 @@ void NeuralNet::train(
     double initialLR = learningRate;
     for (int k = 0; k < numEpochs; k++) {
         vector<int> predictions(data.size(), -1);
-        shuffleTrainIndices(shuffledIndices);
+        shuffle(shuffledIndices.begin(), shuffledIndices.end(), generator);
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
         double avgLoss = runEpoch(data, labels, learningRate, predictions, shuffledIndices);
         double accuracy = getAccurary(labels, predictions);

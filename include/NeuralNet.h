@@ -11,6 +11,10 @@ class NeuralNet {
         vector<double> outputActivations;
         vector<double> avgLosses;
 
+        // Static Variables
+        static random_device rd;
+        static mt19937 generator;
+
         // Constants
         static const double LOSS_EPSILON;
         static const double GRADIENT_THRESHOLD;
@@ -34,7 +38,6 @@ class NeuralNet {
         vector<double> calculateOutputGradient(int);
         vector<double> updateOutputGradient(const Layer&, const  vector<double>&, const vector<double>&);
         vector<double> getPrevActivations(int, const vector<double> &) const;
-        void shuffleTrainIndices(vector<int>&) const;
         vector<int> generateIndices(const vector<vector<double> > &) const;
 
     public:
