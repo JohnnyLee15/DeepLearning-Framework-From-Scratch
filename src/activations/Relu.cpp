@@ -1,4 +1,4 @@
-#include "Relu.h"
+#include "activations/Relu.h"
 #include <algorithm>
 
 const double Relu::RELU_BIAS = 0.01;

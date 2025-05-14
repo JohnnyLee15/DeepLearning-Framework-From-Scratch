@@ -1,4 +1,4 @@
-#include "Softmax.h"
+#include "activations/Softmax.h"
 #include <cmath>
 #include <iostream>
 

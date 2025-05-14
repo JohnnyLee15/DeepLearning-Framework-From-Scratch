@@ -2,12 +2,12 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
-#include "NeuralNet.h"
-#include "Data.h"
+#include "core/NeuralNet.h"
+#include "core/Data.h"
 #include <iomanip>
-#include "Relu.h"
-#include "Softmax.h"
-#include "CrossEntropy.h"
+#include "activations/Relu.h"
+#include "activations/Softmax.h"
+#include "losses/CrossEntropy.h"
 
 using namespace std;
 

@@ -1,8 +1,8 @@
-#include "Layer.h"
-#include "Neuron.h"
+#include "core/Layer.h"
+#include "core/Neuron.h"
 #include <cmath>
-#include "TrainingUtils.h"
-#include "Activation.h"
+#include "utils/TrainingUtils.h"
+#include "activations/Activation.h"
 
 Layer::Layer(int numNeurons, int numWeights, Activation *activation):
     activations(numNeurons, 0), activation(activation) {

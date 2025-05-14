@@ -1,13 +1,11 @@
-#include "NeuralNet.h"
-#include "Data.h"
+#include "core/NeuralNet.h"
+#include "core/Data.h"
 #include <cmath>
 #include <iostream>
 #include <algorithm>
-#include "TrainingUtils.h"
-#include "ConsoleUtils.h"
-#include "Relu.h"
-#include "Softmax.h"
-#include "CrossEntropy.h"
+#include "utils/TrainingUtils.h"
+#include "utils/ConsoleUtils.h"
+#include "losses/CrossEntropy.h"
 
 using namespace std;
 

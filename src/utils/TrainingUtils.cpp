@@ -1,4 +1,4 @@
-#include "TrainingUtils.h"
+#include "utils/TrainingUtils.h"
 #include <cmath>
 
 const double TrainingUtils::GRADIENT_THRESHOLD = 1.0;

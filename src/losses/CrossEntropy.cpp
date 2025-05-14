@@ -1,5 +1,5 @@
-#include "CrossEntropy.h"
-#include "TrainingUtils.h"
+#include "losses/CrossEntropy.h"
+#include "utils/TrainingUtils.h"
 
 const double CrossEntropy::CROSS_ENTROPY_EPSILON = 1e-10;
 

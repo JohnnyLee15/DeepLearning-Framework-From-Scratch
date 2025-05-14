@@ -1,7 +1,7 @@
-#include "Neuron.h"
+#include "core/Neuron.h"
 #include <cmath>
-#include "Layer.h"
-#include "Activation.h"
+#include "core/Layer.h"
+#include "activations/Activation.h"
 
 using namespace std;
 

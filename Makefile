@@ -5,7 +5,7 @@ CXX := clang++
 CXXFLAGS := -std=c++11 -Iinclude -Wall
 
 # CPP files
-SRC := $(wildcard src/*.cpp) Main.cpp
+SRC := $(wildcard src/**/*.cpp) Main.cpp
 
 # Convert cpp files into .o files
 OBJ := $(SRC:.cpp=.o)
