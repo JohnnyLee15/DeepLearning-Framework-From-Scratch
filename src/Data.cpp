@@ -4,6 +4,9 @@
 #include <sstream>
 #include <cmath>
 
+random_device Data::rd;
+mt19937 Data::generator(Data::rd());
+
 Data::Data(): isDataLoaded(false) {}
 
 const double Data::MAX_GREYSCALE_VALUE = 255.0;
@@ -16,20 +19,24 @@ void Data::readTest(string filename, int targetIdx) {
     readData(filename, false, targetIdx);
 }
 
-vector<vector<double> > Data::getTrainFeatures() const {
+const vector<vector<double> >& Data::getTrainFeatures() const {
     return trainFeatures;
 }
 
-vector<vector<double> > Data::getTestFeatures() const {
+const vector<vector<double> >& Data::getTestFeatures() const {
     return testFeatures;
 }
 
-vector<double> Data::getTrainTarget() const {
+const vector<double>& Data::getTrainTarget() const {
     return trainTarget;
 }
 
-vector<double> Data::getTestTarget() const {
+const vector<double>& Data::getTestTarget() const {
     return testTarget;
+}
+
+int Data::getTrainFeatureSize() const {
+    return trainFeatures.size();
 }
 
 void Data::checkFile(string filename) {
@@ -157,5 +164,16 @@ void Data::normalizeGreyScale(vector<vector<double> > &features) {
 void Data::minmaxGreyScale() {
     normalizeGreyScale(trainFeatures);
     normalizeGreyScale(testFeatures);
+}
+
+vector<int> Data::generateShuffledIndices() const {
+    vector<int> indices(trainFeatures.size(), -1);
+
+    for (int i = 0; i < trainFeatures.size(); i++) {
+        indices[i] = i;
+    }
+
+    shuffle(indices.begin(), indices.end(), generator);
+    return indices;
 }
 

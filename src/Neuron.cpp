@@ -1,31 +1,26 @@
 #include "Neuron.h"
 #include <cmath>
 #include "Layer.h"
+#include "Activation.h"
 
 using namespace std;
 
 random_device Neuron::rd;
 mt19937 Neuron::generator(Neuron::rd());
-const double Neuron::RELU_BIAS = 0.01;
 
-Neuron::Neuron(int numWeights, bool isOutputNeuron): 
-    weights(numWeights, 0.0), isOutputNeuron(isOutputNeuron)
-{
+Neuron::Neuron(int numWeights, Activation *activation): 
+    weights(numWeights, 0.0) {
     initWeights(numWeights);
-    initBias();
+    bias = activation->initBias();
 }
 
-double Neuron::calActivation(const vector<double> &prevActivations) {
-    double activation = bias;
+double Neuron::calPreActivation(const vector<double> &prevActivations) {
+    double preActivation = bias;
     for (int i = 0; i < weights.size(); i++) {
-        activation += prevActivations[i] * weights[i];
+        preActivation += prevActivations[i] * weights[i];
     }
 
-    if (!isOutputNeuron) {
-        activation = max(0.0, activation);
-    }
-
-    return activation;
+    return preActivation;
 }
 
 void Neuron::initWeights(int numWeights) {
@@ -37,14 +32,6 @@ void Neuron::initWeights(int numWeights) {
     }
 }
 
-void Neuron::initBias() {
-    if (isOutputNeuron) {
-        bias = 0.0;
-    } else {
-        bias = RELU_BIAS;
-    }
-}
-
 void Neuron::updateBias(double delta) {
     bias -= delta;
 }
@@ -53,8 +40,15 @@ int Neuron::getNumWeights() const{
     return weights.size();
 }
 
-void Neuron::updateWeight(int idx, double delta) {
-    weights[idx] -= delta;
+void Neuron::updateWeights(
+    const vector<double> &prevActivations, 
+    double learningRate, 
+    double outputGradient
+) {
+    for (int i = 0; i < weights.size(); i++) {
+        double deltaWeight = learningRate*outputGradient*prevActivations[i];
+        weights[i] -= deltaWeight;
+    }
 }
 
 double Neuron::getWeight(int idx) const{

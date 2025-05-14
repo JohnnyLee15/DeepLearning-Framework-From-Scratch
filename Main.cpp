@@ -5,6 +5,9 @@
 #include "NeuralNet.h"
 #include "Data.h"
 #include <iomanip>
+#include "Relu.h"
+#include "Softmax.h"
+#include "CrossEntropy.h"
 
 using namespace std;
 
@@ -13,10 +16,18 @@ int main() {
     reader.readTrain("mnist_train.csv", 0);
     reader.readTest("mnist_test.csv", 0);
     reader.minmax();
-    NeuralNet nn({784, 16, 8, 10});
-    nn.train(reader.getTrainFeatures(), reader.getTrainTarget(), 0.0004, 0.02, 30);
+
+    CrossEntropy *loss = new CrossEntropy();
+    vector<Activation*> activations = {new Relu(), new Relu(), new Softmax()};
+    vector<int> layerSizes = {784, 16, 8, 10};
+
+    NeuralNet nn(layerSizes, activations, loss);
+
+    nn.train(reader, 0.0004, 0.02, 30);
     double accuracy = nn.test(reader.getTestFeatures(), reader.getTestTarget());
+
     cout << endl << "Test Accuracy: " << fixed << setprecision(2) << (accuracy * 100) << "%" << endl;
+
     return 0;
 }
 

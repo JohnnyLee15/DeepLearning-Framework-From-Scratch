@@ -1,52 +1,76 @@
 #include "Layer.h"
 #include "Neuron.h"
 #include <cmath>
+#include "TrainingUtils.h"
+#include "Activation.h"
 
-Layer::Layer(int numNeurons, int numWeights, bool isOutputLayer): 
-    neurons(numNeurons, Neuron(numWeights, isOutputLayer)),
-    activations(numNeurons, 0) {}
+Layer::Layer(int numNeurons, int numWeights, Activation *activation):
+    activations(numNeurons, 0), activation(activation) {
+
+    for (int i = 0; i < numNeurons; i++) {
+        neurons.push_back(Neuron(numWeights, activation));
+    }
+}
 
 void Layer::calActivations(const vector<double> &prevActivations) {
+    vector<double> preActivations(neurons.size(), 0.0);
     for (int i = 0; i < neurons.size(); i++) {
-        activations[i] = neurons[i].calActivation(prevActivations);
+        preActivations[i] = neurons[i].calPreActivation(prevActivations);
     }
+
+    activations = activation->activate(preActivations);
 }
 
 vector<double> Layer::getActivations() const {
     return activations;
 }
 
+Activation* Layer::getActivation() const {
+    return activation;
+}
+
 int Layer::getNumNeurons() const {
     return neurons.size();
 }
 
-void Layer::updateNeuronBias(double delta, int idx) {
-    neurons[idx].updateBias(delta);
-}
-
-int Layer::getNumNeuronWeights(int idx) const{
-    return neurons[idx].getNumWeights();
-}
-
-void Layer::updateNeuronWeight(int neuronIdx, int weightIdx, double delta) {
-    neurons[neuronIdx].updateWeight(weightIdx, delta);
-}
-
-double Layer::getNeuronActivation(int idx) const{
-    return activations[idx];
-}
-
-double Layer::getNeuronWeight(int neuronIdx, int weightIdx) const{
-    return neurons[neuronIdx].getWeight(weightIdx);
-}
-
-double Layer::getMaxActivation() const {
-    double max = -INFINITY;
-    for (int i = 0; i < activations.size(); i++) {
-        if (activations[i] > max) {
-            max = activations[i];
-        }
+void Layer::updateLayerParameters(
+    const vector<double> &prevActivations,
+    double learningRate,
+    const vector<double> &outputGradient
+) {
+    for (int i = 0; i < neurons.size(); i++) {
+        double deltaBias = outputGradient[i]*learningRate;
+        neurons[i].updateBias(deltaBias);
+        neurons[i].updateWeights(prevActivations, learningRate, outputGradient[i]);
     }
+}
 
-    return max;
+vector<double> Layer::updateOutputGradient(
+    const vector<double> &prevOutputGradient,
+    const vector<double> &prevActivations,
+    Activation *prevActivation
+) {
+    vector<double> outputGradient(prevActivations.size(), 0.0);
+    vector<double> activationGradient = prevActivation->calculateGradient(prevActivations);
+    for (int j = 0; j < prevActivations.size(); j++) {
+        outputGradient[j] = updateOutputDerivative(prevOutputGradient, j) * activationGradient[j];
+
+    }
+    return outputGradient;
+}
+
+double Layer::updateOutputDerivative(
+    const vector<double> &prevOutputGradient,
+    int weightIdx
+) {
+
+    double dz = 0;
+    for (int i = 0; i < neurons.size(); i++) {
+        dz += prevOutputGradient[i]*neurons[i].getWeight(weightIdx);
+    }
+    return TrainingUtils::clipDerivative(dz);
+}
+
+Layer::~Layer() {
+    delete activation;
 }

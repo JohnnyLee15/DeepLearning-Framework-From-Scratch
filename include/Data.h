@@ -1,5 +1,8 @@
+#pragma once
+
 #include <string>
 #include <vector>
+#include <random>
 
 using namespace std;
 
@@ -12,6 +15,11 @@ class Data {
         vector<double> testTarget;
         bool isDataLoaded;
         static const double MAX_GREYSCALE_VALUE;
+
+        // Static Variables
+        static random_device rd;
+        static mt19937 generator;
+
 
         // Private Methods
         void readData(string, bool, int);
@@ -28,10 +36,12 @@ class Data {
         void readTrain(string, int);
         void readTest(string, int);
         // void readAllData(string, int, float);
-        vector<vector<double> > getTrainFeatures() const;
-        vector<vector<double> > getTestFeatures() const;
-        vector<double> getTrainTarget() const;
-        vector<double> getTestTarget() const;
+        const vector<vector<double> >& getTrainFeatures() const;
+        const vector<vector<double> >& getTestFeatures() const;
+        const vector<double>& getTrainTarget() const;
+        const vector<double>& getTestTarget() const;
         void minmax();
         void minmaxGreyScale();
+        int getTrainFeatureSize() const;
+        vector<int> generateShuffledIndices() const;
 };
