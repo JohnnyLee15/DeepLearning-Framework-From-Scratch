@@ -19,8 +19,8 @@ class NeuralNet {
         // Methods
         void backprop(int, double, const vector<double>&);
         void forwardPass(const vector<double>&);
-        double runEpoch(Data, double, vector<int>&, const vector<int>&);
-        vector<double> getPrevActivations(int, const vector<double> &) const;
+        double runEpoch(Data&, double, vector<int>&, const vector<int>&);
+        const vector<double>& getPrevActivations(int, const vector<double> &) const;
 
     public:
         NeuralNet(const vector<int>&, const vector<Activation*>&, CrossEntropy*);

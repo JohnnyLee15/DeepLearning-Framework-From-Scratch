@@ -15,10 +15,10 @@ double Relu::initBias() const {
     return RELU_BIAS;
 }
 
-vector<double> Relu::calculateGradient(const vector<double> &activations) const {
-    vector<double> gradient(activations.size(), 0.0);
-    for (int i = 0; i < activations.size(); i++) {
-        if (activations[i] > 0) {
+vector<double> Relu::calculateGradient(const vector<double> &preActivations) const {
+    vector<double> gradient(preActivations.size(), 0.0);
+    for (int i = 0; i < preActivations.size(); i++) {
+        if (preActivations[i] > 0) {
             gradient[i] = 1;
         } else {
             gradient[i] = 0;

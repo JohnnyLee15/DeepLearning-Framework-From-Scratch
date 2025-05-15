@@ -46,7 +46,7 @@ void NeuralNet::train(
 }
 
 double NeuralNet::runEpoch(
-    Data data,
+    Data &data,
     double learningRate,
     vector<int> &predictions,
     const vector<int> &shuffledIndices
@@ -87,17 +87,18 @@ void NeuralNet::backprop(int label, double learningRate, const vector<double> &i
 
         if (i > 0) {
             Activation *prevActivation = layers[i - 1]->getActivation();
-            outputGradient = layers[i]->updateOutputGradient(outputGradient, prevActivations, prevActivation);
+            vector<double> prevPreActivations = layers[i - 1]->getPreActivations();
+            outputGradient = layers[i]->updateOutputGradient(outputGradient, prevPreActivations, prevActivation);
         }
     }
 }
 
-vector<double> NeuralNet::getPrevActivations(int layerIdx, const vector<double> &inputData) const {
-    vector<double> prevActivations = inputData;
+const vector<double>& NeuralNet::getPrevActivations(int layerIdx, const vector<double> &inputData) const {
+    const vector<double> *prevActivations = &inputData;
     if (layerIdx != 0) {
-        prevActivations = layers[layerIdx-1]->getActivations();
+        prevActivations = &layers[layerIdx-1]->getActivations();
     }
-    return prevActivations;
+    return *prevActivations;
 }
 
 double NeuralNet::test(const vector<vector<double> > &data, const vector<double> &labels) {
