@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include "Neuron.h"
 
 class Activation; 
 
@@ -9,20 +8,30 @@ using namespace std;
 
 class Layer {
     private:
-        vector<Neuron> neurons;
-        vector<double> activations;
-        vector<double> preActivations;
+
+        // Constants
+        static const double HE_INT_GAIN;
+
+        // Instance Variables
+        vector<vector<double> > activations;
+        vector<vector<double> > preActivations;
         Activation *activation;
+        vector<vector<double> > weights;
+        vector<double> biases;
+
+        // Methods
+        vector<vector<double> > getActivationGradientMat(const vector<vector<double> >&, Activation*) const;
+        void initWeights();
+        void initBiases();
 
     public:
         Layer(int, int, Activation*);
         void calActivations(const vector<double>&);
-        const vector<double>& getActivations() const;
-        const vector<double>& getPreActivations() const;
+        void calActivations(const vector<vector<double> >&);
+        const vector<vector<double> > getActivations() const;
+        const vector<vector<double> > getPreActivations() const;
         Activation* getActivation() const;
-        int getNumNeurons() const;
-        void updateLayerParameters(const vector<double>&, double, const vector<double>&);
-        vector<double> updateOutputGradient(const  vector<double>&, const vector<double>&, Activation*);
-        double updateOutputDerivative(const vector<double>&, int);
+        void updateLayerParameters(const vector<vector<double> >&, double, const vector<vector<double> >&);
+        vector<vector<double> > updateOutputGradient(const vector<vector<double> >&, const vector<vector<double> >&, Activation*);
         ~Layer();
 };

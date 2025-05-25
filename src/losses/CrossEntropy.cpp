@@ -1,5 +1,6 @@
 #include "losses/CrossEntropy.h"
 #include "utils/TrainingUtils.h"
+#include <omp.h>
 
 const double CrossEntropy::CROSS_ENTROPY_EPSILON = 1e-10;
 
@@ -8,7 +9,10 @@ double CrossEntropy::calculateLoss(int label, const vector<double> &probabilitie
 }
 
 vector<double> CrossEntropy::calculateGradient(int label, const vector<double> &activations) const {
-    vector<double> gradient(activations.size(), 0.0);
+    int size = activations.size();
+    vector<double> gradient(size, 0.0);
+
+    #pragma omp parallel for
     for (int i = 0; i < activations.size(); i++) {
         if (i == label) {
             gradient[i] = TrainingUtils::clipDerivative(activations[i] - 1);

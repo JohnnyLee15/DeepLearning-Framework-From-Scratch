@@ -27,11 +27,11 @@ const vector<vector<double> >& Data::getTestFeatures() const {
     return testFeatures;
 }
 
-const vector<double>& Data::getTrainTarget() const {
+const vector<int>& Data::getTrainTarget() const {
     return trainTarget;
 }
 
-const vector<double>& Data::getTestTarget() const {
+const vector<int>& Data::getTestTarget() const {
     return testTarget;
 }
 
@@ -50,7 +50,7 @@ void Data::checkFile(string filename) {
 void Data::parseLine(
     string line, 
     vector<vector<double> > &features, 
-    vector<double> &target, 
+    vector<int> &target, 
     int targetIdx
 ) {
 
@@ -60,11 +60,10 @@ void Data::parseLine(
     int i = 0;
     vector<double> sample;
     while(getline(lineParser, token, ',')) {
-        double value = stod(token);
         if (i == targetIdx) {
-            target.push_back(value); 
+            target.push_back(stoi(token)); 
         } else {
-            sample.push_back(value);
+            sample.push_back(stod(token));
         }
         i++;
     }
@@ -74,7 +73,7 @@ void Data::parseLine(
 
 void Data::setData(
     vector<vector<double> > &features, 
-    vector<double> &target,
+    vector<int> &target,
     bool isTrainData
 ) {
 
@@ -93,7 +92,7 @@ void Data::readData(string filename, bool isTrainData, int targetIdx) {
     ifstream file(filename);
     string line;
     vector<vector<double> > features;
-    vector<double> target;
+    vector<int> target;
 
     // Read Header
     getline(file, line);

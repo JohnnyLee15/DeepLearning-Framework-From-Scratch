@@ -3,11 +3,10 @@
 
 const double TrainingUtils::GRADIENT_THRESHOLD = 1.0;
 
-double TrainingUtils::getAccuracy(const vector<double> &labels, const vector<int> &predictions) {
+double TrainingUtils::getAccuracy(const vector<int> &labels, const vector<int> &predictions) {
     double correct = 0;
     for (int i = 0; i < labels.size(); i++) {
-        int label = int (labels[i]);
-        if (label == predictions[i]) {
+        if (labels[i] == predictions[i]) {
             correct++;
         }
     }
@@ -33,3 +32,17 @@ int TrainingUtils::getPrediction(const vector<double> &probabilities) {
     }
     return prediction;
 }
+
+vector<int> TrainingUtils::getPredictions(const vector<vector<double> > &probabilities) {
+    int numPreds = probabilities.size();
+    vector<int> predictions(numPreds);
+
+    #pragma omp parallel for
+    for (int i = 0; i < numPreds; ++i) {
+        predictions[i] = getPrediction(probabilities[i]);
+    }
+
+    return predictions;
+
+}
+

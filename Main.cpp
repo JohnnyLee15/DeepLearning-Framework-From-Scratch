@@ -18,12 +18,12 @@ int main() {
     reader.minmax();
 
     CrossEntropy *loss = new CrossEntropy();
-    vector<Activation*> activations = {new Relu(), new Relu(), new Relu(), new Softmax()};
-    vector<int> layerSizes = {784, 32, 16, 8, 10};
+    vector<Activation*> activations = {new Relu(), new Relu(), new Softmax()};
+    vector<int> layerSizes = {784, 32, 16, 10};
 
     NeuralNet nn(layerSizes, activations, loss);
 
-    nn.train(reader, 0.0004, 0.1, 30);
+    nn.train(reader, 0.01, 0.01, 20, 128);
     double accuracy = nn.test(reader.getTestFeatures(), reader.getTestTarget());
 
     cout << endl << "Test Accuracy: " << fixed << setprecision(2) << (accuracy * 100) << "%" << endl;

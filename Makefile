@@ -1,8 +1,9 @@
 # Compiler
-CXX := clang++
+CXX := /opt/homebrew/opt/llvm/bin/clang++
 
 # Flags
-CXXFLAGS := -std=c++11 -Iinclude -Wall
+CXXFLAGS := -std=c++11 -Iinclude -Wall -fopenmp -I/opt/homebrew/opt/libomp/include
+LDFLAGS := -L/opt/homebrew/opt/libomp/lib -lomp
 
 # CPP files
 SRC := $(wildcard src/**/*.cpp) Main.cpp
@@ -18,7 +19,7 @@ all: $(TARGET)
 
 # Build Main
 $(TARGET) : $(OBJ)
-	$(CXX) $(OBJ) -o $(TARGET)
+	$(CXX) $(OBJ) -o $(TARGET) $(LDFLAGS)
 
 
 # Build object files

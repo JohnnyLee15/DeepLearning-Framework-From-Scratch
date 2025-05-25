@@ -4,6 +4,7 @@
 
 class CrossEntropy;
 class Activation;
+class Batch;
 
 using namespace std;
 
@@ -15,16 +16,19 @@ class NeuralNet {
         vector<Layer*> layers;
         vector<double> avgLosses;
         CrossEntropy *loss;
-        
+
         // Methods
-        void backprop(int, double, const vector<double>&);
-        void forwardPass(const vector<double>&);
-        double runEpoch(Data&, double, vector<int>&, const vector<int>&);
-        const vector<double>& getPrevActivations(int, const vector<double> &) const;
+        void backprop(Batch&, double);
+        void updateOutputGradients(Batch&, int);
+        void forwardPass(Batch&);
+        void forwardPassInference(const vector<vector<double> >&);
+        double runEpoch(Data&, double, vector<int>&, int);
+        double processBatch(Batch&, int, vector<int>&);
+        Batch makeBatch(int, int, const vector<int>&, const vector<int>&, const vector<vector<double> >&) const;
 
     public:
         NeuralNet(const vector<int>&, const vector<Activation*>&, CrossEntropy*);
-        void train(Data, double, double, int);
-        double test(const vector<vector<double> >&, const vector<double>&);
+        void train(Data, double, double, int, int);
+        double test(const vector<vector<double> >&, const vector<int>&);
         ~NeuralNet();
 };
