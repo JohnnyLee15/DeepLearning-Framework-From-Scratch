@@ -33,5 +33,4 @@ class Layer {
         Activation* getActivation() const;
         void updateLayerParameters(const vector<vector<double> >&, double, const vector<vector<double> >&);
         vector<vector<double> > updateOutputGradient(const vector<vector<double> >&, const vector<vector<double> >&, Activation*);
-        ~Layer();
 };

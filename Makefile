@@ -1,31 +1,36 @@
-# Compiler
-CXX := /opt/homebrew/opt/llvm/bin/clang++
+# Detect OS
+UNAME_S := $(shell uname -s)
 
-# Flags
-CXXFLAGS := -std=c++11 -Iinclude -Wall -fopenmp -I/opt/homebrew/opt/libomp/include
-LDFLAGS := -L/opt/homebrew/opt/libomp/lib -lomp
+# Defaults
+CXX := g++
+CXXFLAGS := -std=c++11 -Iinclude -Wall -fopenmp
+LDFLAGS := -fopenmp
+
+# macOS-specific paths (Homebrew LLVM + libomp)
+ifeq ($(UNAME_S), Darwin)
+    CXX := /opt/homebrew/opt/llvm/bin/clang++
+    CXXFLAGS += -I/opt/homebrew/opt/libomp/include
+    LDFLAGS := -L/opt/homebrew/opt/libomp/lib -lomp
+endif
 
 # CPP files
 SRC := $(wildcard src/**/*.cpp) Main.cpp
-
-# Convert cpp files into .o files
 OBJ := $(SRC:.cpp=.o)
-
-# Target
 TARGET := mlp
 
 # Main
 all: $(TARGET)
 
-# Build Main
-$(TARGET) : $(OBJ)
+$(TARGET): $(OBJ)
 	$(CXX) $(OBJ) -o $(TARGET) $(LDFLAGS)
 
-
-# Build object files
-%.o : %.cpp
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Clean object files and mlp
+# Clean
 clean:
+ifeq ($(OS),Windows_NT)
+	del /f /q $(subst /,\,$(TARGET)) $(subst /,\,$(OBJ))
+else
 	rm -f $(TARGET) $(OBJ)
+endif

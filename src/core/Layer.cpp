@@ -112,7 +112,3 @@ vector<vector<double> > Layer::updateOutputGradient(
 
     return gradientsMatrix;
 }
-
-Layer::~Layer() {
-    delete activation;
-}

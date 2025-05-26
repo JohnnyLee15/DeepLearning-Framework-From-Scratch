@@ -23,7 +23,7 @@ int main() {
 
     NeuralNet nn(layerSizes, activations, loss);
 
-    nn.train(reader, 0.01, 0.01, 20, 128);
+    nn.train(reader, 0.01, 0.1, 20, 32);
     double accuracy = nn.test(reader.getTestFeatures(), reader.getTestTarget());
 
     cout << endl << "Test Accuracy: " << fixed << setprecision(2) << (accuracy * 100) << "%" << endl;

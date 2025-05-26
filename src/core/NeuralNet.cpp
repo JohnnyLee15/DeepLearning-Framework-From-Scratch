@@ -8,6 +8,7 @@
 #include "losses/CrossEntropy.h"
 #include "core/Batch.h"
 #include <chrono>
+#include "activations/Activation.h"
 
 using namespace std;
 
@@ -17,11 +18,12 @@ NeuralNet::NeuralNet(
     CrossEntropy *loss
 ) : loss(loss) {
 
+    layers.reserve(neuronsPerLayer.size() - 1);
     for (int i = 1; i < neuronsPerLayer.size() - 1; i++) {
-        layers.push_back(new Layer(neuronsPerLayer[i], neuronsPerLayer[i-1], activations[i-1]));
+        layers.emplace_back(Layer(neuronsPerLayer[i], neuronsPerLayer[i-1], activations[i-1]));
     }
 
-    layers.push_back(new Layer(
+    layers.emplace_back(Layer(
         neuronsPerLayer[neuronsPerLayer.size() - 1], 
         neuronsPerLayer[neuronsPerLayer.size() - 2], 
         activations.back()
@@ -36,13 +38,14 @@ void NeuralNet::train(
     int batchSize
 ) {
     double initialLR = learningRate;
+    avgLosses.resize(numEpochs);
     for (int k = 0; k < numEpochs; k++) {
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
 
         vector<int> predictions(data.getTrainFeatureSize(), -1);
         double avgLoss = runEpoch(data, learningRate, predictions, batchSize);
 
-        avgLosses.push_back(avgLoss);
+        avgLosses[k] = avgLoss;
         learningRate = initialLR/(1 + learningDecay*k);
     }
 }
@@ -106,7 +109,7 @@ double NeuralNet::processBatch(
     vector<int> &predictions
 ) {
     forwardPass(batch);
-    const vector<vector<double> > &probs = layers.back()->getActivations();
+    const vector<vector<double> > &probs = layers.back().getActivations();
 
     batch.calculateOutputGradients(probs, loss);
     batch.writeBatchPredictions(predictions, probs);
@@ -117,28 +120,28 @@ void NeuralNet::forwardPass(Batch &batch) {
     vector<vector<double> > prevActivations = batch.getData();
     batch.addLayerActivations(batch.getData());
     for (int j = 0; j < layers.size(); j++) {
-        layers[j]->calActivations(prevActivations);
-        prevActivations = layers[j]->getActivations();
-        batch.addLayerPreActivations(layers[j]->getPreActivations());
-        batch.addLayerActivations(layers[j]->getActivations());
+        layers[j].calActivations(prevActivations);
+        prevActivations = layers[j].getActivations();
+        batch.addLayerPreActivations(layers[j].getPreActivations());
+        batch.addLayerActivations(layers[j].getActivations());
     }
 }
 
 void NeuralNet::backprop(Batch &batch, double learningRate) {
     for (int i = layers.size() - 1; i >= 0; i--) {
         const vector<vector<double> > &prevActivations = batch.getLayerActivation(i);
-        layers[i]->updateLayerParameters(prevActivations, learningRate, batch.getOutputGradients());
+        layers[i].updateLayerParameters(prevActivations, learningRate, batch.getOutputGradients());
         updateOutputGradients(batch, i);
     }
 }
 
 void NeuralNet::updateOutputGradients(Batch &batch, int currLayer) {
     if (currLayer > 0) {
-        Activation *prevActivation = layers[currLayer - 1]->getActivation();
+        Activation *prevActivation = layers[currLayer - 1].getActivation();
         const vector<vector<double> > &prevPreActivations = batch.getLayerPreActivation(currLayer - 1);
 
         batch.updateOutputGradients(
-            layers[currLayer]->updateOutputGradient(
+            layers[currLayer].updateOutputGradient(
                 batch.getOutputGradients(), 
                 prevPreActivations, 
                 prevActivation
@@ -149,21 +152,21 @@ void NeuralNet::updateOutputGradients(Batch &batch, int currLayer) {
 
 double NeuralNet::test(const vector<vector<double> > &data, const vector<int> &labels) {
     forwardPassInference(data);
-    vector<int> predictions = TrainingUtils::getPredictions(layers.back()->getActivations());
+    vector<int> predictions = TrainingUtils::getPredictions(layers.back().getActivations());
     return TrainingUtils::getAccuracy(labels, predictions);
 }
 
 void NeuralNet::forwardPassInference(const vector<vector<double> >& data) {
     vector<vector<double> > prevActivations = data;
     for (int j = 0; j < layers.size(); j++) {
-        layers[j]->calActivations(prevActivations);
-        prevActivations = layers[j]->getActivations();
+        layers[j].calActivations(prevActivations);
+        prevActivations = layers[j].getActivations();
     }
 }
 
 NeuralNet::~NeuralNet() {
     delete loss;
     for (int i = 0; i < layers.size(); i++) {
-        delete layers[i];
+        delete layers[i].getActivation();
     }
 }

@@ -13,7 +13,7 @@ class Data;
 class NeuralNet {
     private:
         // Instance Variables
-        vector<Layer*> layers;
+        vector<Layer> layers;
         vector<double> avgLosses;
         CrossEntropy *loss;
 
