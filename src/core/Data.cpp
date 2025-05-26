@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 random_device Data::rd;
 mt19937 Data::generator(Data::rd());
