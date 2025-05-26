@@ -3,7 +3,7 @@ UNAME_S := $(shell uname -s)
 
 # Defaults
 CXX := g++
-CXXFLAGS := -std=c++11 -Iinclude -Wall -fopenmp
+CXXFLAGS := -std=c++11 -Iinclude -Wall -fopenmp -O3 -march=native -funroll-loops -ffast-math
 LDFLAGS := -fopenmp
 
 # macOS-specific paths (Homebrew LLVM + libomp)
