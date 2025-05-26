@@ -29,10 +29,10 @@ void Batch::setBatch(
     const vector<vector<double> > &train,
     const vector<int> &trainLabels
 ) {
-    int batchSize = data.size();
+    size_t batchSize = data.size();
 
     #pragma omp parallel for
-    for (int i = 0; i < batchSize; i++) {
+    for (size_t i = 0; i < batchSize; i++) {
         data[i] = train[indices[i]];
         labels[i] = trainLabels[indices[i]];
     }
@@ -42,10 +42,10 @@ void Batch::calculateOutputGradients(
     const vector<vector<double> > &probs,
     CrossEntropy *loss
 ) {
-    int batchSize = data.size();
+    size_t batchSize = data.size();
 
     #pragma omp parallel for
-    for (int i = 0; i < batchSize; i++) {
+    for (size_t i = 0; i < batchSize; i++) {
         outputGradients[i] = loss->calculateGradient(labels[i], probs[i]);
     }
 }
@@ -54,11 +54,11 @@ double Batch::calculateBatchLoss(
     const vector<vector<double> > &probs,
     CrossEntropy *loss
 ) {
-    int batchSize = data.size();
+    size_t batchSize = data.size();
     double batchLoss = 0.0;
 
     #pragma omp parallel for reduction(+:batchLoss)
-    for (int i = 0; i < batchSize; i++) {
+    for (size_t i = 0; i < batchSize; i++) {
         batchLoss += loss->calculateLoss(labels[i], probs[i]);
     }
 
@@ -69,10 +69,10 @@ void Batch::writeBatchPredictions(
     vector<int> &predictions,
     const vector<vector<double> > &probs
 ) const {
-    int batchSize = data.size();
+    size_t batchSize = data.size();
 
     #pragma omp parallel for
-    for (int i = 0; i < batchSize; i++) {
+    for (size_t i = 0; i < batchSize; i++) {
         predictions[indices[i]] = TrainingUtils::getPrediction(probs[i]);
     }
 }
@@ -81,10 +81,10 @@ int Batch::getCorrectPredictions(
     const vector<int> &predictions
 ) const {
     int correct = 0;
-    int batchSize = data.size();
+    size_t batchSize = data.size();
 
     #pragma omp parallel for reduction(+:correct)
-    for (int i = 0; i < batchSize; i++) {
+    for (size_t i = 0; i < batchSize; i++) {
         if (predictions[indices[i]] == labels[i]){ 
             correct++;
         }

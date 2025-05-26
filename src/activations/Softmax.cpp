@@ -6,7 +6,7 @@
 const double Softmax::SOFTMAX_BIAS = 0.0;
 
 vector<double> Softmax::activate(const vector<double> &z) const {
-    int size = z.size();
+    size_t size = z.size();
     vector<double> exps(size, 0.0);
     vector<double> activations(size, 0.0);
 
@@ -14,13 +14,13 @@ vector<double> Softmax::activate(const vector<double> &z) const {
     double maxPreAct = getMaxPreActivation(z);
 
     #pragma omp parallel for reduction(+:totalSum)
-    for (int i = 0; i <  size; i++) {
+    for (size_t i = 0; i < size; i++) {
         exps[i] = exp(z[i] - maxPreAct);
         totalSum += exps[i];
     }
 
     #pragma omp parallel for
-    for (int i = 0; i < z.size(); i++) { 
+    for (size_t i = 0; i < size; i++) { 
         activations[i] = exps[i]/totalSum;
     }
 
@@ -29,9 +29,10 @@ vector<double> Softmax::activate(const vector<double> &z) const {
 
 double Softmax::getMaxPreActivation(const vector<double> &z) const {
     double maxVal = -MatrixUtils::INF;
+    size_t size = z.size();
 
     #pragma omp parallel for reduction(max:maxVal)
-    for (int i = 0; i < z.size(); i++) {
+    for (size_t i = 0; i < size; i++) {
         if (z[i] > maxVal) {
             maxVal = z[i];
         }

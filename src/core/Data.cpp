@@ -37,7 +37,7 @@ const vector<int>& Data::getTestTarget() const {
     return testTarget;
 }
 
-int Data::getTrainFeatureSize() const {
+size_t Data::getTrainFeatureSize() const {
     return trainFeatures.size();
 }
 
@@ -112,11 +112,13 @@ void Data::minmaxNormalizeColumn(
     double maxVal, 
     int colIdx
 ) {
+    size_t size = features.size();
     double range = maxVal - minVal;
+    
     if (range == 0) {
         range = 1.0;
     }
-    for (int i = 0; i < features.size(); i++) {
+    for (size_t i = 0; i < size; i++) {
         features[i][colIdx] = (features[i][colIdx] - minVal) / (range);
     }
 }
@@ -127,9 +129,11 @@ void Data::getMinMaxColumn(
     double &maxVal, 
     int colIdx
 ) {
+    size_t size = features.size();
     minVal = MatrixUtils::INF;
     maxVal = -MatrixUtils::INF;
-    for (int i = 0; i < features.size(); i++) {
+    
+    for (size_t i = 0; i < size; i++) {
         if (features[i][colIdx] < minVal) {
             minVal = features[i][colIdx];
         }
@@ -141,7 +145,9 @@ void Data::getMinMaxColumn(
 
 void Data::minmaxData() {
     double minVal, maxVal;
-    for (int j = 0; j < trainFeatures[0].size(); j++) {
+    size_t numCols = trainFeatures[0].size();
+
+    for (size_t j = 0; j < numCols; j++) {
         getMinMaxColumn(trainFeatures, minVal, maxVal, j);
         minmaxNormalizeColumn(trainFeatures, minVal, maxVal, j);
         minmaxNormalizeColumn(testFeatures, minVal, maxVal, j);
@@ -155,8 +161,11 @@ void Data::minmax() {
 }
 
 void Data::normalizeGreyScale(vector<vector<double> > &features) {
-    for (int i = 0; i < features.size(); i++) {
-        for (int j = 0; j < features[i].size(); j++) {
+    size_t numRows = features.size();
+    for (size_t i = 0; i < numRows; i++) {
+
+        size_t numCols = features[i].size();
+        for (size_t j = 0; j < numCols; j++) {
             features[i][j] /= MAX_GREYSCALE_VALUE;
         }
     }
@@ -168,9 +177,10 @@ void Data::minmaxGreyScale() {
 }
 
 vector<int> Data::generateShuffledIndices() const {
-    vector<int> indices(trainFeatures.size(), -1);
-
-    for (int i = 0; i < trainFeatures.size(); i++) {
+    size_t size = trainFeatures.size();
+    vector<int> indices(size, -1);
+    
+    for (size_t i = 0; i < size; i++) {
         indices[i] = i;
     }
 

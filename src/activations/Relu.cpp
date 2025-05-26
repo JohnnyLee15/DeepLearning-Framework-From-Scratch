@@ -4,10 +4,11 @@
 const double Relu::RELU_BIAS = 0.01;
 
 vector<double> Relu::activate(const vector<double>& z) const{
-    vector<double> activations(z.size(), 0.0);
+    size_t size = z.size();
+    vector<double> activations(size, 0.0);
 
     #pragma omp parallel for
-    for (int i = 0; i < z.size(); i++) {
+    for (size_t i = 0; i < size; i++) {
         activations[i] = max(0.0, z[i]);
     }
     return activations;
@@ -18,10 +19,11 @@ double Relu::initBias() const {
 }
 
 vector<double> Relu::calculateGradient(const vector<double> &preActivations) const {
-    vector<double> gradient(preActivations.size(), 0.0);
-
+    size_t size = preActivations.size();
+    vector<double> gradient(size, 0.0);
+    
     #pragma omp parallel for
-    for (int i = 0; i < preActivations.size(); i++) {
+    for (size_t i = 0; i < size; i++) {
         if (preActivations[i] > 0) {
             gradient[i] = 1;
         } else {

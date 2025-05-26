@@ -41,6 +41,6 @@ class Data {
         const vector<int>& getTestTarget() const;
         void minmax();
         void minmaxGreyScale();
-        int getTrainFeatureSize() const;
+        size_t getTrainFeatureSize() const;
         vector<int> generateShuffledIndices() const;
 };

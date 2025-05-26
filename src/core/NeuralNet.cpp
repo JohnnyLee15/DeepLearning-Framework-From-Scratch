@@ -17,15 +17,16 @@ NeuralNet::NeuralNet(
     const vector<Activation*> &activations,
     CrossEntropy *loss
 ) : loss(loss) {
+    size_t numNeurons = neuronsPerLayer.size();
+    layers.reserve(numNeurons - 1);
 
-    layers.reserve(neuronsPerLayer.size() - 1);
-    for (int i = 1; i < neuronsPerLayer.size() - 1; i++) {
+    for (size_t i = 1; i < numNeurons - 1; i++) {
         layers.emplace_back(Layer(neuronsPerLayer[i], neuronsPerLayer[i-1], activations[i-1]));
     }
 
     layers.emplace_back(Layer(
-        neuronsPerLayer[neuronsPerLayer.size() - 1], 
-        neuronsPerLayer[neuronsPerLayer.size() - 2], 
+        neuronsPerLayer[numNeurons - 1], 
+        neuronsPerLayer[numNeurons - 2], 
         activations.back()
     ));
 }
@@ -118,8 +119,10 @@ double NeuralNet::processBatch(
 
 void NeuralNet::forwardPass(Batch &batch) {
     vector<vector<double> > prevActivations = batch.getData();
+    size_t numLayers = layers.size();
+
     batch.addLayerActivations(batch.getData());
-    for (int j = 0; j < layers.size(); j++) {
+    for (size_t j = 0; j < numLayers; j++) {
         layers[j].calActivations(prevActivations);
         prevActivations = layers[j].getActivations();
         batch.addLayerPreActivations(layers[j].getPreActivations());
@@ -128,7 +131,8 @@ void NeuralNet::forwardPass(Batch &batch) {
 }
 
 void NeuralNet::backprop(Batch &batch, double learningRate) {
-    for (int i = layers.size() - 1; i >= 0; i--) {
+    int numLayers = (int) layers.size();
+    for (int i = numLayers - 1; i >= 0; i--) {
         const vector<vector<double> > &prevActivations = batch.getLayerActivation(i);
         layers[i].updateLayerParameters(prevActivations, learningRate, batch.getOutputGradients());
         updateOutputGradients(batch, i);
@@ -158,7 +162,9 @@ double NeuralNet::test(const vector<vector<double> > &data, const vector<int> &l
 
 void NeuralNet::forwardPassInference(const vector<vector<double> >& data) {
     vector<vector<double> > prevActivations = data;
-    for (int j = 0; j < layers.size(); j++) {
+    size_t numLayers = layers.size();
+    
+    for (size_t j = 0; j < numLayers; j++) {
         layers[j].calActivations(prevActivations);
         prevActivations = layers[j].getActivations();
     }
@@ -166,7 +172,8 @@ void NeuralNet::forwardPassInference(const vector<vector<double> >& data) {
 
 NeuralNet::~NeuralNet() {
     delete loss;
-    for (int i = 0; i < layers.size(); i++) {
+    size_t numLayers = layers.size();
+    for (size_t i = 0; i < numLayers; i++) {
         delete layers[i].getActivation();
     }
 }

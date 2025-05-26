@@ -5,7 +5,9 @@ const double TrainingUtils::GRADIENT_THRESHOLD = 1.0;
 
 double TrainingUtils::getAccuracy(const vector<int> &labels, const vector<int> &predictions) {
     double correct = 0;
-    for (int i = 0; i < labels.size(); i++) {
+    size_t size = labels.size();
+
+    for (size_t i = 0; i < size; i++) {
         if (labels[i] == predictions[i]) {
             correct++;
         }
@@ -24,7 +26,9 @@ double TrainingUtils::clipDerivative(double gradient) {
 int TrainingUtils::getPrediction(const vector<double> &probabilities) {
     int prediction = -1;
     double prob = -1;
-    for (int i = 0; i < probabilities.size(); i++) { 
+    size_t size = probabilities.size();
+
+    for (size_t i = 0; i < size; i++) { 
         if (probabilities[i] > prob) {
             prediction = i;
             prob = probabilities[i];
@@ -34,11 +38,11 @@ int TrainingUtils::getPrediction(const vector<double> &probabilities) {
 }
 
 vector<int> TrainingUtils::getPredictions(const vector<vector<double> > &probabilities) {
-    int numPreds = probabilities.size();
+    size_t numPreds = probabilities.size();
     vector<int> predictions(numPreds);
 
     #pragma omp parallel for
-    for (int i = 0; i < numPreds; ++i) {
+    for (size_t i = 0; i < numPreds; ++i) {
         predictions[i] = getPrediction(probabilities[i]);
     }
 
