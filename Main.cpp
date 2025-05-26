@@ -22,6 +22,7 @@ int main() {
     vector<int> layerSizes = {784, 32, 16, 10};
 
     NeuralNet nn(layerSizes, activations, loss);
+
     nn.train(reader, 0.01, 0.1, 20, 32);
     double accuracy = nn.test(reader.getTestFeatures(), reader.getTestTarget());
 
