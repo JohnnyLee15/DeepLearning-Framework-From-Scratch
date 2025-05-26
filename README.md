@@ -12,11 +12,19 @@ This project is a from-scratch implementation of a Multi-Layer Perceptron (MLP) 
 - Batching support for efficient training
 - Basic data loading utility
 
-## Requirements 🧰
+## Requirements ⚙️
 
 - C++11 or later
 - OpenMP (for parallelization)
 - Standard C++ libraries (no external dependencies)
+
+## Supported Platforms 🖥️
+
+- **macOS** (via Homebrew LLVM + libomp)
+- **Linux** (Ubuntu, Debian, etc.)
+- **Windows via WSL2** (Ubuntu or other Linux distros)
+
+This project is intended for Unix-like environments. Native Windows builds are not supported.
 
 ## Installing OpenMP 🧩
 
@@ -29,16 +37,14 @@ If you're compiling with g++, OpenMP is typically included. To install it manual
     brew install libomp
     ```
 
-- On **Linux (Ubuntu/Debian)**:
+- On **Linux / WSL2 (Ubuntu, Debian, etc.)**:
    ```bash
    sudo apt install libomp-dev
    ```
 
 - On **Windows**:
-  - I recommend using **MinGW-w64**, which includes `g++` with OpenMP support.
-  - You can install it via [MSYS2](https://www.msys2.org/) or the standalone installer.
-  - If you're using **MSVC** (Microsoft Visual Studio), make sure to enable OpenMP by adding the `/openmp` flag in your project settings (Visual Studio IDE) or in the command line if you're using `cl.exe`.
-
+  - Native Windows builds (e.g., MSYS2, MinGW, or Visual Studio) are **not supported**.
+  - Instead, please use [WSL2 (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/) with a Linux distribution like Ubuntu.
 
 ## Data Format 📂
 
@@ -83,7 +89,6 @@ If you're compiling with g++, OpenMP is typically included. To install it manual
 ## Customization 🛠️
 
    You can modify the number of layers, neurons, learning rate, epochs, and batch size in the source code (`Main.cpp`).
-"""
 
 ## License ⚖️ 
 This project is licensed under the MIT License – see the [LICENSE](https://opensource.org/licenses/MIT) file for details.

@@ -29,8 +29,5 @@ $(TARGET): $(OBJ)
 
 # Clean
 clean:
-ifeq ($(OS),Windows_NT)
-	del /f /q $(subst /,\,$(TARGET)) $(subst /,\,$(OBJ))
-else
 	rm -f $(TARGET) $(OBJ)
-endif
+
