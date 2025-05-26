@@ -1,4 +1,5 @@
 #include "core/Data.h"
+#include "utils/MatrixUtils.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -126,8 +127,8 @@ void Data::getMinMaxColumn(
     double &maxVal, 
     int colIdx
 ) {
-    minVal = INFINITY;
-    maxVal = -INFINITY;
+    minVal = MatrixUtils::INF;
+    maxVal = -MatrixUtils::INF;
     for (int i = 0; i < features.size(); i++) {
         if (features[i][colIdx] < minVal) {
             minVal = features[i][colIdx];

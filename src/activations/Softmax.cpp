@@ -1,4 +1,5 @@
 #include "activations/Softmax.h"
+#include "utils/MatrixUtils.h"
 #include <cmath>
 #include <iostream>
 
@@ -27,7 +28,7 @@ vector<double> Softmax::activate(const vector<double> &z) const {
 }
 
 double Softmax::getMaxPreActivation(const vector<double> &z) const {
-    double maxVal = -INFINITY;
+    double maxVal = -MatrixUtils::INF;
 
     #pragma omp parallel for reduction(max:maxVal)
     for (int i = 0; i < z.size(); i++) {

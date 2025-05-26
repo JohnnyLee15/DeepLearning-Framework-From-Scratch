@@ -4,6 +4,10 @@ using namespace std;
 
 class MatrixUtils {
     public:
+        // CONSTANTS
+        static const double INF;
+
+        // Methods
         static vector<double> multMatVec(const vector<vector<double> >&, const vector<double>&);
         static double dot(const vector<double>&, const vector<double>&);
         static void addVecInplace(vector<double>&, const vector<double>&);

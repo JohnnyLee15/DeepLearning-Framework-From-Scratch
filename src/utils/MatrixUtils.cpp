@@ -2,6 +2,8 @@
 #include <cassert>
 #include <omp.h>
 
+const double MatrixUtils::INF = 1e308;
+
 vector<double> MatrixUtils::multMatVec(
     const vector<vector<double> > &mat,
     const vector<double> &vec
