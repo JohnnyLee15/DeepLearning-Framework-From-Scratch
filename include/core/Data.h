@@ -24,11 +24,12 @@ class Data {
         void readData(string, bool, int);
         void minmaxData();
         void minmaxNormalizeColumn(vector<vector<double> >&, double, double, int);
-        void getMinMaxColumn(vector<vector<double> >&, double&, double&, int);
-        void checkFile(string);
-        void parseLine(string, vector<vector<double> >&, vector<int>&, int);
+        void getMinMaxColumn(const vector<vector<double> >&, double&, double&, int);
+        void checkFile(const string&);
+        void parseLine(const string&, vector<double>&, int&, int);
         void setData(vector<vector<double> >&, vector<int>&, bool);
         void normalizeGreyScale(vector<vector<double> >&); 
+        void collectLines(vector<string>&, string);
     
     public:
         Data();

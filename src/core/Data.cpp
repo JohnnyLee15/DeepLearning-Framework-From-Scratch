@@ -5,6 +5,7 @@
 #include <sstream>
 #include <cmath>
 #include <algorithm>
+#include <omp.h>
 
 random_device Data::rd;
 mt19937 Data::generator(Data::rd());
@@ -41,7 +42,7 @@ size_t Data::getTrainFeatureSize() const {
     return trainFeatures.size();
 }
 
-void Data::checkFile(string filename) {
+void Data::checkFile(const string &filename) {
     ifstream file(filename);
     if (!file.is_open()) {
         cout << "Error: Failed to read " << filename << endl;
@@ -50,9 +51,9 @@ void Data::checkFile(string filename) {
 }
 
 void Data::parseLine(
-    string line, 
-    vector<vector<double> > &features, 
-    vector<int> &target, 
+    const string &line, 
+    vector<double> &sampleRow, 
+    int &target, 
     int targetIdx
 ) {
 
@@ -63,14 +64,28 @@ void Data::parseLine(
     vector<double> sample;
     while(getline(lineParser, token, ',')) {
         if (i == targetIdx) {
-            target.push_back(stoi(token)); 
+            target = stoi(token); 
         } else {
             sample.push_back(stod(token));
         }
         i++;
     }
 
-    features.push_back(sample);
+    sampleRow = sample;
+}
+
+void Data::collectLines(
+    vector<string> &lines,
+    string filename
+) {
+    ifstream file(filename);
+    string line;
+
+    // Read Header 
+    getline(file, line);
+    while(getline(file, line)) {
+        lines.push_back(line);
+    }
 }
 
 void Data::setData(
@@ -91,17 +106,18 @@ void Data::setData(
 void Data::readData(string filename, bool isTrainData, int targetIdx) {
     checkFile(filename);
 
-    ifstream file(filename);
-    string line;
-    vector<vector<double> > features;
-    vector<int> target;
+    vector<string> lines;
+    collectLines(lines, filename);
 
-    // Read Header
-    getline(file, line);
-    
-    while(getline(file, line)) {
-        parseLine(line, features, target, targetIdx);
+    size_t numSamples = lines.size();
+    vector<vector<double> > features(numSamples);
+    vector<int> target(numSamples);
+
+    #pragma omp parallel for
+    for (size_t i = 0; i < numSamples; i++) {
+        parseLine(lines[i], features[i], target[i], targetIdx);
     }
+
     setData(features, target, isTrainData);
     isDataLoaded = true;
 }
@@ -118,13 +134,15 @@ void Data::minmaxNormalizeColumn(
     if (range == 0) {
         range = 1.0;
     }
+
+    #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
         features[i][colIdx] = (features[i][colIdx] - minVal) / (range);
     }
 }
 
 void Data::getMinMaxColumn(
-    vector<vector<double> > &features, 
+    const vector<vector<double> > &features, 
     double &minVal, 
     double &maxVal, 
     int colIdx
@@ -133,21 +151,24 @@ void Data::getMinMaxColumn(
     minVal = MatrixUtils::INF;
     maxVal = -MatrixUtils::INF;
     
+    #pragma omp parallel for reduction(min:minVal) reduction(max:maxVal)
     for (size_t i = 0; i < size; i++) {
-        if (features[i][colIdx] < minVal) {
+        double val = features[i][colIdx];
+        if (val < minVal) {
             minVal = features[i][colIdx];
         }
-        if (features[i][colIdx] > maxVal) {
+        if (val > maxVal) {
             maxVal = features[i][colIdx];
         }
     }
 }
 
 void Data::minmaxData() {
-    double minVal, maxVal;
     size_t numCols = trainFeatures[0].size();
 
+    #pragma omp parallel for
     for (size_t j = 0; j < numCols; j++) {
+        double minVal, maxVal;
         getMinMaxColumn(trainFeatures, minVal, maxVal, j);
         minmaxNormalizeColumn(trainFeatures, minVal, maxVal, j);
         minmaxNormalizeColumn(testFeatures, minVal, maxVal, j);
@@ -162,9 +183,10 @@ void Data::minmax() {
 
 void Data::normalizeGreyScale(vector<vector<double> > &features) {
     size_t numRows = features.size();
-    for (size_t i = 0; i < numRows; i++) {
+    size_t numCols = features[0].size();
 
-        size_t numCols = features[i].size();
+    #pragma omp parallel for collapse(2)
+    for (size_t i = 0; i < numRows; i++) {
         for (size_t j = 0; j < numCols; j++) {
             features[i][j] /= MAX_GREYSCALE_VALUE;
         }
