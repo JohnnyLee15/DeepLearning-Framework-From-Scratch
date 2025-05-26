@@ -11,6 +11,7 @@ double CrossEntropy::calculateLoss(int label, const vector<double> &probabilitie
 
 vector<double> CrossEntropy::calculateGradient(int label, const vector<double> &activations) const {
     size_t size = activations.size();
+    size_t label = (size_t) label;
     vector<double> gradient(size, 0.0);
     
     #pragma omp parallel for
