@@ -63,9 +63,12 @@ void Batch::writeBatchPredictions(
     vector<int> &predictions,
     const Matrix &probs
 ) const {
+    size_t numCols = probs.getNumCols();
+    const vector<double> &probsFlat = probs.getFlat();
+    
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
-        predictions[indices[i]] = TrainingUtils::getPrediction(probs, i);
+        predictions[indices[i]] = TrainingUtils::getPrediction(probsFlat, i, numCols);
     }
 }
 

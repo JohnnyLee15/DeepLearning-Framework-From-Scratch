@@ -1,5 +1,5 @@
 #include "activations/Softmax.h"
-#include "utils/MatrixUtils.h"
+#include "utils/VectorUtils.h"
 #include "utils/Matrix.h"
 #include <cmath>
 #include <iostream>
@@ -12,25 +12,29 @@ Matrix Softmax::activate(const Matrix &z) const {
 
     Matrix activations(numRows, numCols);
     vector<double> &activationsFlat = activations.getFlat();
+    const vector<double> &zFlat = z.getFlat();
     
-
     #pragma omp parallel for
-    for (int i = 0; i < numRows; i++) {
-        activateRow(activationsFlat, z, i);
+    for (size_t i = 0; i < numRows; i++) {
+        activateRow(activationsFlat, zFlat, i, numCols);
     }
 
     return activations;
 }
 
-void Softmax::activateRow(vector<double> &activations, const Matrix &z, int row) const {
-    size_t numCols = z.getNumCols();
-    const vector<double> &zFlat = z.getFlat();
+void Softmax::activateRow(
+    vector<double> &activations, 
+    const vector<double> &z, 
+    size_t row,
+    size_t numCols
+) const {
+
     vector<double> exps(numCols, 0.0);
     double totalSum = 0;
-    double maxPreAct = getMaxPreActivation(z, row);
+    double maxPreAct = getMaxPreActivation(z, row, numCols);
 
     for (size_t j = 0; j < numCols; j++) {
-        exps[j] = exp(zFlat[row * numCols + j] - maxPreAct);
+        exps[j] = exp(z[row * numCols + j] - maxPreAct);
         totalSum += exps[j];
     }
 
@@ -39,13 +43,15 @@ void Softmax::activateRow(vector<double> &activations, const Matrix &z, int row)
     }
 }
 
-double Softmax::getMaxPreActivation(const Matrix &z, int row) const {
-    double maxVal = -MatrixUtils::INF;
-    size_t numCols = z.getNumCols();
-    const vector<double> &zFlat = z.getFlat();
+double Softmax::getMaxPreActivation(
+    const vector<double> &z, 
+    size_t row, 
+    size_t numCols
+) const {
+    double maxVal = -VectorUtils::INF;
 
-    for (int j = 0; j < numCols; j++) {
-        double value = zFlat[row * numCols + j];
+    for (size_t j = 0; j < numCols; j++) {
+        double value = z[row * numCols + j];
         if (value > maxVal) {
             maxVal = value;
         }

@@ -3,7 +3,7 @@
 #include <omp.h>
 #include "utils/TrainingUtils.h"
 #include "activations/Activation.h"
-#include "utils/MatrixUtils.h"
+#include "utils/VectorUtils.h"
 #include "utils/MatrixT.h"
 #include <random>
 
@@ -64,10 +64,10 @@ void Layer::updateLayerParameters(
     vector<double> biasGradients = outputGradients.colSums();
 
     weightGradients *= scaleFactor;
-    MatrixUtils::scaleVecInplace(biasGradients, scaleFactor);
+    VectorUtils::scaleVecInplace(biasGradients, scaleFactor);
 
     weights += weightGradients;
-    MatrixUtils::addVecInplace(biases, biasGradients);
+    VectorUtils::addVecInplace(biases, biasGradients);
 }
 
 

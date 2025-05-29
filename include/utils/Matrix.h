@@ -14,16 +14,7 @@ class Matrix {
         size_t numRows;
         size_t numCols;
 
-        // Methods
-        Matrix multMatMatT(const MatrixT&) const;
-
     public:
-        // Constants
-        static const int L2_CACHE_DOUBLES;
-
-        double getValue(size_t, size_t) const;
-        void setValue(size_t, size_t, double);
-        void setValue(size_t, double);
         size_t getNumCols() const;
         size_t getNumRows() const;
 

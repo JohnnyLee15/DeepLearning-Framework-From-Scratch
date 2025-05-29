@@ -1,5 +1,5 @@
 #include "core/Data.h"
-#include "utils/MatrixUtils.h"
+#include "utils/VectorUtils.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -128,7 +128,9 @@ void Data::minmaxNormalizeColumn(
     double maxVal, 
     int colIdx
 ) {
-    size_t size = features.getNumRows();
+    size_t numRows = features.getNumRows();
+    size_t numCols = features.getNumCols();
+    vector<double> &featuresFlat = features.getFlat();
     double range = maxVal - minVal;
     
     if (range == 0.0) {
@@ -136,9 +138,8 @@ void Data::minmaxNormalizeColumn(
     }
 
     #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        double val = (features.getValue(i, colIdx) - minVal) / range;
-        features.setValue(i, colIdx, val);
+    for (size_t i = 0; i < numRows; i++) {
+        featuresFlat[i*numCols + colIdx] = (featuresFlat[i*numCols + colIdx] - minVal) / range;
     }
 }
 
@@ -148,13 +149,15 @@ void Data::getMinMaxColumn(
     double &maxVal, 
     int colIdx
 ) {
-    size_t size = features.getNumRows();
-    minVal = MatrixUtils::INF;
-    maxVal = -MatrixUtils::INF;
+    size_t numRows = features.getNumRows();
+    size_t numCols = features.getNumCols();
+    const vector<double> &featuresFlat = features.getFlat();
+    minVal = VectorUtils::INF;
+    maxVal = -VectorUtils::INF;
     
     #pragma omp parallel for reduction(min:minVal) reduction(max:maxVal)
-    for (size_t i = 0; i < size; i++) {
-        double val = features.getValue(i, colIdx);
+    for (size_t i = 0; i < numRows; i++) {
+        double val = featuresFlat[i*numCols + colIdx];
         if (val < minVal) {
             minVal = val;
         }
@@ -186,10 +189,12 @@ void Data::normalizeGreyScale(Matrix &features) {
     size_t numRows = features.getNumRows();
     size_t numCols = features.getNumCols();
 
+    vector<double> &featuresFlat = features.getFlat();
+
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
         for (size_t j = 0; j < numCols; j++) {
-            features.setValue(i, j, features.getValue(i, j) / MAX_GREYSCALE_VALUE);
+            featuresFlat[i*numCols + j] /= MAX_GREYSCALE_VALUE;
         }
     }
 }

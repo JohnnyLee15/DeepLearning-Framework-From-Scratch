@@ -2,8 +2,6 @@
 #include "utils/MatrixT.h"
 #include <cassert>
 
-const int Matrix::L2_CACHE_DOUBLES = 32768;
-
 Matrix::Matrix(size_t numRows, size_t numCols) : 
     matrix(numRows * numCols), numRows(numRows), numCols(numCols) {}
 
@@ -32,18 +30,6 @@ size_t Matrix::getNumCols() const {
 
 size_t Matrix::getNumRows() const {
     return numRows;
-}
-
-void Matrix::setValue(size_t row, size_t col, double value) {
-    matrix[row * numCols + col] = value;
-}
-
-void Matrix::setValue(size_t idx, double value) {
-    matrix[idx] = value;
-}
-
-double Matrix::getValue(size_t row, size_t col) const {
-    return matrix[row * numCols + col];
 }
 
 const vector<double>& Matrix::getFlat() const {
@@ -76,7 +62,9 @@ Matrix Matrix::operator *(const Matrix &mat2) const {
     return product;
 }
 
-Matrix Matrix::multMatMatT(const MatrixT &mat2) const {
+Matrix Matrix::operator *(const MatrixT &mat2) const {
+    assert(numCols == mat2.getNumRows());
+
     size_t mat2Rows = mat2.getNumRows();
     size_t mat2Cols = mat2.getNumCols();
     Matrix product(numRows, mat2Cols);
@@ -95,16 +83,6 @@ Matrix Matrix::multMatMatT(const MatrixT &mat2) const {
     }
 
     return product;
-}
-
-Matrix Matrix::operator *(const MatrixT &mat2) const {
-    assert(numCols == mat2.getNumRows());
-
-    if (mat2.getNumRows() * mat2.getNumCols() > L2_CACHE_DOUBLES) {
-        return (*this) * mat2.transpose();
-    } 
-    
-    return multMatMatT(mat2);
 }
 
 vector<double> Matrix::operator *(const vector<double> &vec) const {
