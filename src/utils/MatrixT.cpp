@@ -55,7 +55,7 @@ Matrix MatrixT::multMatTMat(const Matrix &mat2) const {
         for (size_t j = 0; j < mat2Cols; j++) {
             double value = 0.0;
             for (size_t k = 0; k < mat2Rows; k++) {
-                value += matrix.getValue(i, k) * mat2.getValue(k, j);
+                value += getValue(i, k) * mat2.getValue(k, j);
             }
             product.setValue(i, j, value);
         }
@@ -75,7 +75,7 @@ Matrix MatrixT::multMatTMatT(const MatrixT &mat2) const {
         for (size_t j = 0; j < mat2Cols; j++) {
             double value = 0.0;
             for (size_t k = 0; k < mat2Rows; k++) {
-                value += matrix.getValue(i, k) * mat2.getValue(k, j);
+                value += getValue(i, k) * mat2.getValue(k, j);
             }
             product.setValue(i, j, value);
         }
