@@ -61,7 +61,7 @@ double NeuralNet::runEpoch(
     int numBatches = (numSamples + batchSize - 1)/batchSize;
 
     const vector<int> &labels = data.getTrainTarget();
-    const vector<vector<double> > &train = data.getTrainFeatures();
+    const Matrix &train = data.getTrainFeatures();
     const vector<int> shuffledIndices = data.generateShuffledIndices();
     
     double totalLoss = 0.0;
@@ -94,7 +94,7 @@ Batch NeuralNet::makeBatch(
     int end,
     const vector<int> &shuffledIndices,
     const vector<int> &labels,
-    const vector<vector<double> > &train
+    const Matrix &train
 ) const {
     int batchSize = end - start;
     Batch batch = Batch(layers.size() + 1, batchSize);
@@ -110,7 +110,7 @@ double NeuralNet::processBatch(
     vector<int> &predictions
 ) {
     forwardPass(batch);
-    const vector<vector<double> > &probs = layers.back().getActivations();
+    const Matrix &probs = layers.back().getActivations();
 
     batch.calculateOutputGradients(probs, loss);
     batch.writeBatchPredictions(predictions, probs);
@@ -118,7 +118,7 @@ double NeuralNet::processBatch(
 }
 
 void NeuralNet::forwardPass(Batch &batch) {
-    vector<vector<double> > prevActivations = batch.getData();
+    Matrix prevActivations = batch.getData();
     size_t numLayers = layers.size();
 
     batch.addLayerActivations(batch.getData());
@@ -133,7 +133,7 @@ void NeuralNet::forwardPass(Batch &batch) {
 void NeuralNet::backprop(Batch &batch, double learningRate) {
     int numLayers = (int) layers.size();
     for (int i = numLayers - 1; i >= 0; i--) {
-        const vector<vector<double> > &prevActivations = batch.getLayerActivation(i);
+        const Matrix &prevActivations = batch.getLayerActivation(i);
         layers[i].updateLayerParameters(prevActivations, learningRate, batch.getOutputGradients());
         updateOutputGradients(batch, i);
     }
@@ -142,7 +142,7 @@ void NeuralNet::backprop(Batch &batch, double learningRate) {
 void NeuralNet::updateOutputGradients(Batch &batch, int currLayer) {
     if (currLayer > 0) {
         Activation *prevActivation = layers[currLayer - 1].getActivation();
-        const vector<vector<double> > &prevPreActivations = batch.getLayerPreActivation(currLayer - 1);
+        const Matrix &prevPreActivations = batch.getLayerPreActivation(currLayer - 1);
 
         batch.updateOutputGradients(
             layers[currLayer].updateOutputGradient(
@@ -154,14 +154,14 @@ void NeuralNet::updateOutputGradients(Batch &batch, int currLayer) {
     }
 }
 
-double NeuralNet::test(const vector<vector<double> > &data, const vector<int> &labels) {
+double NeuralNet::test(const Matrix &data, const vector<int> &labels) {
     forwardPassInference(data);
     vector<int> predictions = TrainingUtils::getPredictions(layers.back().getActivations());
     return TrainingUtils::getAccuracy(labels, predictions);
 }
 
-void NeuralNet::forwardPassInference(const vector<vector<double> >& data) {
-    vector<vector<double> > prevActivations = data;
+void NeuralNet::forwardPassInference(const Matrix& data) {
+    Matrix prevActivations = data;
     size_t numLayers = layers.size();
     
     for (size_t j = 0; j < numLayers; j++) {

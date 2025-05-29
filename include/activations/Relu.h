@@ -7,7 +7,7 @@ class Relu : public Activation {
         static const double RELU_BIAS;
     
     public:
-        vector<double> activate(const vector<double>&) const override;
-        vector<double> calculateGradient(const vector<double>&) const override;
-        double initBias() const override;
+        Matrix activate(const Matrix&) const override;
+        Matrix calculateGradient(const Matrix&) const override;
+        vector<double> initBias(size_t) const override;
 };

@@ -1,5 +1,6 @@
 #include "utils/TrainingUtils.h"
 #include <cmath>
+#include "utils/Matrix.h"
 
 const double TrainingUtils::GRADIENT_THRESHOLD = 1.0;
 
@@ -23,30 +24,36 @@ double TrainingUtils::clipDerivative(double gradient) {
     return clip;
 }
 
-int TrainingUtils::getPrediction(const vector<double> &probabilities) {
+int TrainingUtils::getPrediction(
+    const vector<double> &probsFlat,
+    size_t row,
+    size_t numCols
+) {
     int prediction = -1;
-    double prob = -1;
-    size_t size = probabilities.size();
+    double maxProb = -1;
 
-    for (size_t i = 0; i < size; i++) { 
-        if (probabilities[i] > prob) {
-            prediction = i;
-            prob = probabilities[i];
+    for (size_t j = 0; j < numCols; j++) {
+        double prob = probsFlat[row * numCols + j];
+        if (prob > maxProb) {
+            prediction = (int) j;
+            maxProb = prob;
         }
     }
+
     return prediction;
 }
 
-vector<int> TrainingUtils::getPredictions(const vector<vector<double> > &probabilities) {
-    size_t numPreds = probabilities.size();
-    vector<int> predictions(numPreds);
+vector<int> TrainingUtils::getPredictions(const Matrix &probs) {
+    size_t numRows = probs.getNumRows();
+    size_t numCols = probs.getNumCols();
+    vector<int> predictions(numRows);
+    const vector<double> &probsFlat = probs.getFlat();
 
     #pragma omp parallel for
-    for (size_t i = 0; i < numPreds; ++i) {
-        predictions[i] = getPrediction(probabilities[i]);
+    for (size_t i = 0; i < numRows; i++) {
+        predictions[i] = getPrediction(probsFlat, i, numCols);
     }
 
     return predictions;
-
 }
 

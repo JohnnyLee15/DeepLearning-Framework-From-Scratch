@@ -3,15 +3,16 @@
 #include <string>
 #include <vector>
 #include <random>
+#include "utils/Matrix.h"
 
 using namespace std;
 
 class Data {
     private:
         // Instances Variables
-        vector<vector<double> > trainFeatures;
+        Matrix trainFeatures;
         vector<int> trainTarget;
-        vector<vector<double> > testFeatures;
+        Matrix testFeatures;
         vector<int> testTarget;
         bool isDataLoaded;
         static const double MAX_GREYSCALE_VALUE;
@@ -23,12 +24,12 @@ class Data {
         // Private Methods
         void readData(string, bool, int);
         void minmaxData();
-        void minmaxNormalizeColumn(vector<vector<double> >&, double, double, int);
-        void getMinMaxColumn(const vector<vector<double> >&, double&, double&, int);
+        void minmaxNormalizeColumn(Matrix&, double, double, int);
+        void getMinMaxColumn(const Matrix&, double&, double&, int);
         void checkFile(const string&);
         void parseLine(const string&, vector<double>&, int&, int);
-        void setData(vector<vector<double> >&, vector<int>&, bool);
-        void normalizeGreyScale(vector<vector<double> >&); 
+        void setData(const Matrix&, vector<int>&, bool);
+        void normalizeGreyScale(Matrix&); 
         void collectLines(vector<string>&, string);
     
     public:
@@ -36,8 +37,8 @@ class Data {
         void readTrain(string, int);
         void readTest(string, int);
         // void readAllData(string, int, float);
-        const vector<vector<double> >& getTrainFeatures() const;
-        const vector<vector<double> >& getTestFeatures() const;
+        const Matrix& getTrainFeatures() const;
+        const Matrix& getTestFeatures() const;
         const vector<int>& getTrainTarget() const;
         const vector<int>& getTestTarget() const;
         void minmax();

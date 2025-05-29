@@ -8,6 +8,7 @@
 #include "activations/Relu.h"
 #include "activations/Softmax.h"
 #include "losses/CrossEntropy.h"
+#include <omp.h>
 
 using namespace std;
 
@@ -19,8 +20,8 @@ int main() {
 
     CrossEntropy *loss = new CrossEntropy();
     vector<Activation*> activations = {new Relu(), new Relu(), new Softmax()};
-    vector<int> layerSizes = {784, 16, 8, 10};
 
+    vector<int> layerSizes = {784, 256, 128, 10};
     NeuralNet nn(layerSizes, activations, loss);
 
     nn.train(reader, 0.01, 0.1, 20, 32);

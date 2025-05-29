@@ -21,14 +21,14 @@ class NeuralNet {
         void backprop(Batch&, double);
         void updateOutputGradients(Batch&, int);
         void forwardPass(Batch&);
-        void forwardPassInference(const vector<vector<double> >&);
+        void forwardPassInference(const Matrix&);
         double runEpoch(Data&, double, vector<int>&, int);
         double processBatch(Batch&, int, vector<int>&);
-        Batch makeBatch(int, int, const vector<int>&, const vector<int>&, const vector<vector<double> >&) const;
+        Batch makeBatch(int, int, const vector<int>&, const vector<int>&, const Matrix&) const;
 
     public:
         NeuralNet(const vector<int>&, const vector<Activation*>&, CrossEntropy*);
         void train(Data, double, double, int, int);
-        double test(const vector<vector<double> >&, const vector<int>&);
+        double test(const Matrix&, const vector<int>&);
         ~NeuralNet();
 };
