@@ -22,7 +22,7 @@ void ConsoleUtils::printProgressBar(int currentSample, int totalSamples, double 
         }
     }
 
-    cout << "| Accuracy: " << fixed << setprecision(2) << (accuracy) << "% | Avg Loss: " << avgLoss << " | ETA: " << timeElapsed  <<"s\r";
+    cout << "| Accuracy: " << fixed << setprecision(2) << (accuracy) << "% | Avg Loss: " << avgLoss << " | Elapsed: " << timeElapsed  <<"s\r";
     cout << defaultfloat << setprecision(6);
 
     if (currentSample == totalSamples) {
