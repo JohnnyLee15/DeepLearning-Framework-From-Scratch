@@ -17,8 +17,8 @@ Matrix::Matrix(const vector<vector<double> > &mat) : numRows(mat.size()) {
     matrix = vector<double>(numRows * numCols);
 
     #pragma omp parallel for collapse(2)
-    for (int i = 0; i < numRows; i++) {
-        for (int j = 0; j < numCols; j++) {
+    for (size_t i = 0; i < numRows; i++) {
+        for (size_t j = 0; j < numCols; j++) {
             matrix[i * numCols + j] = mat[i][j];
         }
     }

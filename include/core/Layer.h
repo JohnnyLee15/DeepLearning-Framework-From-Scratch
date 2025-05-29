@@ -27,7 +27,6 @@ class Layer {
 
     public:
         Layer(int, int, Activation*);
-        void calActivations(const vector<double>&);
         void calActivations(const Matrix&);
         const Matrix getActivations() const;
         const Matrix getPreActivations() const;
