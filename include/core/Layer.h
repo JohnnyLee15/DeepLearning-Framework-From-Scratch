@@ -21,8 +21,8 @@ class Layer {
         vector<double> biases;
 
         // Methods
-        Matrix getActivationGradientMat(const Matrix&, Activation*) const;
         void initWeights(size_t, size_t);
+        vector<uint32_t> generateThreadSeeds() const;
 
     public:
         Layer(int, int, Activation*);

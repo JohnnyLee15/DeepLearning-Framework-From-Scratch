@@ -16,15 +16,28 @@ Layer::Layer(int numNeurons, int numWeights, Activation *activation) :
     biases = activation->initBias(numNeurons);
 }
 
+vector<uint32_t> Layer::generateThreadSeeds() const {
+    size_t numSeeds = omp_get_max_threads();
+    vector<uint32_t> seeds(numSeeds);
+    random_device rd;
+    for (size_t i = 0; i < numSeeds; i++) {
+        seeds[i] = rd();
+    }
+
+    return seeds;
+}
+
 void Layer::initWeights(size_t numRows, size_t numCols) {
     size_t size = numRows * numCols;
     double std = sqrt(HE_INT_GAIN/numCols);
     vector<double> &weightsFlat = weights.getFlat();
 
+    vector<uint32_t> seeds = generateThreadSeeds();
+
     #pragma omp parallel
     {
-        random_device rd;
-        mt19937 generator(rd() + omp_get_thread_num());
+        int thread = omp_get_thread_num();
+        mt19937 generator(seeds[thread]);
         normal_distribution<double> distribution(0, std);
 
         #pragma omp for
