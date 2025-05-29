@@ -24,7 +24,7 @@ int main() {
     vector<int> layerSizes = {784, 256, 128, 10};
     NeuralNet nn(layerSizes, activations, loss);
 
-    nn.train(reader, 0.01, 0.1, 20, 32);
+    nn.train(reader, 0.01, 0.05, 20, 32);
     double accuracy = nn.test(reader.getTestFeatures(), reader.getTestTarget());
 
     cout << endl << "Test Accuracy: " << fixed << setprecision(2) << (accuracy * 100) << "%" << endl;
