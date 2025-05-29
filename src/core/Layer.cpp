@@ -31,7 +31,6 @@ void Layer::initWeights(size_t numRows, size_t numCols) {
     size_t size = numRows * numCols;
     double std = sqrt(HE_INT_GAIN/numCols);
     vector<double> &weightsFlat = weights.getFlat();
-
     vector<uint32_t> seeds = generateThreadSeeds();
 
     #pragma omp parallel
