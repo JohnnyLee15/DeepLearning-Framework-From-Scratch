@@ -11,10 +11,11 @@ Matrix Relu::activate(const Matrix& z) const{
     const vector<double> &zFlat = z.getFlat();
 
     Matrix activations(numRows, numCols);
+    vector<double> &activationsFlat = activations.getFlat();
     
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        activations.setValue(i, max(0.0, zFlat[i]));
+        activationsFlat[i] = max(0.0, zFlat[i]);
     }
     return activations;
 }
@@ -36,13 +37,14 @@ Matrix Relu::calculateGradient(const Matrix &preActivations) const {
     const vector<double> &preFlat = preActivations.getFlat();
 
     Matrix gradients(numRows, numCols);
+    vector<double> &gradientsFlat = gradients.getFlat();
     
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
         if (preFlat[i] > 0) {
-            gradients.setValue(i, 1);
+            gradientsFlat[i] = 1;
         } else {
-            gradients.setValue(i, 0);
+            gradientsFlat[i] = 0;
         }
     }
     return gradients;

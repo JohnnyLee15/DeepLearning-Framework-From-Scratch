@@ -39,6 +39,7 @@ class Matrix {
         Matrix& operator += (const Matrix&);
 
         const vector<double>& getFlat() const;
+        vector<double>& getFlat();
 
         MatrixT T() const;
         vector<double> colSums() const;

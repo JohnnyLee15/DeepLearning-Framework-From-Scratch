@@ -31,12 +31,14 @@ void Batch::setBatch(
     size_t trainCols = train.getNumCols();
 
     data = Matrix(batchSize, trainCols);
+    vector<double> &batchFlat = data.getFlat();
+    const vector<double> &trainFlat = train.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
         int rdIdx = indices[i];
         for (size_t j = 0; j < trainCols; j++) {
-            data.setValue(i, j, train.getValue(rdIdx, j));
+            batchFlat[i*trainCols + j] = trainFlat[rdIdx * trainCols + j];
         }
 
         labels[i] = trainLabels[rdIdx];

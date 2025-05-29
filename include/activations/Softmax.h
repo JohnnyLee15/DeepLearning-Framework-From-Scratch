@@ -5,7 +5,7 @@
 class Softmax : public Activation {
     public:
         double getMaxPreActivation(const Matrix&, int) const;
-        void activateRow(Matrix&, const Matrix&, int) const;
+        void activateRow(vector<double>&, const Matrix&, int) const;
         static const double SOFTMAX_BIAS;
 
     public:

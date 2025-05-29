@@ -19,6 +19,7 @@ Layer::Layer(int numNeurons, int numWeights, Activation *activation) :
 void Layer::initWeights(size_t numRows, size_t numCols) {
     size_t size = numRows * numCols;
     double std = sqrt(HE_INT_GAIN/numCols);
+    vector<double> &weightsFlat = weights.getFlat();
 
     #pragma omp parallel
     {
@@ -28,7 +29,7 @@ void Layer::initWeights(size_t numRows, size_t numCols) {
 
         #pragma omp for
         for (size_t i = 0; i < size; i++) {
-            weights.setValue(i, distribution(generator));
+            weightsFlat[i] = distribution(generator);
         }
     }
 }

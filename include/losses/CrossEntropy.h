@@ -8,7 +8,7 @@ using namespace std;
 class CrossEntropy {
     private:
         static const double CROSS_ENTROPY_EPSILON;
-        double calculateDerivative(const Matrix&, size_t, size_t, size_t) const;
+        double calculateDerivative(double, size_t, size_t) const;
 
     public:
         double calculateLoss(const vector<int>&, const Matrix&) const;    

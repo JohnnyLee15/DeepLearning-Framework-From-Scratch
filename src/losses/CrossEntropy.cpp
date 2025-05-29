@@ -9,28 +9,30 @@ double CrossEntropy::calculateLoss(
     const vector<int> &labels,
     const Matrix &probs
 ) const {
-    size_t size = probs.getNumRows();
+    size_t numRows = probs.getNumRows();
+    size_t numCols = probs.getNumCols();
+
     double totalLoss = 0.0;
+    const vector<double> &probsFlat = probs.getFlat();
 
     #pragma omp parallel for reduction(+:totalLoss)
-    for (size_t i = 0; i < size; i++) {
-        totalLoss += -log(max(CROSS_ENTROPY_EPSILON, probs.getValue(i, labels[i])));
+    for (size_t i = 0; i < numRows; i++) {
+        totalLoss += -log(max(CROSS_ENTROPY_EPSILON, probsFlat[i * numCols + labels[i]]));
     }
 
     return totalLoss;
 }
 
 double CrossEntropy::calculateDerivative(
-    const Matrix &activations,
-    size_t row,
+    double prob,
     size_t col,
     size_t labelIdx
 ) const {
     double value;
     if (col == labelIdx) {
-        value = TrainingUtils::clipDerivative(activations.getValue(row, col) - 1);
+        value = TrainingUtils::clipDerivative(prob - 1);
     } else {
-        value = TrainingUtils::clipDerivative(activations.getValue(row, col));
+        value = TrainingUtils::clipDerivative(prob);
     }
 
     return value;
@@ -44,12 +46,14 @@ Matrix CrossEntropy::calculateGradient(
     size_t numCols = activations.getNumCols();
 
     Matrix gradients(numRows, numCols);
+    vector<double> &gradientsFlat = gradients.getFlat();
+    const vector<double> &activationsFlat = activations.getFlat();
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
         for (size_t j = 0; j < numCols; j++) {
             size_t labelIdx = (size_t) labels[i];
-            gradients.setValue(i, j, calculateDerivative(activations, i, j, labelIdx));
+            gradientsFlat[i * numCols + j] = calculateDerivative(activationsFlat[i * numCols + j], j, labelIdx);
         }
     }
     

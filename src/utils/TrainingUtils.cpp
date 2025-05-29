@@ -29,11 +29,12 @@ int TrainingUtils::getPrediction(
     size_t row
 ) {
     size_t numChoices = probs.getNumCols();
+    const vector<double> &probsFlat = probs.getFlat();
     int prediction = -1;
     double maxProb = -1;
 
     for (size_t j = 0; j < numChoices; j++) {
-        double prob = probs.getValue(row, j);
+        double prob = probsFlat[row * numChoices + j];
         if (prob > maxProb) {
             prediction = (int) j;
             maxProb = prob;

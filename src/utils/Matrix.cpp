@@ -50,6 +50,10 @@ const vector<double>& Matrix::getFlat() const {
     return matrix;
 }
 
+vector<double>& Matrix::getFlat() {
+    return matrix;
+}
+
 Matrix Matrix::operator *(const Matrix &mat2) const {
     assert(numCols == mat2.numRows);
 
@@ -77,12 +81,14 @@ Matrix Matrix::multMatMatT(const MatrixT &mat2) const {
     size_t mat2Cols = mat2.getNumCols();
     Matrix product(numRows, mat2Cols);
 
+    const vector<double> &mat2Flat = mat2.getFlat();
+
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
         for (size_t j = 0; j < mat2Cols; j++) {
             double value = 0.0;
             for (size_t k = 0; k < mat2Rows; k++) {
-                value += matrix[i * numCols + k] * mat2.getValue(k, j);
+                value += matrix[i * numCols + k] * mat2Flat[j * mat2Rows+ k];
             }
             product.matrix[i * mat2Cols + j] = value;
         }
