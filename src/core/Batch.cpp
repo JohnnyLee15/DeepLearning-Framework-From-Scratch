@@ -4,11 +4,10 @@
 #include "utils/TrainingUtils.h"
 
 Batch::Batch(int numLayers, int batchSize) :
-    outputGradients(batchSize),
+    batchSize(batchSize),
     layerActivations(numLayers),
     layerPreActivations(numLayers),
     indices(batchSize),
-    data(batchSize),
     labels(batchSize),
     writeActivationIdx(0),
     writePreActivationIdx(0) 
@@ -26,54 +25,45 @@ void Batch::setBatchIndices(
 }
 
 void Batch::setBatch(
-    const vector<vector<double> > &train,
+    const Matrix &train,
     const vector<int> &trainLabels
 ) {
-    size_t batchSize = data.size();
+    size_t trainCols = train.getNumCols();
+
+    data = Matrix(batchSize, trainCols);
 
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
-        data[i] = train[indices[i]];
-        labels[i] = trainLabels[indices[i]];
+        int rdIdx = indices[i];
+        for (size_t j = 0; j < trainCols; j++) {
+            data.setValue(i, j, train.getValue(rdIdx, j));
+        }
+
+        labels[i] = trainLabels[rdIdx];
     }
 }
 
 void Batch::calculateOutputGradients(
-    const vector<vector<double> > &probs,
+    const Matrix &probs,
     CrossEntropy *loss
 ) {
-    size_t batchSize = data.size();
-
-    #pragma omp parallel for
-    for (size_t i = 0; i < batchSize; i++) {
-        outputGradients[i] = loss->calculateGradient(labels[i], probs[i]);
-    }
+    outputGradients = loss->calculateGradient(labels, probs);
 }
 
 double Batch::calculateBatchLoss(
-    const vector<vector<double> > &probs,
+    const Matrix &probs,
     CrossEntropy *loss
 ) {
-    size_t batchSize = data.size();
-    double batchLoss = 0.0;
-
-    #pragma omp parallel for reduction(+:batchLoss)
-    for (size_t i = 0; i < batchSize; i++) {
-        batchLoss += loss->calculateLoss(labels[i], probs[i]);
-    }
-
-    return batchLoss;
+    return loss->calculateLoss(labels, probs);
 }
 
 void Batch::writeBatchPredictions(
     vector<int> &predictions,
-    const vector<vector<double> > &probs
+    const Matrix &probs
 ) const {
-    size_t batchSize = data.size();
-
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
-        predictions[indices[i]] = TrainingUtils::getPrediction(probs[i]);
+        predictions[indices[i]] = TrainingUtils::getPrediction(probs, i);
     }
 }
 
@@ -81,7 +71,7 @@ int Batch::getCorrectPredictions(
     const vector<int> &predictions
 ) const {
     int correct = 0;
-    size_t batchSize = data.size();
+    size_t batchSize = data.getNumRows();
 
     #pragma omp parallel for reduction(+:correct)
     for (size_t i = 0; i < batchSize; i++) {
@@ -93,35 +83,35 @@ int Batch::getCorrectPredictions(
     return correct;
 }
 
-const vector<vector<double> >& Batch::getData() const {
+const Matrix& Batch::getData() const {
     return data;
 }
 
 void Batch::addLayerActivations(
-    const vector<vector<double> > &activations
+    const Matrix &activations
 ) {
     layerActivations[writeActivationIdx++] = activations;
 }
 
 void Batch::addLayerPreActivations(
-    const vector<vector<double> > &preActivations
+    const Matrix &preActivations
 ) {
     layerPreActivations[writePreActivationIdx++] = preActivations;
 }
 
-const vector<vector<double> >& Batch::getLayerActivation(int idx) const {
+const Matrix& Batch::getLayerActivation(int idx) const {
     return layerActivations[idx];
 }
 
-const vector<vector<double> >& Batch::getLayerPreActivation(int idx) const {
+const Matrix& Batch::getLayerPreActivation(int idx) const {
     return layerPreActivations[idx];
 }
 
-const vector<vector<double> >& Batch::getOutputGradients() const {
+const Matrix& Batch::getOutputGradients() const {
     return outputGradients;
 }
 
-void Batch::updateOutputGradients(const vector<vector<double> > &newOutputGradients) {
+void Batch::updateOutputGradients(const Matrix &newOutputGradients) {
     outputGradients = newOutputGradients;
 }
 

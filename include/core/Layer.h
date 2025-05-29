@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "utils/Matrix.h"
 
 class Activation; 
 
@@ -13,24 +14,23 @@ class Layer {
         static const double HE_INT_GAIN;
 
         // Instance Variables
-        vector<vector<double> > activations;
-        vector<vector<double> > preActivations;
+        Matrix activations;
+        Matrix preActivations;
         Activation *activation;
-        vector<vector<double> > weights;
+        Matrix weights;
         vector<double> biases;
 
         // Methods
-        vector<vector<double> > getActivationGradientMat(const vector<vector<double> >&, Activation*) const;
-        void initWeights();
-        void initBiases();
+        Matrix getActivationGradientMat(const Matrix&, Activation*) const;
+        void initWeights(size_t, size_t);
 
     public:
         Layer(int, int, Activation*);
         void calActivations(const vector<double>&);
-        void calActivations(const vector<vector<double> >&);
-        const vector<vector<double> > getActivations() const;
-        const vector<vector<double> > getPreActivations() const;
+        void calActivations(const Matrix&);
+        const Matrix getActivations() const;
+        const Matrix getPreActivations() const;
         Activation* getActivation() const;
-        void updateLayerParameters(const vector<vector<double> >&, double, const vector<vector<double> >&);
-        vector<vector<double> > updateOutputGradient(const vector<vector<double> >&, const vector<vector<double> >&, Activation*);
+        void updateLayerParameters(const Matrix&, double, const Matrix&);
+        Matrix updateOutputGradient(const Matrix&, const Matrix&, Activation*);
 };

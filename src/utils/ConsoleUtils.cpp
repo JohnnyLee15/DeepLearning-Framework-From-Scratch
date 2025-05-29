@@ -13,7 +13,7 @@ void ConsoleUtils::printProgressBar(int currentSample, int totalSamples, double 
     int progressChar = (int) (progress * PROGRESS_BAR_LENGTH);
     int sampleWidth = to_string(totalSamples).length();
 
-    cout << setw(sampleWidth) << currentSample << "/" << totalSamples << " |";
+    cout << "\r\033[K" << setw(sampleWidth) << currentSample << "/" << totalSamples << " |";
     for (int i = 0; i < PROGRESS_BAR_LENGTH; i++) {
         if (i <= progressChar) {
             cout << GREEN << FILLED << RESET_COLOUR;

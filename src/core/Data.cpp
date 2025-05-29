@@ -22,11 +22,11 @@ void Data::readTest(string filename, int targetIdx) {
     readData(filename, false, targetIdx);
 }
 
-const vector<vector<double> >& Data::getTrainFeatures() const {
+const Matrix& Data::getTrainFeatures() const {
     return trainFeatures;
 }
 
-const vector<vector<double> >& Data::getTestFeatures() const {
+const Matrix& Data::getTestFeatures() const {
     return testFeatures;
 }
 
@@ -39,7 +39,7 @@ const vector<int>& Data::getTestTarget() const {
 }
 
 size_t Data::getTrainFeatureSize() const {
-    return trainFeatures.size();
+    return trainFeatures.getNumRows();
 }
 
 void Data::checkFile(const string &filename) {
@@ -89,7 +89,7 @@ void Data::collectLines(
 }
 
 void Data::setData(
-    vector<vector<double> > &features, 
+    const Matrix &features, 
     vector<int> &target,
     bool isTrainData
 ) {
@@ -118,53 +118,54 @@ void Data::readData(string filename, bool isTrainData, int targetIdx) {
         parseLine(lines[i], features[i], target[i], targetIdx);
     }
 
-    setData(features, target, isTrainData);
+    setData(Matrix(features), target, isTrainData);
     isDataLoaded = true;
 }
 
 void Data::minmaxNormalizeColumn(
-    vector<vector<double> > &features, 
+    Matrix &features, 
     double minVal, 
     double maxVal, 
     int colIdx
 ) {
-    size_t size = features.size();
+    size_t size = features.getNumRows();
     double range = maxVal - minVal;
     
-    if (range == 0) {
+    if (range == 0.0) {
         range = 1.0;
     }
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        features[i][colIdx] = (features[i][colIdx] - minVal) / (range);
+        double val = (features.getValue(i, colIdx) - minVal) / range;
+        features.setValue(i, colIdx, val);
     }
 }
 
 void Data::getMinMaxColumn(
-    const vector<vector<double> > &features, 
+    const Matrix &features, 
     double &minVal, 
     double &maxVal, 
     int colIdx
 ) {
-    size_t size = features.size();
+    size_t size = features.getNumRows();
     minVal = MatrixUtils::INF;
     maxVal = -MatrixUtils::INF;
     
     #pragma omp parallel for reduction(min:minVal) reduction(max:maxVal)
     for (size_t i = 0; i < size; i++) {
-        double val = features[i][colIdx];
+        double val = features.getValue(i, colIdx);
         if (val < minVal) {
-            minVal = features[i][colIdx];
+            minVal = val;
         }
         if (val > maxVal) {
-            maxVal = features[i][colIdx];
+            maxVal = val;
         }
     }
 }
 
 void Data::minmaxData() {
-    size_t numCols = trainFeatures[0].size();
+    size_t numCols = trainFeatures.getNumCols();
 
     #pragma omp parallel for
     for (size_t j = 0; j < numCols; j++) {
@@ -181,14 +182,14 @@ void Data::minmax() {
     }
 }
 
-void Data::normalizeGreyScale(vector<vector<double> > &features) {
-    size_t numRows = features.size();
-    size_t numCols = features[0].size();
+void Data::normalizeGreyScale(Matrix &features) {
+    size_t numRows = features.getNumRows();
+    size_t numCols = features.getNumCols();
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
         for (size_t j = 0; j < numCols; j++) {
-            features[i][j] /= MAX_GREYSCALE_VALUE;
+            features.setValue(i, j, features.getValue(i, j) / MAX_GREYSCALE_VALUE);
         }
     }
 }
@@ -199,7 +200,7 @@ void Data::minmaxGreyScale() {
 }
 
 vector<int> Data::generateShuffledIndices() const {
-    size_t size = trainFeatures.size();
+    size_t size = trainFeatures.getNumRows();
     vector<int> indices(size, -1);
     
     for (size_t i = 0; i < size; i++) {

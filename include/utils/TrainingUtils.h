@@ -2,6 +2,8 @@
 
 #include <vector>
 
+class Matrix;
+
 using namespace std;
 
 class TrainingUtils {
@@ -12,6 +14,6 @@ class TrainingUtils {
     public:
         static double getAccuracy(const vector<int>&, const vector<int>&);
         static double clipDerivative(double);
-        static int getPrediction(const vector<double>&);
-        static vector<int> getPredictions(const vector<vector<double> >&);
+        static vector<int> getPredictions(const Matrix&);
+        static int getPrediction(const Matrix&, size_t);
 };

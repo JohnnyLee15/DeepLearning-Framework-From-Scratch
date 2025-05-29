@@ -1,52 +1,67 @@
 #include "activations/Softmax.h"
 #include "utils/MatrixUtils.h"
+#include "utils/Matrix.h"
 #include <cmath>
 #include <iostream>
 
 const double Softmax::SOFTMAX_BIAS = 0.0;
 
-vector<double> Softmax::activate(const vector<double> &z) const {
-    size_t size = z.size();
-    vector<double> exps(size, 0.0);
-    vector<double> activations(size, 0.0);
+Matrix Softmax::activate(const Matrix &z) const {
+    size_t numCols = z.getNumCols();
+    size_t numRows = z.getNumRows();
 
-    double totalSum = 0;
-    double maxPreAct = getMaxPreActivation(z);
-
-    #pragma omp parallel for reduction(+:totalSum)
-    for (size_t i = 0; i < size; i++) {
-        exps[i] = exp(z[i] - maxPreAct);
-        totalSum += exps[i];
-    }
+    Matrix activations(numRows, numCols);
 
     #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) { 
-        activations[i] = exps[i]/totalSum;
+    for (int i = 0; i < numRows; i++) {
+        activateRow(activations, z, i);
     }
 
     return activations;
 }
 
-double Softmax::getMaxPreActivation(const vector<double> &z) const {
-    double maxVal = -MatrixUtils::INF;
-    size_t size = z.size();
+void Softmax::activateRow(Matrix& activations, const Matrix &z, int row) const {
+    size_t numCols = z.getNumCols();
+    vector<double> exps(numCols, 0.0);
+    double totalSum = 0;
+    double maxPreAct = getMaxPreActivation(z, row);
 
-    #pragma omp parallel for reduction(max:maxVal)
-    for (size_t i = 0; i < size; i++) {
-        if (z[i] > maxVal) {
-            maxVal = z[i];
+    for (size_t j = 0; j < numCols; j++) {
+        exps[j] = exp(z.getValue(row, j) - maxPreAct);
+        totalSum += exps[j];
+    }
+
+    for (size_t j = 0; j < numCols; j++) { 
+        activations.setValue(row, j, exps[j]/totalSum);
+    }
+}
+
+double Softmax::getMaxPreActivation(const Matrix &z, int row) const {
+    double maxVal = -MatrixUtils::INF;
+    size_t numCols = z.getNumCols();
+
+    for (int j = 0; j < numCols; j++) {
+        double value = z.getValue(row, j);
+        if (value > maxVal) {
+            maxVal = value;
         }
     }
 
     return maxVal;
 }
 
-double Softmax::initBias() const {
-    return SOFTMAX_BIAS;
+vector<double> Softmax::initBias(size_t numBiases) const {
+    vector<double> biases(numBiases);
+    #pragma omp parallel for
+    for (size_t i = 0; i < numBiases; i++) {
+        biases[i] = SOFTMAX_BIAS;
+    }
+
+    return biases;
 }
 
-vector<double> Softmax::calculateGradient(const vector<double>& preActivations) const {
+Matrix Softmax::calculateGradient(const Matrix& preActivations) const {
     cout << "Error. Softmax gradient calculation should never be called." << endl;
     exit(1);
-    return {};
+    return Matrix(0,0);
 }

@@ -4,65 +4,46 @@
 #include "utils/TrainingUtils.h"
 #include "activations/Activation.h"
 #include "utils/MatrixUtils.h"
+#include "utils/MatrixT.h"
 #include <random>
 
 const double Layer::HE_INT_GAIN = 2.0;
 
 Layer::Layer(int numNeurons, int numWeights, Activation *activation) :
-    activation(activation),
-    weights(numNeurons, vector<double>(numWeights)),
-    biases(numNeurons)
+    activation(activation), weights(numNeurons, numWeights)
 {
-    Layer::initWeights();
-    Layer::initBiases();
+    Layer::initWeights(numNeurons, numWeights);
+    biases = activation->initBias(numNeurons);
 }
 
-void Layer::initWeights() {
-    size_t numRows = weights.size();
-    size_t numCols = weights[0].size();
-
+void Layer::initWeights(size_t numRows, size_t numCols) {
+    size_t size = numRows * numCols;
     double std = sqrt(HE_INT_GAIN/numCols);
 
-    #pragma omp parallel for
-    for (size_t i = 0; i < numRows; i++) {
+    #pragma omp parallel
+    {
         random_device rd;
-        mt19937 generator(rd());
+        mt19937 generator(rd() + omp_get_thread_num());
         normal_distribution<double> distribution(0, std);
-        for (size_t j = 0; j < numCols; j++) {
-            weights[i][j] = distribution(generator);
+
+        #pragma omp for
+        for (size_t i = 0; i < size; i++) {
+            weights.setValue(i, distribution(generator));
         }
     }
 }
 
-void Layer::initBiases() {
-    size_t numBiases = biases.size();
-
-    #pragma omp parallel for
-    for (size_t i = 0; i < numBiases; i++) {
-        biases[i] = activation->initBias();
-    }
+void Layer::calActivations(const Matrix&prevActivations) {
+    preActivations = prevActivations * weights.T();
+    preActivations.addToRows(biases);
+    activations = activation->activate(preActivations);
 }
 
-void Layer::calActivations(const vector<vector<double> >&prevActivations) {
-    preActivations = MatrixUtils::multMatMatT(prevActivations, weights);
-    size_t batchSize = preActivations.size();
-    #pragma omp parallel for
-    for (size_t i = 0; i < batchSize; i++) {
-        MatrixUtils::addVecInplace(preActivations[i], biases);
-    }
-
-    activations = vector<vector<double>>(batchSize);
-    #pragma omp parallel for
-    for (size_t i = 0; i < batchSize; i++) {
-        activations[i] = activation->activate(preActivations[i]);
-    }
-}
-
-const vector<vector<double> > Layer::getActivations() const {
+const Matrix Layer::getActivations() const {
     return activations;
 }
 
-const vector<vector<double> > Layer::getPreActivations() const {
+const Matrix Layer::getPreActivations() const {
     return preActivations;
 }
 
@@ -71,44 +52,32 @@ Activation* Layer::getActivation() const {
 }
 
 void Layer::updateLayerParameters(
-    const vector<vector<double> > &prevActivations,
+    const Matrix &prevActivations,
     double learningRate,
-    const vector<vector<double> > &outputGradients
+    const Matrix &outputGradients
 ) {
-    size_t batchSize = outputGradients.size();
+    size_t batchSize = outputGradients.getNumRows();
     double scaleFactor = -learningRate/batchSize;
 
-    vector<vector<double> > weightGradients = MatrixUtils::multMatTMat(outputGradients, prevActivations);
-    vector<double> biasGradients = MatrixUtils::colSums(outputGradients);
-    MatrixUtils::scaleMatInplace(weightGradients, scaleFactor);
+    Matrix weightGradients = outputGradients.T() * prevActivations;
+    vector<double> biasGradients = outputGradients.colSums();
+
+    weightGradients *= scaleFactor;
     MatrixUtils::scaleVecInplace(biasGradients, scaleFactor);
-    MatrixUtils::addMatInplace(weights, weightGradients);
+
+    weights += weightGradients;
     MatrixUtils::addVecInplace(biases, biasGradients);
 }
 
-vector<vector<double> > Layer::getActivationGradientMat(
-    const vector<vector<double> >&prevPreActivations,
-    Activation* prevActivation
-) const {
-    size_t size = prevPreActivations.size();
-    vector<vector<double> > activationGradients(size);
 
-    #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        activationGradients[i] = prevActivation->calculateGradient(prevPreActivations[i]);
-    }
-
-    return activationGradients;
-}
-
-vector<vector<double> > Layer::updateOutputGradient(
-    const vector<vector<double> >&prevOutputGradients,
-    const vector<vector<double> >&prevPreActivations,
+Matrix Layer::updateOutputGradient(
+    const Matrix &prevOutputGradients,
+    const Matrix &prevPreActivations,
     Activation *prevActivation
 ) {
-    vector<vector<double> > activationGradients = getActivationGradientMat(prevPreActivations, prevActivation);
-    vector<vector<double> > gradientsMatrix = MatrixUtils::multMatMat(prevOutputGradients, weights);
-    MatrixUtils::hardamardInplace(gradientsMatrix, activationGradients);
+    Matrix activationGradients = prevActivation->calculateGradient(prevPreActivations);
+    Matrix gradientsMatrix = prevOutputGradients * weights;
+    gradientsMatrix *= activationGradients;
 
     return gradientsMatrix;
 }
