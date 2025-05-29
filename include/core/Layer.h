@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "utils/Matrix.h"
+#include <cstdint>
 
 class Activation; 
 
