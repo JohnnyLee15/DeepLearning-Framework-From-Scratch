@@ -19,7 +19,7 @@ int main() {
 
     CrossEntropy *loss = new CrossEntropy();
     vector<Activation*> activations = {new Relu(), new Relu(), new Softmax()};
-    vector<int> layerSizes = {784, 128, 64, 10};
+    vector<int> layerSizes = {784, 64, 32, 10};
 
     NeuralNet nn(layerSizes, activations, loss);
 
