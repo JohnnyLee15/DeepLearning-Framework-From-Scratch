@@ -1,6 +1,6 @@
 #include "activations/Relu.h"
 #include <algorithm>
-#include "utils/Matrix.h"
+#include "core/Matrix.h"
 
 const double Relu::RELU_BIAS = 0.01;
 

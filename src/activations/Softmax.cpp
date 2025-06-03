@@ -1,6 +1,6 @@
 #include "activations/Softmax.h"
 #include "utils/VectorUtils.h"
-#include "utils/Matrix.h"
+#include "core/Matrix.h"
 #include <cmath>
 #include <iostream>
 

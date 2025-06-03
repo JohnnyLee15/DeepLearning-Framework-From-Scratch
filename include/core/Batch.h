@@ -1,5 +1,7 @@
+#pragma once
+
 #include <vector>
-#include "utils/Matrix.h"
+#include "core/Matrix.h"
 
 class CrossEntropy;
 

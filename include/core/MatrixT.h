@@ -1,7 +1,10 @@
 #pragma once
 
 #include <vector>
-#include "utils/Matrix.h"
+
+class Matrix;
+
+using namespace std;
 
 class MatrixT {
     private:

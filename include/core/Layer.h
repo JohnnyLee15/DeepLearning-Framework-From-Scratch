@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "utils/Matrix.h"
 #include <cstdint>
+#include "core/Matrix.h"
 
 class Activation; 
 

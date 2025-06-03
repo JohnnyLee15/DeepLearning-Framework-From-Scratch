@@ -1,5 +1,6 @@
 #include "losses/CrossEntropy.h"
 #include "utils/TrainingUtils.h"
+#include "core/Matrix.h"
 #include <omp.h>
 #include <cmath>
 

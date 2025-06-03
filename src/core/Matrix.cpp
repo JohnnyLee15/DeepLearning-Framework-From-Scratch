@@ -1,5 +1,5 @@
-#include "utils/Matrix.h"
-#include "utils/MatrixT.h"
+#include "core/Matrix.h"
+#include "core/MatrixT.h"
 #include <cassert>
 
 Matrix::Matrix(size_t numRows, size_t numCols) : 

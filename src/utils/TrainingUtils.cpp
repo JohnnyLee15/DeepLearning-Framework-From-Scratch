@@ -1,6 +1,6 @@
 #include "utils/TrainingUtils.h"
 #include <cmath>
-#include "utils/Matrix.h"
+#include "core/Matrix.h"
 
 const double TrainingUtils::GRADIENT_THRESHOLD = 1.0;
 

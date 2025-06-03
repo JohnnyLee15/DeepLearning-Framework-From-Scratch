@@ -8,27 +8,28 @@
 #include "activations/Relu.h"
 #include "activations/Softmax.h"
 #include "losses/CrossEntropy.h"
+#include "utils/ConsoleUtils.h"
 #include <omp.h>
 
 using namespace std;
 
 int main() {
+    ConsoleUtils::printTitle();
     Data reader;
-    reader.readTrain("mnist_train.csv", 0);
-    reader.readTest("mnist_test.csv", 0);
+    reader.readTrain("mnist_train.csv", "LABEL");
+    reader.readTest("mnist_test.csv", "label");
     reader.minmax();
 
     CrossEntropy *loss = new CrossEntropy();
-    vector<Activation*> activations = {new Relu(), new Relu(), new Relu(), new Relu(), new Softmax()};
+    vector<Activation*> activations = {new Relu(), new Relu(), new Softmax()};
 
-    vector<int> layerSizes = {784, 16, 8, 10};
+    vector<int> layerSizes = {784, 64, 32, 10};
     NeuralNet nn(layerSizes, activations, loss);
 
-    nn.train(reader, 0.01, 0.05, 20, 128);
+    nn.train(reader, 0.01, 0.01, 20, 32);
     double accuracy = nn.test(reader.getTestFeatures(), reader.getTestTarget());
 
     cout << endl << "Test Accuracy: " << fixed << setprecision(2) << (accuracy * 100) << "%" << endl;
 
     return 0;
 }
-

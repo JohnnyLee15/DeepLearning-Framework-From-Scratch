@@ -4,7 +4,7 @@
 #include "utils/TrainingUtils.h"
 #include "activations/Activation.h"
 #include "utils/VectorUtils.h"
-#include "utils/MatrixT.h"
+#include "core/MatrixT.h"
 #include <random>
 
 const double Layer::HE_INT_GAIN = 2.0;

@@ -1,4 +1,5 @@
-#include "utils/MatrixT.h"
+#include "core/MatrixT.h"
+#include "core/Matrix.h"
 #include <cassert>
 
 MatrixT::MatrixT(const Matrix &matrix) :

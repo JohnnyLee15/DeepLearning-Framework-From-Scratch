@@ -2,6 +2,7 @@
 #include "core/Data.h"
 #include <cmath>
 #include <iostream>
+#include "core/Matrix.h"
 #include <algorithm>
 #include "utils/TrainingUtils.h"
 #include "utils/ConsoleUtils.h"
