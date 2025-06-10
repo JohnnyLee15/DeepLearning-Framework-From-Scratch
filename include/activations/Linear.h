@@ -2,10 +2,10 @@
 
 #include "Activation.h"
 
-class Relu : public Activation {
+class Linear : public Activation {
     private:
         // Constants
-        static const double RELU_BIAS;
+        static const double LINEAR_BIAS;
     
     public:
         // Methods

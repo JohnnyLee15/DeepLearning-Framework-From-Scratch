@@ -4,7 +4,7 @@
 
 const double TrainingUtils::GRADIENT_THRESHOLD = 1.0;
 
-double TrainingUtils::getAccuracy(const vector<int> &labels, const vector<int> &predictions) {
+double TrainingUtils::getAccuracy(const vector<double> &labels, const vector<double> &predictions) {
     double correct = 0;
     size_t size = labels.size();
 
@@ -24,18 +24,18 @@ double TrainingUtils::clipDerivative(double gradient) {
     return clip;
 }
 
-int TrainingUtils::getPrediction(
+double TrainingUtils::getPrediction(
     const vector<double> &probsFlat,
     size_t row,
     size_t numCols
 ) {
-    int prediction = -1;
+    double prediction = -1.0;
     double maxProb = -1;
 
     for (size_t j = 0; j < numCols; j++) {
         double prob = probsFlat[row * numCols + j];
         if (prob > maxProb) {
-            prediction = (int) j;
+            prediction = j;
             maxProb = prob;
         }
     }
@@ -43,10 +43,10 @@ int TrainingUtils::getPrediction(
     return prediction;
 }
 
-vector<int> TrainingUtils::getPredictions(const Matrix &probs) {
+vector<double> TrainingUtils::getPredictions(const Matrix &probs) {
     size_t numRows = probs.getNumRows();
     size_t numCols = probs.getNumCols();
-    vector<int> predictions(numRows);
+    vector<double> predictions(numRows);
     const vector<double> &probsFlat = probs.getFlat();
 
     #pragma omp parallel for

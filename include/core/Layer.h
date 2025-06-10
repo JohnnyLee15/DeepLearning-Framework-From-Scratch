@@ -26,7 +26,10 @@ class Layer {
         vector<uint32_t> generateThreadSeeds() const;
 
     public:
-        Layer(int, int, Activation*);
+        // Constructor
+        Layer(size_t, size_t, Activation*);
+
+        // Methods
         void calActivations(const Matrix&);
         const Matrix getActivations() const;
         const Matrix getPreActivations() const;

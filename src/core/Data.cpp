@@ -3,25 +3,32 @@
 #include "utils/CsvUtils.h"
 #include "utils/ConsoleUtils.h"
 #include "utils/FeatureEncoder.h"
+#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <cmath>
 #include <algorithm>
-#include <omp.h>
-#include "utils/TransformUtils.h"
+#include "utils/TrainingUtils.h"
 
 random_device Data::rd;
 mt19937 Data::generator(Data::rd());
+
 const string Data::NO_TARGET_COL = "";
 const int Data::NO_TARGET_IDX = -1;
 const size_t Data::MAX_DISPLAY_COLS = 15;
 
-Data::Data(): isDataLoaded(false) {}
+Data::Data() : task(nullptr), isDataLoaded(false) {}
 
 void Data::readTrain(string filename, int targetIdx, bool hasHeader) {
     cout << endl << "📥 Loading training data from: " << filename << endl;
     readCsv(filename, true, targetIdx, NO_TARGET_COL, hasHeader);
+}
+
+void Data::setTask(Task *taskType) {
+    if (task) {
+        delete task;
+    }
+    task = taskType;
 }
 
 void Data::readTrain(string filename, const string &colname) {
@@ -40,63 +47,76 @@ void Data::readTest(string filename, const string &colname) {
 }
 
 const Matrix& Data::getTrainFeatures() const {
+    checkDataLoaded();
     return trainFeatures;
 }
 
 const Matrix& Data::getTestFeatures() const {
+    checkDataLoaded();
     return testFeatures;
 }
 
-const vector<int>& Data::getTrainTarget() const {
-    return trainTarget;
+const vector<double>& Data::getTrainTargets() const {
+    checkDataLoaded();
+    return trainTargets;
 }
 
-const vector<int>& Data::getTestTarget() const {
-    return testTarget;
+const vector<double>& Data::getTestTargets() const {
+    checkDataLoaded();
+    return testTargets;
 }
 
-size_t Data::getTrainFeatureSize() const {
+size_t Data::getNumTrainSamples() const {
+    checkDataLoaded();
     return trainFeatures.getNumRows();
 }
 
-void Data::createLabelMap(
-    const vector<string> &targetRaw
-) {
-    size_t numSamples = targetRaw.size();
-    int nextIdx = 0;
+const Task* Data::getTask() const {
+    checkDataLoaded();
+    return task;
+}
 
-    for (size_t i = 0; i < numSamples; i++) {
-        const string &val = targetRaw[i];
-        if (labelMap.find(val) == labelMap.end()) {
-            labelMap[val] = nextIdx++;
-        }
+void Data::headTrain(size_t numRows) const {
+    head(numRows, trainFeatures);
+}
+
+void Data::headTest(size_t numRows) const {
+    head(numRows, testFeatures);
+}
+
+void Data::resetToRaw() {
+    trainFeatures = rawTrainFeatures;
+    trainTargets = rawTrainTargets;
+    testFeatures = rawTestFeatures;
+    testTargets = rawTestTargets;
+}
+
+void Data::setScalars(Scalar *featureScalar, Scalar *targetScalar) {
+    task->setFeatureScalar(featureScalar);
+    if (targetScalar) {
+        task->setTargetScalar(targetScalar);
     }
 }
 
-vector<int> Data::getTarget(
-    const vector<string> &targetRaw
-) {
-    ConsoleUtils::loadMessage("Extracting Targets.");
-    createLabelMap(targetRaw);
-    size_t numSamples = targetRaw.size();
-    vector<int> target(numSamples);
-
-    #pragma omp parallel for
-    for (size_t i = 0; i < numSamples; i++) {
-        target[i] = labelMap[targetRaw[i]];
-    }
-    ConsoleUtils::completeMessage();
-
-    return target;
+void Data::fitScalars() {
+    task->fitScalars(trainFeatures, trainTargets, testFeatures, testTargets);
 }
 
-void Data::setData(const Matrix &features, vector<int> &target, bool isTrainData) {
+Data::~Data() {
+    delete task;
+}
+
+void Data::setData(const Matrix &features, vector<double> &target, bool isTrainData) {
     if (isTrainData) {
+        rawTrainFeatures = features;
+        rawTrainTargets = target;
         trainFeatures = features;
-        trainTarget = target;
+        trainTargets = target;
     } else {
+        rawTestFeatures = features;
+        rawTestTargets = target;
         testFeatures = features;
-        testTarget = target;
+        testTargets = target;
     }
 }
 
@@ -117,10 +137,19 @@ int Data::getColIdx(const string &colname) const {
     return idx;
 }
 
+void Data::checkDataLoaded() const {
+    if (!isDataLoaded) {
+        cout << "Error: Data must be loaded before using this method." << endl;
+        exit(1);
+    }
+}
+
 void Data::head(
     size_t numRows,
     const Matrix &mat
 ) const {
+    checkDataLoaded();
+
     const vector<double> &matFlat = mat.getFlat();
     size_t matRows = mat.getNumRows();
     size_t matCols = mat.getNumCols();
@@ -146,14 +175,6 @@ void Data::head(
     }
 }
 
-void Data::headTrain(size_t numRows) const {
-    head(numRows, trainFeatures);
-}
-
-void Data::headTest(size_t numRows) const {
-    head(numRows, testFeatures);
-}
-
 void Data::readCsv(
     string filename, 
     bool isTrainData, 
@@ -169,6 +190,7 @@ void Data::readCsv(
     vector<string> lines = CsvUtils::collectLines(filename, hasHeader);
     
     size_t numSamples = lines.size();
+    assert(numSamples > 0);
     size_t numCols = CsvUtils::countFirstCol(lines[0]);
 
     vector<vector<string> > featuresRaw(numSamples, vector<string>(numCols - 1));
@@ -176,7 +198,7 @@ void Data::readCsv(
 
     CsvUtils::parseLines(lines, featuresRaw, targetRaw, targetIdx);
     Matrix features = FeatureEncoder::getFeatures(featuresRaw);
-    vector<int> target = getTarget(targetRaw);
+    vector<double> target = task->getTarget(targetRaw);
 
     setData(features, target, isTrainData);
     isDataLoaded = true;
@@ -184,19 +206,8 @@ void Data::readCsv(
     ConsoleUtils::printSepLine();
 }
 
-
-void Data::minmax() {
-    if (isDataLoaded) {
-        TransformUtils::minmaxData(trainFeatures, testFeatures);
-    }
-}
-
-void Data::minmaxGreyScale() {
-    TransformUtils::normalizeGreyScale(trainFeatures);
-    TransformUtils::normalizeGreyScale(testFeatures);
-}
-
 vector<int> Data::generateShuffledIndices() const {
+    checkDataLoaded();
     size_t size = trainFeatures.getNumRows();
     vector<int> indices(size, -1);
     
@@ -207,3 +218,4 @@ vector<int> Data::generateShuffledIndices() const {
     shuffle(indices.begin(), indices.end(), generator);
     return indices;
 }
+

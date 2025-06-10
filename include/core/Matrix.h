@@ -15,25 +15,24 @@ class Matrix {
         size_t numCols;
 
     public:
-        size_t getNumCols() const;
-        size_t getNumRows() const;
-
+        // Constructors        
         Matrix(size_t, size_t);
         Matrix();
         Matrix(const vector<vector<double> >&);
 
+        // Methods
+        size_t getNumCols() const;
+        size_t getNumRows() const;
         Matrix operator *(const Matrix&) const;
         Matrix operator *(const MatrixT&) const;
-        vector<double> operator *(const vector<double>&) const;
         Matrix& operator *=(double);
         Matrix& operator *=(const Matrix&); 
         Matrix& operator += (const Matrix&);
-
-        const vector<double>& getFlat() const;
-        vector<double>& getFlat();
-
         MatrixT T() const;
+        vector<double>& getFlat();
+        vector<double> operator *(const vector<double>&) const;
         vector<double> colSums() const;
+        const vector<double>& getFlat() const;
         void addToRows(const vector<double>&);
         
 };

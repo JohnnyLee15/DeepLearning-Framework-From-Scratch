@@ -7,9 +7,11 @@ using namespace std;
 
 class CsvUtils {
     private:
+        // Methods
         static void parseLine(const string&, vector<string>&, string&, int);
         
     public:
+        // Methods
         static vector<string> collectLines(const string&, bool);
         static void parseLines(const vector<string>&, vector<vector<string> >&, vector<string>&, int);
         static vector<string> readHeader(const string&);

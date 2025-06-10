@@ -18,12 +18,12 @@ string ConsoleUtils::currentLoadMessage = "";
 atomic<bool> ConsoleUtils::spinnerRunning = false;
 thread ConsoleUtils::spinnerThread;
 
-void ConsoleUtils::printProgressBar(int currentSample, int totalSamples, double accuracy, double avgLoss, double timeElapsed) {
-    double progress = (double) currentSample / totalSamples;
+void ConsoleUtils::printProgressBar(EpochStats &stats){
+    double progress = (double) stats.samplesProcessed / stats.numSamples;
     int progressChar = (int) (progress * PROGRESS_BAR_LENGTH);
-    int sampleWidth = to_string(totalSamples).length();
+    int sampleWidth = to_string(stats.numSamples).length();
 
-    cout << "\r\033[K" << setw(sampleWidth) << currentSample << "/" << totalSamples << " |";
+    cout << "\r\033[K" << setw(sampleWidth) << stats.samplesProcessed << "/" << stats.numSamples << " |";
     for (int i = 0; i < PROGRESS_BAR_LENGTH; i++) {
         if (i <= progressChar) {
             cout << GREEN << FILLED << RESET_COLOUR;
@@ -32,11 +32,14 @@ void ConsoleUtils::printProgressBar(int currentSample, int totalSamples, double 
         }
     }
 
-    cout << "| Accuracy: " << fixed << setprecision(2) << (accuracy) << "% | Avg Loss: " << avgLoss << " | Elapsed: " << timeElapsed  <<"s\r";
-    cout << defaultfloat << setprecision(6);
+    cout << fixed << setprecision(2) << "| " << stats.progressMetricName << ": " << stats.progressMetric 
+        << "%| Avg Loss: " << stats.avgLoss << " | Elapsed: " << stats.timeElapsed  <<"s" 
+        << defaultfloat << setprecision(6);
 
-    if (currentSample == totalSamples) {
+    if (stats.samplesProcessed  == stats.numSamples) {
         cout << endl;
+    } else {
+        cout << "\r";
     }
 
     cout.flush();

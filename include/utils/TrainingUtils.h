@@ -8,12 +8,13 @@ using namespace std;
 
 class TrainingUtils {
     private:
-        // Constant
+        // Constants
         static const double GRADIENT_THRESHOLD;
         
     public:
-        static double getAccuracy(const vector<int>&, const vector<int>&);
+        // Methods
+        static double getAccuracy(const vector<double>&, const vector<double>&);
         static double clipDerivative(double);
-        static vector<int> getPredictions(const Matrix&);
-        static int getPrediction(const vector<double> &, size_t, size_t);
+        static vector<double> getPredictions(const Matrix&);
+        static double getPrediction(const vector<double> &, size_t, size_t);
 };

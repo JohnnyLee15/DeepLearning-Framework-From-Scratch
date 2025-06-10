@@ -2,13 +2,10 @@
 
 #include "losses/Loss.h"
 
-class CrossEntropy : public Loss {
-    private:
-        // Constants
-        static const double CROSS_ENTROPY_EPSILON;
-
+class MSE : public Loss {
     public:
         // Methods
         double calculateTotalLoss(const vector<double>&, const Matrix&) const override;    
         Matrix calculateGradient(const vector<double>&, const Matrix&) const override;
+        double formatLoss(double) const override;
 };

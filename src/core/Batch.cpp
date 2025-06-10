@@ -1,14 +1,16 @@
 #include "core/Batch.h"
 #include <omp.h>
+#include "core/Layer.h"
 #include "losses/CrossEntropy.h"
 #include "utils/TrainingUtils.h"
+#include "activations/Activation.h"
 
 Batch::Batch(int numLayers, int batchSize) :
     batchSize(batchSize),
     layerActivations(numLayers),
     layerPreActivations(numLayers),
     indices(batchSize),
-    labels(batchSize),
+    targets(batchSize),
     writeActivationIdx(0),
     writePreActivationIdx(0) 
 {}
@@ -26,7 +28,7 @@ void Batch::setBatchIndices(
 
 void Batch::setBatch(
     const Matrix &train,
-    const vector<int> &trainLabels
+    const vector<double> &trainLabels
 ) {
     size_t trainCols = train.getNumCols();
 
@@ -41,26 +43,24 @@ void Batch::setBatch(
             batchFlat[i*trainCols + j] = trainFlat[rdIdx * trainCols + j];
         }
 
-        labels[i] = trainLabels[rdIdx];
+        targets[i] = trainLabels[rdIdx];
     }
 }
 
 void Batch::calculateOutputGradients(
-    const Matrix &probs,
-    CrossEntropy *loss
+    const Layer &outputLayer,
+    const Loss *loss
 ) {
-    outputGradients = loss->calculateGradient(labels, probs);
-}
-
-double Batch::calculateBatchLoss(
-    const Matrix &probs,
-    CrossEntropy *loss
-) {
-    return loss->calculateLoss(labels, probs);
+    const Matrix &activations = outputLayer.getActivations();
+    const Matrix &preActivations = outputLayer.getPreActivations();
+    outputGradients = loss->calculateGradient(targets, activations);
+    if (!loss->isFused()) {
+        outputGradients *= outputLayer.getActivation()->calculateGradient(preActivations);
+    } 
 }
 
 void Batch::writeBatchPredictions(
-    vector<int> &predictions,
+    vector<double> &predictions,
     const Matrix &probs
 ) const {
     size_t numCols = probs.getNumCols();
@@ -73,14 +73,14 @@ void Batch::writeBatchPredictions(
 }
 
 int Batch::getCorrectPredictions(
-    const vector<int> &predictions
+    const vector<double> &predictions
 ) const {
     int correct = 0;
     size_t batchSize = data.getNumRows();
 
     #pragma omp parallel for reduction(+:correct)
     for (size_t i = 0; i < batchSize; i++) {
-        if (predictions[indices[i]] == labels[i]){ 
+        if (predictions[indices[i]] == targets[i]){ 
             correct++;
         }
     }
@@ -90,6 +90,10 @@ int Batch::getCorrectPredictions(
 
 const Matrix& Batch::getData() const {
     return data;
+}
+
+const vector<double>& Batch::getTargets() const {
+    return targets;
 }
 
 void Batch::addLayerActivations(
@@ -120,3 +124,18 @@ void Batch::updateOutputGradients(const Matrix &newOutputGradients) {
     outputGradients = newOutputGradients;
 }
 
+void Batch::setRescaledOutput(const Matrix &outputs) {
+    rescaledOutput = outputs;
+}
+
+void Batch::setRescaledTargets(const vector<double> &targets) {
+    rescaledTargets = targets;
+}
+
+const Matrix& Batch::getRescaledOutput() const {
+    return rescaledOutput;
+}
+
+const vector<double>& Batch::getRescaledTargets() const {
+    return rescaledTargets;
+}

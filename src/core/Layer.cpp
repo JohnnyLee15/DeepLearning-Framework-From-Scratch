@@ -9,7 +9,7 @@
 
 const double Layer::HE_INT_GAIN = 2.0;
 
-Layer::Layer(int numNeurons, int numWeights, Activation *activation) :
+Layer::Layer(size_t numNeurons, size_t numWeights, Activation *activation) :
     activation(activation), weights(numNeurons, numWeights)
 {
     Layer::initWeights(numNeurons, numWeights);

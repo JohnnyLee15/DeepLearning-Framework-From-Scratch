@@ -14,7 +14,7 @@ ifeq ($(UNAME_S), Darwin)
 endif
 
 # CPP files
-SRC := $(wildcard src/**/*.cpp) Main.cpp
+SRC := $(shell find src -name '*.cpp')
 OBJ := $(SRC:.cpp=.o)
 TARGET := mlp
 

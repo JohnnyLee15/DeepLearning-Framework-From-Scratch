@@ -3,25 +3,32 @@
 #include <vector>
 #include "core/Matrix.h"
 
-class CrossEntropy;
+class Loss;
+class Layer;
 
 using namespace std;
 
 class Batch {
     private:
+        // Instance Variables
         size_t batchSize;
-        Matrix outputGradients;
         vector<Matrix> layerActivations;
         vector<Matrix> layerPreActivations;
         vector<int> indices;
+        vector<double> targets;
+        vector<double> rescaledTargets;
         Matrix data;
-        vector<int> labels;
+        Matrix rescaledOutput;
+        Matrix outputGradients;
         int writeActivationIdx;
         int writePreActivationIdx;
 
     public:
+        // Constructor
         Batch(int, int);
-        void setBatch(const Matrix&, const vector<int> &);
+
+        // Methods
+        void setBatch(const Matrix&, const vector<double> &);
         void setBatchIndices(int, int, const vector<int>&);
         const Matrix& getData() const;
         void addLayerActivations(const Matrix&);
@@ -29,9 +36,13 @@ class Batch {
         const Matrix& getLayerActivation(int) const;
         const Matrix& getLayerPreActivation(int) const;
         const Matrix& getOutputGradients() const;
+        const vector<double>& getTargets() const;
         void updateOutputGradients(const Matrix&);
-        void calculateOutputGradients(const Matrix&, CrossEntropy*);
-        double calculateBatchLoss(const Matrix&, CrossEntropy*);
-        void writeBatchPredictions(vector<int>&, const Matrix&) const;
-        int getCorrectPredictions(const vector<int>&) const; 
+        void calculateOutputGradients(const Layer&, const Loss*);
+        void writeBatchPredictions(vector<double>&, const Matrix&) const;
+        int getCorrectPredictions(const vector<double>&) const; 
+        void setRescaledOutput(const Matrix&);
+        void setRescaledTargets(const vector<double>&);
+        const Matrix& getRescaledOutput() const;
+        const vector<double>& getRescaledTargets() const;
 };

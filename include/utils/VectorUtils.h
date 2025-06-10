@@ -6,7 +6,7 @@ using namespace std;
 
 class VectorUtils {
     public:
-        // CONSTANTS
+        // Constants
         static const double INF;
 
         // Methods

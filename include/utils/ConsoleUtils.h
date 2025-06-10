@@ -3,6 +3,7 @@
 #include <string>
 #include <atomic>
 #include <thread>
+#include "utils/EpochStats.h"
 
 using namespace std;
 
@@ -31,7 +32,8 @@ class ConsoleUtils {
         static string centerText(const string&, size_t);
 
     public:
-        static void printProgressBar(int, int, double, double, double);
+        // Methods
+        static void printProgressBar(EpochStats &stats);
         static void loadMessage(const string&);
         static void completeMessage();
         static void printTitle();

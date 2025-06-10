@@ -6,17 +6,16 @@
 #include <algorithm>
 #include "utils/TrainingUtils.h"
 #include "utils/ConsoleUtils.h"
-#include "losses/CrossEntropy.h"
+#include "losses/Loss.h"
 #include "core/Batch.h"
-#include <chrono>
 #include "activations/Activation.h"
 
 using namespace std;
 
 NeuralNet::NeuralNet(
-    const vector<int> &neuronsPerLayer,
+    const vector<size_t> &neuronsPerLayer,
     const vector<Activation*> &activations,
-    CrossEntropy *loss
+    Loss *loss
 ) : loss(loss) {
     size_t numNeurons = neuronsPerLayer.size();
     layers.reserve(numNeurons - 1);
@@ -33,18 +32,18 @@ NeuralNet::NeuralNet(
 }
 
 void NeuralNet::train(
-    Data data,
+    const Data &data,
     double learningRate,
     double learningDecay,
-    int numEpochs,
-    int batchSize
+    size_t numEpochs,
+    size_t batchSize
 ) {
     double initialLR = learningRate;
     avgLosses.resize(numEpochs);
     for (int k = 0; k < numEpochs; k++) {
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
 
-        vector<int> predictions(data.getTrainFeatureSize(), -1);
+        vector<double> predictions(data.getNumTrainSamples(), -1);
         double avgLoss = runEpoch(data, learningRate, predictions, batchSize);
 
         avgLosses[k] = avgLoss;
@@ -53,69 +52,83 @@ void NeuralNet::train(
 }
 
 double NeuralNet::runEpoch(
-    Data &data,
+    const Data &data,
     double learningRate,
-    vector<int> &predictions,
-    int batchSize
+    vector<double> &predictions,
+    size_t batchSize
 ) {
-    int numSamples = data.getTrainFeatureSize();
-    int numBatches = (numSamples + batchSize - 1)/batchSize;
+    EpochStats stats = initEpochStats(data);
+    size_t numBatches = (stats.numSamples + batchSize - 1)/batchSize;
+    vector<int> shuffledIndices = data.generateShuffledIndices();
 
-    const vector<int> &labels = data.getTrainTarget();
-    const Matrix &train = data.getTrainFeatures();
-    const vector<int> shuffledIndices = data.generateShuffledIndices();
-    
-    double totalLoss = 0.0;
-    int samplesProcessed = 0;
-    int correctPredictions = 0;
-    auto startTime = chrono::steady_clock::now();
-    for (int b = 0; b < numBatches; b++) {
-        int start = b * batchSize;
-        int end = min((b + 1) * batchSize, numSamples);
-        int currBatchSize = end - start;
-        Batch batch = makeBatch(start, end, shuffledIndices, labels, train);
+    for (size_t b = 0; b < numBatches; b++) {
+        size_t start = b * batchSize;
+        size_t end = min((b + 1) * batchSize, stats.numSamples);
+        size_t currBatchSize = end - start;
+        Batch batch = makeBatch(start, end, data, shuffledIndices);
 
-        totalLoss += processBatch(batch, numSamples, predictions);
+        stats.totalLoss += processBatch(data, batch, predictions);
         backprop(batch, learningRate);
-
-        samplesProcessed += (currBatchSize);
-        correctPredictions += batch.getCorrectPredictions(predictions);
-        auto batchTime = chrono::steady_clock::now();
-        double timeElapsed = chrono::duration<double>(batchTime - startTime).count();
-        double accuracy = 100 * (double) correctPredictions/samplesProcessed;
-        double avgLoss = totalLoss/samplesProcessed;
-        ConsoleUtils::printProgressBar(samplesProcessed, numSamples, accuracy, avgLoss, timeElapsed);
+        updateEpochStats(stats, data, batch, predictions, currBatchSize);
     }
 
-    return totalLoss/numSamples;
+    return stats.totalLoss/stats.numSamples;
+}
+
+void NeuralNet::updateEpochStats(
+    EpochStats& stats, 
+    const Data &data,
+    const Batch &batch,
+    const vector<double> &predictions,
+    size_t batchSize
+) const {
+    stats.samplesProcessed += (batchSize);
+    stats.avgLoss = loss->formatLoss(stats.totalLoss/stats.samplesProcessed);
+    stats.timeElapsed = chrono::duration<double>(chrono::steady_clock::now() - stats.startTime).count();
+    stats.progressMetric = data.getTask()->calculateProgressMetric(
+        batch, layers.back().getActivations(), predictions, stats
+    );
+    ConsoleUtils::printProgressBar(stats);
+}
+
+EpochStats NeuralNet::initEpochStats(const Data &data) const{
+    return EpochStats {
+        .totalLoss = 0.0,
+        .timeElapsed = 0.0,
+        .avgLoss = 0.0,
+        .mapeSum = 0.0,
+        .progressMetric = 0.0,
+        .samplesProcessed = 0,
+        .correctPredictions = 0,
+        .numSamples = data.getNumTrainSamples(),
+        .startTime = chrono::steady_clock::now(),
+        .progressMetricName = data.getTask()->getProgressMetricName()
+    };
 }
 
 Batch NeuralNet::makeBatch(
-    int start,
-    int end,
-    const vector<int> &shuffledIndices,
-    const vector<int> &labels,
-    const Matrix &train
+    size_t start,
+    size_t end,
+    const Data &data,
+    const vector<int> &shuffledIndices
 ) const {
     int batchSize = end - start;
     Batch batch = Batch(layers.size() + 1, batchSize);
     batch.setBatchIndices(start, end, shuffledIndices);
-    batch.setBatch(train, labels);
+    batch.setBatch(data.getTrainFeatures(), data.getTrainTargets());
 
     return batch;
 }
 
 double NeuralNet::processBatch(
+    const Data &data,
     Batch &batch,
-    int numSamples,
-    vector<int> &predictions
+    vector<double> &predictions
 ) {
     forwardPass(batch);
-    const Matrix &probs = layers.back().getActivations();
-
-    batch.calculateOutputGradients(probs, loss);
-    batch.writeBatchPredictions(predictions, probs);
-    return batch.calculateBatchLoss(probs, loss);
+    const Matrix &output = layers.back().getActivations();
+    batch.calculateOutputGradients(layers.back(), loss);
+    return  data.getTask()->processBatch(batch, predictions, output, loss);
 }
 
 void NeuralNet::forwardPass(Batch &batch) {
@@ -155,10 +168,9 @@ void NeuralNet::updateOutputGradients(Batch &batch, int currLayer) {
     }
 }
 
-double NeuralNet::test(const Matrix &data, const vector<int> &labels) {
-    forwardPassInference(data);
-    vector<int> predictions = TrainingUtils::getPredictions(layers.back().getActivations());
-    return TrainingUtils::getAccuracy(labels, predictions);
+Matrix NeuralNet::predict(const Data &data) {
+    forwardPassInference(data.getTestFeatures());
+    return data.getTask()->predict(layers.back().getActivations());
 }
 
 void NeuralNet::forwardPassInference(const Matrix& data) {

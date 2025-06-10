@@ -3,7 +3,7 @@
 #include <cassert>
 
 Matrix::Matrix(size_t numRows, size_t numCols) : 
-    matrix(numRows * numCols), numRows(numRows), numCols(numCols) {}
+    matrix(numRows * numCols, 0), numRows(numRows), numCols(numCols) {}
 
 Matrix::Matrix() :
     numRows(0), numCols(0) {}
