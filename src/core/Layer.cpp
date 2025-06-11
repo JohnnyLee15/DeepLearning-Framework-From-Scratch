@@ -6,7 +6,6 @@
 #include "utils/VectorUtils.h"
 #include "core/MatrixT.h"
 #include <random>
-#include <iostream>
 
 const double Layer::HE_INT_GAIN = 2.0;
 
@@ -72,10 +71,6 @@ void Layer::updateLayerParameters(
 ) {
     size_t batchSize = outputGradients.getNumRows();
     double scaleFactor = -learningRate/batchSize;
-
-      // Debugging shape info
-    cout << "outputGradients.T(): " << outputGradients.T().getNumRows() << " x " << outputGradients.T().getNumCols() << endl;
-    cout << "prevActivations: " << prevActivations.getNumRows() << " x " << prevActivations.getNumCols() << endl;
 
     Matrix weightGradients = outputGradients.T() * prevActivations;
     vector<double> biasGradients = outputGradients.colSums();

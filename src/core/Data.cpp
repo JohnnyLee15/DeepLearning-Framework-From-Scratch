@@ -32,6 +32,14 @@ void Data::checkDataLoaded() const {
     }
 }
 
+void Data::checkTask(const string &context) const {
+    if (!task) {
+        cerr << "Fatal Error: Task must be set before " << context << ".\n"
+             << "Call setTask() before this operation." << endl;
+        exit(1);
+    }
+}
+
 void Data::setTask(Task *taskType) {
     if (task) {
         delete task;
@@ -112,12 +120,9 @@ void Data::resetToRaw() {
     testTargets = rawTestTargets;
 }
 
+
 void Data::setScalars(Scalar *featureScalar, Scalar *targetScalar) {
-    if (!task) {
-        cerr << "Fatal Error: Task must be set before setting scalars.\n"
-             << "Call setTask() before setScalars()." << endl;
-        exit(1);
-    }
+    checkTask("setting scalars");
 
     task->setFeatureScalar(featureScalar);
     if (targetScalar) {
@@ -220,6 +225,7 @@ void Data::readCsv(
     const string& colname,
     bool hasHeader
 ) {
+    checkTask("reading CSV data");
     vector<string> lines = validateAndLoadCsv(filename, hasHeader);
 
     if (colname != NO_TARGET_COL) {
@@ -242,7 +248,7 @@ void Data::readCsv(
 vector<size_t> Data::generateShuffledIndices() const {
     checkDataLoaded();
     size_t size = trainFeatures.getNumRows();
-    vector<size_t> indices(size, -1);
+    vector<size_t> indices(size, 0);
     
     for (size_t i = 0; i < size; i++) {
         indices[i] = i;

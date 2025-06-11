@@ -146,8 +146,8 @@ void NeuralNet::forwardPass(Batch &batch) {
 }
 
 void NeuralNet::backprop(Batch &batch, double learningRate) {
-    size_t numLayers = layers.size();
-    for (size_t i = numLayers - 1; i >= 0; i--) {
+    size_t numLayers = (int) layers.size();
+    for (int i = numLayers - 1; i >= 0; i--) {
         const Matrix &prevActivations = batch.getLayerActivation(i);
         layers[i].updateLayerParameters(prevActivations, learningRate, batch.getOutputGradients());
         updateOutputGradients(batch, i);

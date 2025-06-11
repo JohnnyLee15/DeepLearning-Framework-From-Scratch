@@ -38,6 +38,7 @@ class Data {
         void setData(const Matrix&, vector<double>&, bool);
         void head(size_t, const Matrix&) const;
         void checkDataLoaded() const;
+        void checkTask(const string&) const;
         void parseRawData(vector<vector<string> >&, vector<string>&, const vector<string>&, size_t);
         size_t getColIdx(const string&) const;
         vector<string> validateAndLoadCsv(const string&, bool);
