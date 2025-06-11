@@ -5,7 +5,7 @@
 #include "utils/TrainingUtils.h"
 #include "activations/Activation.h"
 
-Batch::Batch(int numLayers, int batchSize) :
+Batch::Batch(size_t numLayers, size_t batchSize) :
     batchSize(batchSize),
     layerActivations(numLayers),
     layerPreActivations(numLayers),
@@ -16,12 +16,12 @@ Batch::Batch(int numLayers, int batchSize) :
 {}
 
 void Batch::setBatchIndices(
-    int start,
-    int end,
-    const vector<int> &shuffledIndices
+    size_t start,
+    size_t end,
+    const vector<size_t> &shuffledIndices
 ) {
     #pragma omp parallel for
-    for (int i = start; i < end; i++) {
+    for (size_t i = start; i < end; i++) {
         indices[i - start] = shuffledIndices[i];
     }
 }
@@ -38,7 +38,7 @@ void Batch::setBatch(
 
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
-        int rdIdx = indices[i];
+        size_t rdIdx = indices[i];
         for (size_t j = 0; j < trainCols; j++) {
             batchFlat[i*trainCols + j] = trainFlat[rdIdx * trainCols + j];
         }
@@ -72,10 +72,10 @@ void Batch::writeBatchPredictions(
     }
 }
 
-int Batch::getCorrectPredictions(
+size_t Batch::getCorrectPredictions(
     const vector<double> &predictions
 ) const {
-    int correct = 0;
+    size_t correct = 0;
     size_t batchSize = data.getNumRows();
 
     #pragma omp parallel for reduction(+:correct)
@@ -108,11 +108,11 @@ void Batch::addLayerPreActivations(
     layerPreActivations[writePreActivationIdx++] = preActivations;
 }
 
-const Matrix& Batch::getLayerActivation(int idx) const {
+const Matrix& Batch::getLayerActivation(size_t idx) const {
     return layerActivations[idx];
 }
 
-const Matrix& Batch::getLayerPreActivation(int idx) const {
+const Matrix& Batch::getLayerPreActivation(size_t idx) const {
     return layerPreActivations[idx];
 }
 

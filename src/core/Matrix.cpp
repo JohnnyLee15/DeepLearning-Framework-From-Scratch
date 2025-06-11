@@ -1,6 +1,6 @@
 #include "core/Matrix.h"
 #include "core/MatrixT.h"
-#include <cassert>
+#include <iostream>
 
 Matrix::Matrix(size_t numRows, size_t numCols) : 
     matrix(numRows * numCols, 0), numRows(numRows), numCols(numCols) {}
@@ -40,8 +40,32 @@ vector<double>& Matrix::getFlat() {
     return matrix;
 }
 
+void Matrix::checkSizeMatch(size_t mat1Cols, size_t mat2Rows) {
+    if (mat1Cols != mat2Rows) {
+        cerr << "Fatal Error: Matrix multiplication size mismatch.\n"
+            << "Left matrix columns: " << mat1Cols
+            << ", Right matrix rows: " << mat2Rows << "." << endl;
+        exit(1);
+    }
+}
+
+void Matrix::checkSameShape(
+    size_t mat1Rows,
+    size_t mat1Cols,
+    size_t mat2Rows,
+    size_t mat2Cols,
+    const string &operation
+) {
+    if (mat1Rows!= mat2Rows || mat1Cols != mat2Cols) {
+        cerr << "Fatal Error: Hadamard product requires matrices of the same shape.\n"
+             << "Left matrix shape: (" << mat1Rows << ", " << mat1Cols << "), "
+             << "Right matrix shape: (" << mat2Rows  << ", " << mat2Cols << ")." << endl;
+        exit(1);
+    }
+}
+
 Matrix Matrix::operator *(const Matrix &mat2) const {
-    assert(numCols == mat2.numRows);
+    checkSizeMatch(numCols, mat2.numRows);
 
     size_t mat2Rows = mat2.numRows;
     size_t mat2Cols = mat2.numCols;
@@ -50,12 +74,14 @@ Matrix Matrix::operator *(const Matrix &mat2) const {
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
+        size_t offsetThis = i * numCols;
+        size_t offsetProd = i * mat2Cols;
         for (size_t j = 0; j < mat2Cols; j++) {
             double value = 0.0;
             for (size_t k = 0; k < mat2Rows; k++) {
-                value += matrix[i * numCols + k]* mat2.matrix[k * mat2Cols + j];
+                value += matrix[offsetThis + k]* mat2.matrix[k * mat2Cols + j];
             }
-            product.matrix[i * mat2Cols + j] = value;
+            product.matrix[offsetProd + j] = value;
         }
     }
 
@@ -63,7 +89,7 @@ Matrix Matrix::operator *(const Matrix &mat2) const {
 }
 
 Matrix Matrix::operator *(const MatrixT &mat2) const {
-    assert(numCols == mat2.getNumRows());
+    checkSizeMatch(numCols,mat2.getNumRows());
 
     size_t mat2Rows = mat2.getNumRows();
     size_t mat2Cols = mat2.getNumCols();
@@ -73,12 +99,14 @@ Matrix Matrix::operator *(const MatrixT &mat2) const {
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
+        size_t offsetThis = i * numCols;
+        size_t offsetProd = i * mat2Cols;
         for (size_t j = 0; j < mat2Cols; j++) {
             double value = 0.0;
             for (size_t k = 0; k < mat2Rows; k++) {
-                value += matrix[i * numCols + k] * mat2Flat[j * mat2Rows+ k];
+                value += matrix[offsetThis + k] * mat2Flat[j * mat2Rows+ k];
             }
-            product.matrix[i * mat2Cols + j] = value;
+            product.matrix[offsetProd + j] = value;
         }
     }
 
@@ -86,15 +114,16 @@ Matrix Matrix::operator *(const MatrixT &mat2) const {
 }
 
 vector<double> Matrix::operator *(const vector<double> &vec) const {
-    assert(numCols == vec.size());
+    checkSizeMatch(numCols, vec.size());
 
     vector<double> product(numRows, 0.0);
 
     #pragma omp parallel for
     for (size_t i = 0; i < numRows; i++) {
         double value = 0.0;
+        size_t offset = i * numCols;
         for (size_t j = 0; j < numCols; j++) {
-            value += matrix[i * numCols + j] * vec[j];
+            value += matrix[offset + j] * vec[j];
         }
         product[i] = value;
     }
@@ -128,8 +157,8 @@ vector<double> Matrix::colSums() const {
 }
 
 Matrix& Matrix::operator *=(const Matrix &mat2) {
-    assert(numRows ==  mat2.getNumRows());
-    assert(numCols == mat2.getNumCols());
+    checkSameShape(numRows, numCols, mat2.numRows, mat2.numCols, "Hadamard Product");
+    
     size_t size = numRows * numCols;
 
     #pragma omp parallel for
@@ -152,10 +181,8 @@ Matrix& Matrix::operator *=(double scaleFactor){
 }
 
 Matrix& Matrix::operator +=(const Matrix &mat2) {
-    assert(numRows ==  mat2.getNumRows());
-    assert(numCols == mat2.getNumCols());
+    checkSameShape(numRows, numCols, mat2.numRows, mat2.numCols, "Matrix Addition");
     size_t size = numRows * numCols;
-
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
@@ -166,12 +193,17 @@ Matrix& Matrix::operator +=(const Matrix &mat2) {
 }
 
 void Matrix::addToRows(const vector<double> &vec) {
-    assert(vec.size() == numCols);
+    if (vec.size() != numCols) {
+        cerr << "Fatal Error: Cannot broadcast vector to matrix rows.\n"
+             << "Vector size: " << vec.size()
+             << ", Matrix columns: " << numCols << "." << endl;
+    }
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
+        size_t offset = i * numCols;
         for (size_t j = 0; j < numCols; j++) {
-            matrix[i * numCols + j] += vec[j];
+            matrix[offset+ j] += vec[j];
         }
     }
 }

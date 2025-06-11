@@ -14,33 +14,33 @@ class Batch {
         size_t batchSize;
         vector<Matrix> layerActivations;
         vector<Matrix> layerPreActivations;
-        vector<int> indices;
+        vector<size_t> indices;
         vector<double> targets;
         vector<double> rescaledTargets;
         Matrix data;
         Matrix rescaledOutput;
         Matrix outputGradients;
-        int writeActivationIdx;
-        int writePreActivationIdx;
+        size_t writeActivationIdx;
+        size_t writePreActivationIdx;
 
     public:
         // Constructor
-        Batch(int, int);
+        Batch(size_t, size_t);
 
         // Methods
         void setBatch(const Matrix&, const vector<double> &);
-        void setBatchIndices(int, int, const vector<int>&);
+        void setBatchIndices(size_t, size_t, const vector<size_t>&);
         const Matrix& getData() const;
         void addLayerActivations(const Matrix&);
         void addLayerPreActivations(const Matrix&);
-        const Matrix& getLayerActivation(int) const;
-        const Matrix& getLayerPreActivation(int) const;
+        const Matrix& getLayerActivation(size_t) const;
+        const Matrix& getLayerPreActivation(size_t) const;
         const Matrix& getOutputGradients() const;
         const vector<double>& getTargets() const;
         void updateOutputGradients(const Matrix&);
         void calculateOutputGradients(const Layer&, const Loss*);
         void writeBatchPredictions(vector<double>&, const Matrix&) const;
-        int getCorrectPredictions(const vector<double>&) const; 
+        size_t getCorrectPredictions(const vector<double>&) const; 
         void setRescaledOutput(const Matrix&);
         void setRescaledTargets(const vector<double>&);
         const Matrix& getRescaledOutput() const;

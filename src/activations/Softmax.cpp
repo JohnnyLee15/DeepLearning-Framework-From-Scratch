@@ -2,7 +2,7 @@
 #include "utils/VectorUtils.h"
 #include "core/Matrix.h"
 #include <cmath>
-#include <iostream>
+#include "losses/SoftmaxCrossEntropy.h"
 
 const double Softmax::SOFTMAX_BIAS = 0.0;
 
@@ -71,7 +71,6 @@ vector<double> Softmax::initBias(size_t numBiases) const {
 }
 
 Matrix Softmax::calculateGradient(const Matrix& preActivations) const {
-    cout << "Error. Softmax gradient calculation should never be called." << endl;
-    exit(1);
+    SoftmaxCrossEntropy::checkInvalidGradientCall();
     return Matrix(0,0);
 }

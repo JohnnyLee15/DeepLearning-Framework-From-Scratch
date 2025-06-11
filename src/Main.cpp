@@ -28,23 +28,25 @@ int main() {
     Data data;
     data.setTask(new ClassificationTask());
     data.readTrain("DataFiles/mnist_train.csv", "label");
-    data.readTest("DataFiles/mnist_test.csv", "label");
-    data.setScalars(new Greyscale());
-    data.fitScalars();
-    size_t numFeatures = data.getTrainFeatures().getNumCols();
+    // data.readTest("DataFiles/mnist_test.csv", "label");
+    // data.setScalars(new Greyscale());
+    // data.fitScalars();
+    // size_t numFeatures = data.getTrainFeatures().getNumCols();
+
+    data.headTrain();
 
     // Architecture
-    Loss *loss = new SoftmaxCrossEntropy();
-    vector<Activation*> activations = {new Relu(), new Relu(), new Softmax()};
-    vector<size_t> layerSizes = {numFeatures, 64, 32, 10};
-    NeuralNet nn(layerSizes, activations, loss);
+    // Loss *loss = new SoftmaxCrossEntropy();
+    // vector<Activation*> activations = {new Relu(), new Relu(), new Softmax()};
+    // vector<size_t> layerSizes = {numFeatures, 64, 32, 10};
+    // NeuralNet nn(layerSizes, activations, loss);
 
-    // Train
-    nn.train(data, 0.01, 0.01, 50, 32);
-    Matrix probs = nn.predict(data);
-    vector<double> predictions = TrainingUtils::getPredictions(probs);
-    double accuracy = TrainingUtils::getAccuracy(predictions, data.getTestTargets());
-    cout << "Test Accuracy: " << accuracy << endl;
+    // // Train
+    // nn.train(data, 0.01, 0.01, 50, 32);
+    // Matrix probs = nn.predict(data);
+    // vector<double> predictions = TrainingUtils::getPredictions(probs);
+    // double accuracy = TrainingUtils::getAccuracy(predictions, data.getTestTargets());
+    // cout << "Test Accuracy: " << accuracy << endl;
 
     return 0;
 }

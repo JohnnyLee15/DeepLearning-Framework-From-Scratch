@@ -11,6 +11,10 @@ class Scalar {
         bool fitted;
         bool transformed;
 
+        // Methods
+        void checkFitted();
+        void checkTransformed() const;
+
     public:
         // Methods
         virtual void fit(const Matrix&);
@@ -20,9 +24,6 @@ class Scalar {
         virtual void fit(const vector<double>&);
         virtual void transform(vector<double>&) = 0;
         virtual void reverseTransform(vector<double>&) const = 0;
-
-        void setFitted(bool);
-        void setTransforemd(bool);
 
         virtual void resetToRaw();
         bool isTransformed() const;

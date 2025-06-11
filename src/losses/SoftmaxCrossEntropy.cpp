@@ -1,6 +1,7 @@
 #include "losses/SoftmaxCrossEntropy.h"
 #include "utils/TrainingUtils.h"
 #include "core/Matrix.h"
+#include <iostream>
 
 double SoftmaxCrossEntropy::calculateDerivative(
     double prob,
@@ -41,4 +42,12 @@ Matrix SoftmaxCrossEntropy::calculateGradient(
 
 bool SoftmaxCrossEntropy::isFused() const {
     return true;
+}
+
+void SoftmaxCrossEntropy::checkInvalidGradientCall() {
+    cerr << "Fatal Error: Softmax::calculateGradient() should never be called.\n"
+         << "Softmax must be used only with the fused SoftmaxCrossEntropy loss,\n"
+         << "not as a standalone activation. Please replace the CrossEntropy loss\n"
+         << "with SoftmaxCrossEntropy to ensure correct gradient computation." << endl;
+    exit(1);
 }

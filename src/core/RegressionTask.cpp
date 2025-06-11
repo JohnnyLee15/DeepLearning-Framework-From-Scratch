@@ -2,7 +2,6 @@
 #include <iostream>
 #include "core/Matrix.h"
 #include "utils/ConsoleUtils.h"
-#include <cassert>  
 #include "core/Batch.h"
 #include "losses/Loss.h"
 #include "utils/Scalar.h"
@@ -10,7 +9,7 @@
 
 const string RegressionTask::PROGRESS_METRIC_NAME = "MAPE";
 
-RegressionTask::RegressionTask() : Task(PROGRESS_METRIC_NAME) {} 
+RegressionTask::RegressionTask() : Task(PROGRESS_METRIC_NAME), targetScalar(nullptr) {} 
 
 vector<double> RegressionTask::getTarget(
     const vector<string> &targetRaw
@@ -28,6 +27,14 @@ vector<double> RegressionTask::getTarget(
     return target;
 }
 
+void RegressionTask::checkNumOutputNeurons(size_t numOutputNeurons) const {
+    if (numOutputNeurons != 1) {
+        cerr << "Fatal Error: Regression Tasks expect 1 output neuron.\n"
+             << "Got " << numOutputNeurons << " neurons instead." << endl;
+        exit(1);
+    }
+}
+
 void RegressionTask::setTargetScalar(Scalar *scalar) {
     if (targetScalar != nullptr) {
         delete targetScalar;
@@ -36,7 +43,7 @@ void RegressionTask::setTargetScalar(Scalar *scalar) {
 }
 
 vector<double> RegressionTask::parsePredictions(const Matrix& rawOutput) const {
-    assert(rawOutput.getNumCols() == 1);
+    checkNumOutputNeurons(rawOutput.getNumCols());
     return rawOutput.getFlat();
 }
 
@@ -68,8 +75,7 @@ double RegressionTask::calculateProgressMetric(
     const vector<double> &predictions,
     EpochStats &stats
 ) const {
-    assert(output.getNumCols() == 1);
-
+    checkNumOutputNeurons(output.getNumCols());
     vector<double> outputFlat = output.getFlat();
     vector<double> batchTargets = batch.getTargets();
 
@@ -86,17 +92,28 @@ double RegressionTask::computeMAPE(
     const vector<double> &batchTargets,
     EpochStats &stats
 ) const {
-    size_t numSamples = outputFlat.size();
+    size_t numBatchSamples = outputFlat.size();
     double localMapeSum = 0.0;
-    #pragma omp parallel for reduction(+:localMapeSum)
-    for (size_t i = 0; i < numSamples; i++) {
+    size_t localNonZero = 0;
+
+    #pragma omp parallel for reduction(+:localMapeSum, localNonZero)
+    for (size_t i = 0; i < numBatchSamples; i++) {
         double actual = batchTargets[i];
         if (actual != 0) {
+            localNonZero ++;
             localMapeSum += abs(outputFlat[i] - actual)/actual;
         }
     }
+
     stats.mapeSum += localMapeSum;
-    return 100 * stats.mapeSum/stats.samplesProcessed;
+    stats.nonZeroTargets += localNonZero;
+
+    if (stats.nonZeroTargets == 0) {
+        cerr << "Warning: All target values were 0. MAPE is undefined." << endl;
+        return 0.0;
+    }
+
+    return 100 * stats.mapeSum/stats.nonZeroTargets;
 }
 
 Matrix RegressionTask::predict(const Matrix &activations) const {
@@ -114,14 +131,22 @@ void RegressionTask::fitScalars(
     Matrix &testFeatures,
     vector<double> &testTargets
 ) {
-    Task::fitScalars(trainFeatures, trainTargets, testFeatures, testTargets);
+    if (!targetScalar) {
+        std::cerr << "Fatal Error: Target scalar must be set before calling fitScalars() in RegressionTask." << std::endl;
+        exit(1);
+    }
 
+    Task::fitScalars(trainFeatures, trainTargets, testFeatures, testTargets);
     targetScalar->fit(trainTargets);
     targetScalar->transform(trainTargets);
     targetScalar->transform(testTargets);
 }
 
 void RegressionTask::resetToRaw() {
+    if (!targetScalar) {
+        std::cerr << "Fatal Error: Target scalar not set before resetToRaw()." << std::endl;
+        exit(1);
+    }
     Task::resetToRaw();
     targetScalar->resetToRaw();
 }

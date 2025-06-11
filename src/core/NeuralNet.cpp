@@ -40,7 +40,7 @@ void NeuralNet::train(
 ) {
     double initialLR = learningRate;
     avgLosses.resize(numEpochs);
-    for (int k = 0; k < numEpochs; k++) {
+    for (size_t k = 0; k < numEpochs; k++) {
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
 
         vector<double> predictions(data.getNumTrainSamples(), -1);
@@ -59,7 +59,7 @@ double NeuralNet::runEpoch(
 ) {
     EpochStats stats = initEpochStats(data);
     size_t numBatches = (stats.numSamples + batchSize - 1)/batchSize;
-    vector<int> shuffledIndices = data.generateShuffledIndices();
+    vector<size_t> shuffledIndices = data.generateShuffledIndices();
 
     for (size_t b = 0; b < numBatches; b++) {
         size_t start = b * batchSize;
@@ -101,6 +101,7 @@ EpochStats NeuralNet::initEpochStats(const Data &data) const{
         .samplesProcessed = 0,
         .correctPredictions = 0,
         .numSamples = data.getNumTrainSamples(),
+        .nonZeroTargets = 0,
         .startTime = chrono::steady_clock::now(),
         .progressMetricName = data.getTask()->getProgressMetricName()
     };
@@ -110,9 +111,9 @@ Batch NeuralNet::makeBatch(
     size_t start,
     size_t end,
     const Data &data,
-    const vector<int> &shuffledIndices
+    const vector<size_t> &shuffledIndices
 ) const {
-    int batchSize = end - start;
+    size_t batchSize = end - start;
     Batch batch = Batch(layers.size() + 1, batchSize);
     batch.setBatchIndices(start, end, shuffledIndices);
     batch.setBatch(data.getTrainFeatures(), data.getTrainTargets());
@@ -145,15 +146,15 @@ void NeuralNet::forwardPass(Batch &batch) {
 }
 
 void NeuralNet::backprop(Batch &batch, double learningRate) {
-    int numLayers = (int) layers.size();
-    for (int i = numLayers - 1; i >= 0; i--) {
+    size_t numLayers = layers.size();
+    for (size_t i = numLayers - 1; i >= 0; i--) {
         const Matrix &prevActivations = batch.getLayerActivation(i);
         layers[i].updateLayerParameters(prevActivations, learningRate, batch.getOutputGradients());
         updateOutputGradients(batch, i);
     }
 }
 
-void NeuralNet::updateOutputGradients(Batch &batch, int currLayer) {
+void NeuralNet::updateOutputGradients(Batch &batch, size_t currLayer) {
     if (currLayer > 0) {
         Activation *prevActivation = layers[currLayer - 1].getActivation();
         const Matrix &prevPreActivations = batch.getLayerPreActivation(currLayer - 1);

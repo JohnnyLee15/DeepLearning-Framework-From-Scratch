@@ -9,38 +9,36 @@ void Scalar::fit(const vector<double> &data) {
     fitted = true;
 }
 
-void Scalar::transform(Matrix &data) {
+void Scalar::checkFitted() {
     if (!fitted) {
-        cout << "Error: Must call fit() before transform()." << endl;
+        cerr << "Fatal Error: Cannot transform data before calling fit()." << endl;
+        exit(1);
     }
+}
+
+void Scalar::checkTransformed() const {
+    if (!transformed) {
+        cerr << "Fatal Error: Cannot reverse transform before calling transform()." << endl;
+        exit(1);
+    }
+}
+
+void Scalar::transform(Matrix &data) {
+    checkFitted();
     transformed = true;
 }
 
 void Scalar::transform(vector<double> &data) {
-    if (!fitted) {
-        cout << "Error: Must call fit() before transform()." << endl;
-    }
+    checkFitted();
     transformed = true;
 }
 
 void Scalar::reverseTransform(Matrix &data) const {
-    if (!transformed) {
-        cout << "Error: Must call transform() before reverseTransform()." << endl;
-    }
+    checkTransformed();
 }
 
 void Scalar::reverseTransform(vector<double> &data) const {
-    if (!transformed) {
-        cout << "Error: Must call transform() before reverseTransform()." << endl;
-    }
-}
-
-void Scalar::setFitted(bool newFitted) {
-    fitted = newFitted;
-}
-
-void Scalar::setTransforemd(bool newTransformed) {
-    transformed = newTransformed;
+    checkTransformed();
 }
 
 void Scalar::resetToRaw() {

@@ -4,6 +4,7 @@ class Greyscale : public Scalar {
     private:
         // Constants
         static const double MAX_GREYSCALE_VALUE;
+        void throwDataFormatError() const;
     
     public:
         // Methods

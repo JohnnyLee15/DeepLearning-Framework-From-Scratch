@@ -13,7 +13,7 @@ class Matrix {
         vector<double> matrix;
         size_t numRows;
         size_t numCols;
-
+        
     public:
         // Constructors        
         Matrix(size_t, size_t);
@@ -34,5 +34,9 @@ class Matrix {
         vector<double> colSums() const;
         const vector<double>& getFlat() const;
         void addToRows(const vector<double>&);
+
+        // Static Methods
+        static void checkSizeMatch(size_t, size_t);
+        static void checkSameShape(size_t, size_t, size_t, size_t, const string&);
         
 };

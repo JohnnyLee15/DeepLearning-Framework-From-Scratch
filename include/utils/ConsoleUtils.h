@@ -29,6 +29,7 @@ class ConsoleUtils {
 
         // Methods
         static void runSpinner();
+        static void printStats(EpochStats&);
         static string centerText(const string&, size_t);
 
     public:

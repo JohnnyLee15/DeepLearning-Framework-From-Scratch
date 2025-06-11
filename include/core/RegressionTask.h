@@ -13,6 +13,7 @@ class RegressionTask : public Task {
 
         // Methods
         double computeMAPE(const vector<double>&, const vector<double>&, EpochStats&) const;
+        void checkNumOutputNeurons(size_t) const;
 
     public:
         // Constructor

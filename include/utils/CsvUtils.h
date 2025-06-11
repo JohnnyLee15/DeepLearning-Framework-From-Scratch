@@ -8,12 +8,13 @@ using namespace std;
 class CsvUtils {
     private:
         // Methods
-        static void parseLine(const string&, vector<string>&, string&, int);
+        static void parseLine(const string&, vector<string>&, string&, size_t);
+        static void validateField(const string&, const string&);
         
     public:
         // Methods
         static vector<string> collectLines(const string&, bool);
-        static void parseLines(const vector<string>&, vector<vector<string> >&, vector<string>&, int);
+        static void parseLines(const vector<string>&, vector<vector<string> >&, vector<string>&, size_t);
         static vector<string> readHeader(const string&);
         static string trim(const string&);
         static string toLowerCase(const string&);

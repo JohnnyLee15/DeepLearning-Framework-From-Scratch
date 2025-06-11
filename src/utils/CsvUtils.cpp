@@ -8,7 +8,8 @@
 void CsvUtils::checkFile(const string &filename) {
     ifstream file(filename);
     if (!file.is_open()) {
-        cout << "Error: Failed to read " << filename << endl;
+        cerr << "Fatal Error: Unable to open file \"" << filename << "\" for reading.\n"
+             << "Please check that the file exists and the path is correct." << endl;
         exit(1);
     }
 }
@@ -41,7 +42,7 @@ void CsvUtils::parseLines(
     const vector<string> &lines,
     vector<vector<string> > &featuresRaw,
     vector<string> &targetRaw,
-    int targetIdx
+    size_t targetIdx
 ) {
     ConsoleUtils::loadMessage("Parsing Lines.");
     size_t numSamples = lines.size();
@@ -57,7 +58,7 @@ void CsvUtils::parseLine(
     const string &line, 
     vector<string> &sample, 
     string &target, 
-    int targetIdx
+    size_t targetIdx
 ) {
     size_t numCols = sample.size() + 1;
     stringstream lineParser(line);

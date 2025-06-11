@@ -37,17 +37,19 @@ void Greyscale::reverseTransform(Matrix &data) const {
     }
 }
 
+void Greyscale::throwDataFormatError() const {
+    cerr << "Fatal Error: Greyscale only supports Matrix input.\n"
+         << "Vector input is not supported for this scalar." << endl;
+}
+
 void Greyscale::fit(const vector<double> &data) {
-    cout << "Error: GreyscaleScaler only supports Matrix input." << endl;
-    exit(1);
+    throwDataFormatError();
 }
 
 void Greyscale::transform(vector<double> &data) {
-    cout << "Error: GreyscaleScaler only supports Matrix input." << endl;
-    exit(1);
+    throwDataFormatError();
 }
 
 void Greyscale::reverseTransform(vector<double> &data) const {
-    cout << "Error: GreyscaleScaler only supports Matrix input." << endl;
-    exit(1);
+    throwDataFormatError();
 }

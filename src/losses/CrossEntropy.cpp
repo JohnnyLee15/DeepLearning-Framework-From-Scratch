@@ -1,7 +1,7 @@
 #include "losses/CrossEntropy.h"
 #include "utils/TrainingUtils.h"
 #include "core/Matrix.h"
-#include <iostream>
+#include "losses/SoftmaxCrossEntropy.h"
 #include <omp.h>
 #include <cmath>
 
@@ -29,7 +29,6 @@ Matrix CrossEntropy::calculateGradient(
     const vector<double> &labels, 
     const Matrix &activations
 ) const {
-    cout << "Error. Cross Entropy gradient calculation should never be called." << endl;
-    exit(1);
+    SoftmaxCrossEntropy::checkInvalidGradientCall();
     return Matrix(0,0);
 }

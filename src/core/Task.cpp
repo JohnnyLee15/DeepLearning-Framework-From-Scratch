@@ -11,7 +11,7 @@ Matrix Task::predict(const Matrix &activations) const {
 }
 
 void Task::setTargetScalar(Scalar *scalar) {
-    cout << "Error: This task does not support target scaling." << endl;
+    cerr << "Error: This task does not support target scaling." << endl;
     exit(1);
 }
 
@@ -27,6 +27,11 @@ void Task::setFeatureScalar(Scalar *scalar) {
 }
 
 void Task::resetToRaw() {
+    if (!featureScalar) {
+        std::cerr << "Fatal Error: Feature scalar not set before resetToRaw()." << std::endl;
+        exit(1);
+    }
+
     featureScalar->resetToRaw();
 }
 
@@ -36,6 +41,11 @@ void Task::fitScalars(
     Matrix &testFeatures,
     vector<double> &testTargets
 ) {
+    if (!featureScalar) {
+        std::cerr << "Fatal Error: Feature scalar must be set before calling fitScalars()." << std::endl;
+        exit(1);
+    }
+
     featureScalar->fit(trainFeatures);
     featureScalar->transform(trainFeatures);
     featureScalar->transform(testFeatures);

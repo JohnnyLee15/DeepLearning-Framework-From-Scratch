@@ -20,13 +20,13 @@ class NeuralNet {
 
         // Methods
         void backprop(Batch&, double);
-        void updateOutputGradients(Batch&, int);
+        void updateOutputGradients(Batch&, size_t);
         void forwardPass(Batch&);
         void forwardPassInference(const Matrix&);
         void updateEpochStats(EpochStats&, const Data&, const Batch&, const vector<double>&, size_t) const;
         double runEpoch(const Data&, double, vector<double>&, size_t);
         double processBatch(const Data&, Batch&, vector<double>&);
-        Batch makeBatch(size_t, size_t, const Data&, const vector<int>&) const;
+        Batch makeBatch(size_t, size_t, const Data&, const vector<size_t>&) const;
         EpochStats initEpochStats(const Data&) const;
 
     public:

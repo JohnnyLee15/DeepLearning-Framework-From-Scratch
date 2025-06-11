@@ -8,7 +8,10 @@ class SoftmaxCrossEntropy : public CrossEntropy{
         double calculateDerivative(double, size_t, size_t) const;
 
     public:
-        // Methds
+        // Methods
         Matrix calculateGradient(const vector<double>&, const Matrix&) const override;
         bool isFused() const override;
+
+        // Static Methods
+        static void checkInvalidGradientCall();
 };
