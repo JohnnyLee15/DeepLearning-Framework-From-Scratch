@@ -30,8 +30,9 @@ vector<string> CsvUtils::collectLines(const string &filename, bool hasHeader) {
 
     ConsoleUtils::completeMessage();
 
-    if (lines.size() == 0) {
-        cout << "Error: File " << filename << " is empty or malformed." << endl;
+    if (lines.empty()) {
+        cerr << "Fatal Error: No samples found in file \"" << filename << "\".\n"
+            << "The file may be empty or improperly formatted." << endl;
         exit(1);
     }
 
@@ -54,6 +55,14 @@ void CsvUtils::parseLines(
     ConsoleUtils::completeMessage();
 }
 
+void CsvUtils::validateField(const string &token, const string &line) {
+    if (token.empty()) {
+        cerr << "Fatal Error: Missing field detected in line.\n"
+            << "Line: \"" << line << "\"" << endl;
+        exit(1);
+    }
+}
+
 void CsvUtils::parseLine(
     const string &line, 
     vector<string> &sample, 
@@ -64,23 +73,24 @@ void CsvUtils::parseLine(
     stringstream lineParser(line);
     string token;
 
-    int i = 0;
+    size_t i = 0;
     while(getline(lineParser, token, ',') && i < numCols) {
         token = toLowerCase(trim(token));
+        validateField(token, line);
 
-        if (token.empty()) {
-            cout << "Error: Encountered missing field." << endl;
-            exit(1);
+        if (i == targetIdx) {
+            target = token;
+        } else {
+            sample[i] = token;
         }
-
-        if (i == targetIdx) target = token;
-        else sample[i] = token;
 
         i++;
     }
 
     if (i < numCols || getline(lineParser, token, ',')) {
-        cout << "Error: Improper row size." << endl;
+        cerr << "Fatal Error: Row does not match expected column count.\n"
+            << "Expected " << numCols << " fields, but got " << i << ".\n"
+            << "Line: \"" << line << "\"" << endl;
         exit(1);
     }
 }
@@ -90,7 +100,8 @@ vector<string> CsvUtils::readHeader(const string &filename) {
     string headerLine;
 
     if (!getline(file, headerLine)) {
-        cout << "Error: File " << filename << " is empty or malformed." << endl;
+        cerr << "Fatal Error: Failed to read header from file \"" << filename << "\".\n"
+             << "The file may be empty or incorrectly formatted." << endl;
         exit(1);
     }
 
