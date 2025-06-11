@@ -42,7 +42,7 @@ vector<string> CsvUtils::collectLines(const string &filename, bool hasHeader) {
 void CsvUtils::parseLines(
     const vector<string> &lines,
     vector<vector<string> > &featuresRaw,
-    vector<string> &targetRaw,
+    vector<string> &targetsRaw,
     size_t targetIdx
 ) {
     ConsoleUtils::loadMessage("Parsing Lines.");
@@ -50,7 +50,7 @@ void CsvUtils::parseLines(
 
     #pragma omp parallel for
     for (size_t i = 0; i < numSamples; i++) {
-        parseLine(lines[i], featuresRaw[i], targetRaw[i], targetIdx);
+        parseLine(lines[i], featuresRaw[i], targetsRaw[i], targetIdx);
     }
     ConsoleUtils::completeMessage();
 }
@@ -73,23 +73,24 @@ void CsvUtils::parseLine(
     stringstream lineParser(line);
     string token;
 
-    size_t i = 0;
-    while(getline(lineParser, token, ',') && i < numCols) {
+    size_t currIdx = 0;
+    size_t featureIdx = 0;
+    while(getline(lineParser, token, ',') && currIdx < numCols) {
         token = toLowerCase(trim(token));
         validateField(token, line);
 
-        if (i == targetIdx) {
+        if (currIdx == targetIdx) {
             target = token;
         } else {
-            sample[i] = token;
+            sample[featureIdx++] = token;
         }
 
-        i++;
+        currIdx++;
     }
 
-    if (i < numCols || getline(lineParser, token, ',')) {
+    if (currIdx != numCols) {
         cerr << "Fatal Error: Row does not match expected column count.\n"
-            << "Expected " << numCols << " fields, but got " << i << ".\n"
+            << "Expected " << numCols << " fields, but got " << currIdx << " (or more).\n"
             << "Line: \"" << line << "\"" << endl;
         exit(1);
     }
