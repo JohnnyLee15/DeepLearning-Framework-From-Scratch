@@ -18,8 +18,8 @@ void Minmax::fit(const Matrix &data) {
         vector<double> threadMaxVals(numCols, -VectorUtils::INF);
 
         #pragma omp for
-        for (int j = 0; j < numCols; j++) {
-            for (int i = 0; i < numRows; i++) {
+        for (size_t j = 0; j < numCols; j++) {
+            for (size_t i = 0; i < numRows; i++) {
                 double val = dataFlat[i * numCols + j];
                 if (val < threadMinVals[j]) threadMinVals[j] = val;
                 if (val > threadMaxVals[j]) threadMaxVals[j] = val;
@@ -44,7 +44,7 @@ void Minmax::fit(const vector<double> &data) {
     double maxVal = -VectorUtils::INF;
 
     #pragma omp parallel for reduction(min:minVal) reduction(max:maxVal)
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         double val = data[i];
         if (val < minVal) minVal = val;
         if (val > maxVal) maxVal = val;
@@ -61,7 +61,7 @@ void Minmax::transform(Matrix &data) {
     size_t numRows = data.getNumRows();
     vector<double> &dataFlat = data.getFlat();
 
-    #pragma omp parallel for collapse(2)
+    #pragma omp parallel for
     for (size_t j = 0; j < numCols; j++) {
         double scaleFactor = maxVals[j] - minVals[j];
         if (scaleFactor == 0.0) {
@@ -96,7 +96,7 @@ void Minmax::reverseTransform(Matrix &data) const {
     size_t numRows = data.getNumRows();
     vector<double> &dataFlat = data.getFlat();
 
-    #pragma omp parallel for collapse(2)
+    #pragma omp parallel for
     for (size_t j = 0; j < numCols; j++) {
         double scaleFactor = maxVals[j] - minVals[j];
         if (scaleFactor == 0.0) {
