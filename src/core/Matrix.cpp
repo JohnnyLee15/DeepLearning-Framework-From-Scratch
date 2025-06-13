@@ -201,9 +201,8 @@ void Matrix::addToRows(const vector<double> &vec) {
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
-        size_t offset = i * numCols;
         for (size_t j = 0; j < numCols; j++) {
-            matrix[offset+ j] += vec[j];
+            matrix[i * numCols + j] += vec[j];
         }
     }
 }
