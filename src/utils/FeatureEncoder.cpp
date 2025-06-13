@@ -1,6 +1,7 @@
 #include <utils/FeatureEncoder.h>
 #include <utils/ConsoleUtils.h>
 #include "core/Matrix.h"
+#include <stdexcept>
 
 bool FeatureEncoder::getValueType(const string &value) {
     try {

@@ -14,7 +14,7 @@ double MSE::calculateTotalLoss(
     double totalLoss = 0.0;
 
     #pragma omp parallel for reduction(+:totalLoss)
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         double diff = targets[i] - actFlat[i];
         totalLoss += (diff * diff);
     }
