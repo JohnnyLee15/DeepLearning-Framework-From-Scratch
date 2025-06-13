@@ -74,9 +74,9 @@ Matrix Matrix::operator *(const Matrix &mat2) const {
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
-        size_t offsetThis = i * numCols;
-        size_t offsetProd = i * mat2Cols;
         for (size_t j = 0; j < mat2Cols; j++) {
+            size_t offsetThis = i * numCols;
+            size_t offsetProd = i * mat2Cols;
             double value = 0.0;
             for (size_t k = 0; k < mat2Rows; k++) {
                 value += matrix[offsetThis + k]* mat2.matrix[k * mat2Cols + j];
@@ -99,10 +99,10 @@ Matrix Matrix::operator *(const MatrixT &mat2) const {
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
-        size_t offsetThis = i * numCols;
-        size_t offsetProd = i * mat2Cols;
         for (size_t j = 0; j < mat2Cols; j++) {
             double value = 0.0;
+            size_t offsetThis = i * numCols;
+            size_t offsetProd = i * mat2Cols;
             for (size_t k = 0; k < mat2Rows; k++) {
                 value += matrix[offsetThis + k] * mat2Flat[j * mat2Rows+ k];
             }
