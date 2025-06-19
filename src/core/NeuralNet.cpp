@@ -12,24 +12,8 @@
 
 using namespace std;
 
-NeuralNet::NeuralNet(
-    const vector<size_t> &neuronsPerLayer,
-    const vector<Activation*> &activations,
-    Loss *loss
-) : loss(loss) {
-    size_t numNeurons = neuronsPerLayer.size();
-    layers.reserve(numNeurons - 1);
-
-    for (size_t i = 1; i < numNeurons - 1; i++) {
-        layers.emplace_back(Layer(neuronsPerLayer[i], neuronsPerLayer[i-1], activations[i-1]));
-    }
-
-    layers.emplace_back(Layer(
-        neuronsPerLayer[numNeurons - 1], 
-        neuronsPerLayer[numNeurons - 2], 
-        activations.back()
-    ));
-}
+NeuralNet::NeuralNet(vector<Layer*> layers, Loss *loss) : 
+    layers(layers), loss(loss) {}
 
 void NeuralNet::train(
     const Data &data,
@@ -86,7 +70,7 @@ void NeuralNet::updateEpochStats(
     stats.avgLoss = loss->formatLoss(stats.totalLoss/stats.samplesProcessed);
     stats.timeElapsed = chrono::duration<double>(chrono::steady_clock::now() - stats.startTime).count();
     stats.progressMetric = data.getTask()->calculateProgressMetric(
-        batch, layers.back().getActivations(), predictions, stats
+        batch, layers.back()->getActivations(), predictions, stats
     );
     ConsoleUtils::printProgressBar(stats);
 }
@@ -127,8 +111,7 @@ double NeuralNet::processBatch(
     vector<double> &predictions
 ) {
     forwardPass(batch);
-    const Matrix &output = layers.back().getActivations();
-    batch.calculateOutputGradients(layers.back(), loss);
+    const Matrix &output = layers.back()->getActivations();
     return  data.getTask()->processBatch(batch, predictions, output, loss);
 }
 
@@ -136,42 +119,27 @@ void NeuralNet::forwardPass(Batch &batch) {
     Matrix prevActivations = batch.getData();
     size_t numLayers = layers.size();
 
-    batch.addLayerActivations(batch.getData());
     for (size_t j = 0; j < numLayers; j++) {
-        layers[j].calActivations(prevActivations);
-        prevActivations = layers[j].getActivations();
-        batch.addLayerPreActivations(layers[j].getPreActivations());
-        batch.addLayerActivations(layers[j].getActivations());
+        layers[j]->calActivations(prevActivations);
+        prevActivations = layers[j]->getActivations();
     }
 }
 
 void NeuralNet::backprop(Batch &batch, double learningRate) {
+    Matrix outputGradients = loss->calculateGradient(batch.getTargets(),layers.back()->getActivations());
     size_t numLayers = (int) layers.size();
+    
     for (int i = numLayers - 1; i >= 0; i--) {
-        const Matrix &prevActivations = batch.getLayerActivation(i);
-        layers[i].updateLayerParameters(prevActivations, learningRate, batch.getOutputGradients());
-        updateOutputGradients(batch, i);
-    }
-}
-
-void NeuralNet::updateOutputGradients(Batch &batch, size_t currLayer) {
-    if (currLayer > 0) {
-        Activation *prevActivation = layers[currLayer - 1].getActivation();
-        const Matrix &prevPreActivations = batch.getLayerPreActivation(currLayer - 1);
-
-        batch.updateOutputGradients(
-            layers[currLayer].updateOutputGradient(
-                batch.getOutputGradients(), 
-                prevPreActivations, 
-                prevActivation
-            )
-        );
+        bool isFirstLayer = (i == 0);
+        const Matrix &prevActivations = ((i == 0) ? batch.getData() : layers[i-1]->getActivations());
+        layers[i]->backprop(prevActivations, learningRate, outputGradients, isFirstLayer);
+        outputGradients = layers[i]->getOutputGradient();
     }
 }
 
 Matrix NeuralNet::predict(const Data &data) {
     forwardPassInference(data.getTestFeatures());
-    return data.getTask()->predict(layers.back().getActivations());
+    return data.getTask()->predict(layers.back()->getActivations());
 }
 
 void NeuralNet::forwardPassInference(const Matrix& data) {
@@ -179,8 +147,8 @@ void NeuralNet::forwardPassInference(const Matrix& data) {
     size_t numLayers = layers.size();
     
     for (size_t j = 0; j < numLayers; j++) {
-        layers[j].calActivations(prevActivations);
-        prevActivations = layers[j].getActivations();
+        layers[j]->calActivations(prevActivations);
+        prevActivations = layers[j]->getActivations();
     }
 }
 
@@ -188,6 +156,6 @@ NeuralNet::~NeuralNet() {
     delete loss;
     size_t numLayers = layers.size();
     for (size_t i = 0; i < numLayers; i++) {
-        delete layers[i].getActivation();
+        delete layers[i];
     }
 }

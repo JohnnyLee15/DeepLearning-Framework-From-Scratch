@@ -4,7 +4,7 @@
 #include "utils/EpochStats.h"
 
 class Batch;
-class Layer;
+class DenseLayer;
 class Matrix;
 class Loss;
 class Scalar;

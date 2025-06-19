@@ -17,6 +17,7 @@
 #include "utils/Minmax.h"
 #include "core/ClassificationTask.h"
 #include "utils/TrainingUtils.h"
+#include "core/Layer.h"
 
 using namespace std;
 
@@ -37,7 +38,13 @@ int main() {
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Activation*> activations = {new Relu(), new Relu(), new Softmax()};
     vector<size_t> layerSizes = {numFeatures, 64, 32, 10};
-    NeuralNet nn(layerSizes, activations, loss);
+    vector<Layer*> layers = {
+        new DenseLayer(64, numFeatures, new Relu()),
+        new DenseLayer(32, 64, new Relu()),
+        new DenseLayer(10, 32, new Softmax())
+    };
+
+    NeuralNet nn(layers, loss);
 
     // Train
     nn.train(data, 0.01, 0.01, 50, 32);

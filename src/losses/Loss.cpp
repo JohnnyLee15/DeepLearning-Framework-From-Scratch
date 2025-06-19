@@ -3,7 +3,3 @@
 double Loss::formatLoss(double avgLoss) const {
     return avgLoss;
 }
-
-bool Loss::isFused() const {
-    return false;
-}

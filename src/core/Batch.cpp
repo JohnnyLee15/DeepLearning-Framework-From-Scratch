@@ -1,18 +1,13 @@
 #include "core/Batch.h"
 #include <omp.h>
-#include "core/Layer.h"
-#include "losses/CrossEntropy.h"
+#include "core/DenseLayer.h"
 #include "utils/TrainingUtils.h"
 #include "activations/Activation.h"
 
 Batch::Batch(size_t numLayers, size_t batchSize) :
     batchSize(batchSize),
-    layerActivations(numLayers),
-    layerPreActivations(numLayers),
     indices(batchSize),
-    targets(batchSize),
-    writeActivationIdx(0),
-    writePreActivationIdx(0) 
+    targets(batchSize)
 {}
 
 void Batch::setBatchIndices(
@@ -45,18 +40,6 @@ void Batch::setBatch(
 
         targets[i] = trainLabels[rdIdx];
     }
-}
-
-void Batch::calculateOutputGradients(
-    const Layer &outputLayer,
-    const Loss *loss
-) {
-    const Matrix &activations = outputLayer.getActivations();
-    const Matrix &preActivations = outputLayer.getPreActivations();
-    outputGradients = loss->calculateGradient(targets, activations);
-    if (!loss->isFused()) {
-        outputGradients *= outputLayer.getActivation()->calculateGradient(preActivations);
-    } 
 }
 
 void Batch::writeBatchPredictions(
@@ -94,34 +77,6 @@ const Matrix& Batch::getData() const {
 
 const vector<double>& Batch::getTargets() const {
     return targets;
-}
-
-void Batch::addLayerActivations(
-    const Matrix &activations
-) {
-    layerActivations[writeActivationIdx++] = activations;
-}
-
-void Batch::addLayerPreActivations(
-    const Matrix &preActivations
-) {
-    layerPreActivations[writePreActivationIdx++] = preActivations;
-}
-
-const Matrix& Batch::getLayerActivation(size_t idx) const {
-    return layerActivations[idx];
-}
-
-const Matrix& Batch::getLayerPreActivation(size_t idx) const {
-    return layerPreActivations[idx];
-}
-
-const Matrix& Batch::getOutputGradients() const {
-    return outputGradients;
-}
-
-void Batch::updateOutputGradients(const Matrix &newOutputGradients) {
-    outputGradients = newOutputGradients;
 }
 
 void Batch::setRescaledOutput(const Matrix &outputs) {

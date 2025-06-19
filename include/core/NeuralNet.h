@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "Layer.h"
+#include "DenseLayer.h"
 #include "utils/EpochStats.h"
 
 class Loss;
@@ -14,13 +14,12 @@ class Data;
 class NeuralNet {
     private:
         // Instance Variables
-        vector<Layer> layers;
+        vector<Layer*> layers;
         vector<double> avgLosses;
         Loss *loss;
 
         // Methods
         void backprop(Batch&, double);
-        void updateOutputGradients(Batch&, size_t);
         void forwardPass(Batch&);
         void forwardPassInference(const Matrix&);
         void updateEpochStats(EpochStats&, const Data&, const Batch&, const vector<double>&, size_t) const;
@@ -31,7 +30,7 @@ class NeuralNet {
 
     public:
         // Constructor
-        NeuralNet(const vector<size_t>&, const vector<Activation*>&, Loss*);
+        NeuralNet(vector<Layer*>, Loss*);
 
         //Methods
         void train(const Data&, double, double, size_t, size_t);

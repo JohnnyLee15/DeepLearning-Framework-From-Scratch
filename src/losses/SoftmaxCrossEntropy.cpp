@@ -3,6 +3,26 @@
 #include "core/Matrix.h"
 #include <iostream>
 
+const double SoftmaxCrossEntropy::CROSS_ENTROPY_EPSILON = 1e-10;
+
+double SoftmaxCrossEntropy::calculateTotalLoss(
+    const vector<double> &labels,
+    const Matrix &probs
+) const {
+    size_t numRows = probs.getNumRows();
+    size_t numCols = probs.getNumCols();
+
+    double totalLoss = 0.0;
+    const vector<double> &probsFlat = probs.getFlat();
+
+    #pragma omp parallel for reduction(+:totalLoss)
+    for (size_t i = 0; i < numRows; i++) {
+        totalLoss += -log(max(CROSS_ENTROPY_EPSILON, probsFlat[i * numCols + (int) labels[i]]));
+    }
+
+    return totalLoss;
+}
+
 double SoftmaxCrossEntropy::calculateDerivative(
     double prob,
     size_t col,
@@ -38,10 +58,6 @@ Matrix SoftmaxCrossEntropy::calculateGradient(
     }
     
     return gradients;
-}
-
-bool SoftmaxCrossEntropy::isFused() const {
-    return true;
 }
 
 void SoftmaxCrossEntropy::checkInvalidGradientCall() {

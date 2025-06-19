@@ -74,3 +74,7 @@ Matrix Softmax::calculateGradient(const Matrix& preActivations) const {
     SoftmaxCrossEntropy::checkInvalidGradientCall();
     return Matrix(0,0);
 }
+
+bool Softmax::isFused() const {
+    return true;
+}
