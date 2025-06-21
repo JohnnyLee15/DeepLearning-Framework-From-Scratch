@@ -4,13 +4,16 @@
 #include <fstream>
 #include <iostream>
 #include <cctype>
+#include <cstring>
+#include <cerrno>
 
 void CsvUtils::checkFile(const string &filename) {
     ifstream file(filename);
-    if (!file.is_open()) {
-        cerr << "Fatal Error: Unable to open file \"" << filename << "\" for reading.\n"
-             << "Please check that the file exists and the path is correct." << endl;
-        exit(1);
+    if (!file) {
+        ConsoleUtils::fatalError(
+            "Unable to open file \"" + filename + "\" for reading.\n" +
+            "Reason: " + strerror(errno) + "."
+        );
     }
 }
 
@@ -31,9 +34,10 @@ vector<string> CsvUtils::collectLines(const string &filename, bool hasHeader) {
     ConsoleUtils::completeMessage();
 
     if (lines.empty()) {
-        cerr << "Fatal Error: No samples found in file \"" << filename << "\".\n"
-            << "The file may be empty or improperly formatted." << endl;
-        exit(1);
+        ConsoleUtils::fatalError(
+            "No samples found in file \"" + filename + "\".\n"
+            "The file may be empty or improperly formatted."
+        );
     }
 
     return lines;
@@ -57,9 +61,10 @@ void CsvUtils::parseLines(
 
 void CsvUtils::validateField(const string &token, const string &line) {
     if (token.empty()) {
-        cerr << "Fatal Error: Missing field detected in line.\n"
-            << "Line: \"" << line << "\"" << endl;
-        exit(1);
+        ConsoleUtils::fatalError(
+            "Missing field detected in line.\n"
+            "Line: \"" + line + "\""
+        );
     }
 }
 
@@ -89,10 +94,11 @@ void CsvUtils::parseLine(
     }
 
     if (currIdx != numCols) {
-        cerr << "Fatal Error: Row does not match expected column count.\n"
-            << "Expected " << numCols << " fields, but got " << currIdx << " (or more).\n"
-            << "Line: \"" << line << "\"" << endl;
-        exit(1);
+        ConsoleUtils::fatalError(
+            string("Row does not match expected column count.\n") +
+            "Expected " + to_string(numCols) + " fields, but got " + to_string(currIdx) + " (or more).\n" +
+            "Line: \"" + line + "\""
+        );
     }
 }
 
@@ -101,9 +107,10 @@ vector<string> CsvUtils::readHeader(const string &filename) {
     string headerLine;
 
     if (!getline(file, headerLine)) {
-        cerr << "Fatal Error: Failed to read header from file \"" << filename << "\".\n"
-             << "The file may be empty or incorrectly formatted." << endl;
-        exit(1);
+        ConsoleUtils::fatalError(
+            "Failed to read header from file \"" + filename + "\".\n"
+            "The file may be empty or incorrectly formatted."
+        );
     }
 
     stringstream lineParser(headerLine);

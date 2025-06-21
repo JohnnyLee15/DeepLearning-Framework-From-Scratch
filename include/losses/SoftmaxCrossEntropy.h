@@ -13,6 +13,7 @@ class SoftmaxCrossEntropy : public Loss {
         // Methods
         Matrix calculateGradient(const vector<double>&, const Matrix&) const override;
         double calculateTotalLoss(const vector<double>&, const Matrix&) const override;
+        uint32_t getEncoding() const override;
 
         // Static Methods
         static void checkInvalidGradientCall();

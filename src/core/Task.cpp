@@ -2,6 +2,7 @@
 #include <iostream>
 #include "core/Matrix.h"
 #include "utils/Scalar.h"
+#include "utils/ConsoleUtils.h"
 
 Task::Task(string progressMetricName) : 
     progressMetricName(progressMetricName), featureScalar(nullptr) {}
@@ -11,8 +12,7 @@ Matrix Task::predict(const Matrix &activations) const {
 }
 
 void Task::setTargetScalar(Scalar *scalar) {
-    cerr << "Error: This task does not support target scaling." << endl;
-    exit(1);
+    ConsoleUtils::fatalError("This task does not support target scaling.");
 }
 
 const string& Task::getProgressMetricName() const {
@@ -28,8 +28,7 @@ void Task::setFeatureScalar(Scalar *scalar) {
 
 void Task::resetToRaw() {
     if (!featureScalar) {
-        std::cerr << "Fatal Error: Feature scalar not set before resetToRaw()." << std::endl;
-        exit(1);
+        ConsoleUtils::fatalError("Feature scalar not set before resetToRaw().");
     }
 
     featureScalar->resetToRaw();
@@ -42,8 +41,7 @@ void Task::fitScalars(
     vector<double> &testTargets
 ) {
     if (!featureScalar) {
-        std::cerr << "Fatal Error: Feature scalar must be set before calling fitScalars()." << std::endl;
-        exit(1);
+        ConsoleUtils::fatalError("Feature scalar must be set before calling fitScalars().");
     }
 
     featureScalar->fit(trainFeatures);

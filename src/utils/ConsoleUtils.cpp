@@ -5,10 +5,13 @@
 const int ConsoleUtils::PROGRESS_BAR_LENGTH = 50;
 const string ConsoleUtils::GREEN = "\033[32m";
 const string ConsoleUtils::CYAN = "\033[36m";
+const string ConsoleUtils::YELLOW = "\033[33m";
+const string ConsoleUtils::RED = "\033[31m";
 const string ConsoleUtils::RESET_COLOUR = "\033[0m";
 const string ConsoleUtils::FILLED = "█";
 const string ConsoleUtils::EMPTY = "░";
 const string ConsoleUtils::COMPLETE = "✔";
+const string ConsoleUtils::CROSS = "✘";
 const char ConsoleUtils::SPINNER_CHARS[] = {'\\', '|', '/', '-'};
 const size_t ConsoleUtils::WIDTH = 60;
 const string ConsoleUtils::TITLE_LINE = string(WIDTH, '=');
@@ -92,4 +95,21 @@ void ConsoleUtils::printTitle() {
 
 void ConsoleUtils::printSepLine() {
     cout << SEP_LINE << endl;
+}
+
+void ConsoleUtils::printSuccess(const string &message) {
+    cout << "[" << GREEN << COMPLETE << RESET_COLOUR << "] " << message << endl;
+}
+
+void ConsoleUtils::printWarning(const string &message) {
+    cout << "[" << YELLOW << "!" << RESET_COLOUR << "] " << message << endl;
+}
+
+void ConsoleUtils::printError(const string &message) {
+    cout << "[" << RED << CROSS << RESET_COLOUR << "] " << message << endl;
+}
+
+void ConsoleUtils::fatalError(const string &message) {
+    cerr << "Fatal Error: " << message << " Exiting." << endl;
+    exit(1);
 }

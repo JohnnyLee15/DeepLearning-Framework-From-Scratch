@@ -1,5 +1,5 @@
 #pragma once
-
+#include <cstdint>
 #include <vector>
 
 class Matrix;
@@ -14,4 +14,12 @@ class Activation {
         virtual vector<double> initBias(size_t) const = 0;
         virtual ~Activation() = default;
         virtual bool isFused() const;
+        virtual uint32_t getEncoding() const = 0;
+
+        // Enums
+        enum Encodings : uint32_t {
+            Linear,
+            ReLU,
+            Softmax
+        };
 };

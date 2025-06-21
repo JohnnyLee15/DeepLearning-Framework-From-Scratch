@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "DenseLayer.h"
+#include "core/Layer.h"
 #include "utils/EpochStats.h"
 
 class Loss;
@@ -34,6 +34,12 @@ class NeuralNet {
 
         //Methods
         void train(const Data&, double, double, size_t, size_t);
+        const vector<Layer*>& getLayers() const;
+        const Loss* getLoss() const;
         Matrix predict(const Data&);
+        void saveToBin(const string&) const;
         ~NeuralNet();
+
+        // Static Methods
+        static NeuralNet loadFromBin(const string&);
 };

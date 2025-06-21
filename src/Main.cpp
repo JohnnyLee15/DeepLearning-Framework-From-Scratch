@@ -5,7 +5,7 @@
 #include "core/NeuralNet.h"
 #include "core/Data.h"
 #include <iomanip>
-#include "activations/Relu.h"
+#include "activations/ReLU.h"
 #include "activations/Softmax.h"
 #include "activations/Linear.h"
 #include "losses/MSE.h"
@@ -18,6 +18,7 @@
 #include "core/ClassificationTask.h"
 #include "utils/TrainingUtils.h"
 #include "core/Layer.h"
+#include "core/DenseLayer.h"
 
 using namespace std;
 
@@ -36,22 +37,25 @@ int main() {
 
     // Architecture
     Loss *loss = new SoftmaxCrossEntropy();
-    vector<Activation*> activations = {new Relu(), new Relu(), new Softmax()};
-    vector<size_t> layerSizes = {numFeatures, 64, 32, 10};
     vector<Layer*> layers = {
-        new DenseLayer(64, numFeatures, new Relu()),
-        new DenseLayer(32, 64, new Relu()),
+        new DenseLayer(64, numFeatures, new ReLU()),
+        new DenseLayer(32, 64, new ReLU()),
         new DenseLayer(10, 32, new Softmax())
     };
 
     NeuralNet nn(layers, loss);
 
     // Train
-    nn.train(data, 0.01, 0.01, 50, 32);
+    nn.train(data, 0.01, 0.01, 20, 32);
+
+    // Save
+    nn.saveToBin("modelTest.nn");
+    
+    // Test
     Matrix probs = nn.predict(data);
     vector<double> predictions = TrainingUtils::getPredictions(probs);
     double accuracy = TrainingUtils::getAccuracy(predictions, data.getTestTargets());
     cout << "Test Accuracy: " << accuracy << endl;
-
+    
     return 0;
 }

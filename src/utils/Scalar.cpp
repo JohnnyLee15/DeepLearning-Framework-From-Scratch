@@ -1,4 +1,5 @@
 #include "utils/Scalar.h"
+#include "utils/ConsoleUtils.h"
 #include <iostream>
 
 void Scalar::fit(const Matrix &data) {
@@ -11,15 +12,13 @@ void Scalar::fit(const vector<double> &data) {
 
 void Scalar::checkFitted() {
     if (!fitted) {
-        cerr << "Fatal Error: Cannot transform data before calling fit()." << endl;
-        exit(1);
+        ConsoleUtils::fatalError("Cannot transform data before calling fit().");
     }
 }
 
 void Scalar::checkTransformed() const {
     if (!transformed) {
-        cerr << "Fatal Error: Cannot reverse transform before calling transform()." << endl;
-        exit(1);
+        ConsoleUtils::fatalError("Cannot reverse transform before calling transform().");
     }
 }
 

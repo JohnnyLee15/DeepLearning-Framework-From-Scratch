@@ -1,6 +1,7 @@
 #include "core/Matrix.h"
 #include "core/MatrixT.h"
 #include <iostream>
+#include "utils/ConsoleUtils.h"
 
 Matrix::Matrix(size_t numRows, size_t numCols) : 
     matrix(numRows * numCols, 0), numRows(numRows), numCols(numCols) {}
@@ -42,10 +43,11 @@ vector<double>& Matrix::getFlat() {
 
 void Matrix::checkSizeMatch(size_t mat1Cols, size_t mat2Rows) {
     if (mat1Cols != mat2Rows) {
-        cerr << "Fatal Error: Matrix multiplication size mismatch.\n"
-            << "Left matrix columns: " << mat1Cols
-            << ", Right matrix rows: " << mat2Rows << "." << endl;
-        exit(1);
+        ConsoleUtils::fatalError(
+            string("Matrix multiplication size mismatch.\n") +
+            "Left matrix columns: " + to_string(mat1Cols) + 
+            ", Right matrix rows: " + to_string(mat2Rows) + "."
+        );
     }
 }
 
@@ -57,10 +59,11 @@ void Matrix::checkSameShape(
     const string &operation
 ) {
     if (mat1Rows!= mat2Rows || mat1Cols != mat2Cols) {
-        cerr << "Fatal Error: Hadamard product requires matrices of the same shape.\n"
-             << "Left matrix shape: (" << mat1Rows << ", " << mat1Cols << "), "
-             << "Right matrix shape: (" << mat2Rows  << ", " << mat2Cols << ")." << endl;
-        exit(1);
+        ConsoleUtils::fatalError(
+            string("Hadamard product requires matrices of the same shape.\n") +
+            "Left matrix shape: (" + to_string(mat1Rows) + ", " + to_string(mat1Cols) + "), " +
+            "Right matrix shape: (" + to_string(mat2Rows) + ", " + to_string(mat2Cols) + ")."
+        );
     }
 }
 
@@ -194,9 +197,11 @@ Matrix& Matrix::operator +=(const Matrix &mat2) {
 
 void Matrix::addToRows(const vector<double> &vec) {
     if (vec.size() != numCols) {
-        cerr << "Fatal Error: Cannot broadcast vector to matrix rows.\n"
-             << "Vector size: " << vec.size()
-             << ", Matrix columns: " << numCols << "." << endl;
+        ConsoleUtils::fatalError(
+            string("Cannot broadcast vector to matrix rows.\n") +
+            "Vector size: " + to_string(vec.size()) +
+            ", Matrix columns: " + to_string(numCols) + "."
+        );
     }
 
     #pragma omp parallel for collapse(2)

@@ -32,3 +32,7 @@ Matrix Linear::calculateGradient(const Matrix &preActivations) const {
     }
     return gradients;
 }
+
+uint32_t Linear::getEncoding() const {
+    return Activation::Encodings::Linear;
+}

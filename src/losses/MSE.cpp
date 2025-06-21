@@ -47,3 +47,7 @@ double MSE::formatLoss(double avgLoss) const {
     return sqrt(avgLoss);
 }
 
+uint32_t MSE::getEncoding() const {
+    return Loss::Encodings::MSE;
+}
+

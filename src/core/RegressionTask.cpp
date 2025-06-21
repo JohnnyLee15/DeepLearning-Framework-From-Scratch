@@ -29,9 +29,10 @@ vector<double> RegressionTask::getTarget(
 
 void RegressionTask::checkNumOutputNeurons(size_t numOutputNeurons) const {
     if (numOutputNeurons != 1) {
-        cerr << "Fatal Error: Regression Tasks expect 1 output neuron.\n"
-             << "Got " << numOutputNeurons << " neurons instead." << endl;
-        exit(1);
+        ConsoleUtils::fatalError(
+            string("Regression tasks expect 1 output neuron.\n") +
+            "Got " + to_string(numOutputNeurons) + " neurons instead."
+        );
     }
 }
 
@@ -132,8 +133,7 @@ void RegressionTask::fitScalars(
     vector<double> &testTargets
 ) {
     if (!targetScalar) {
-        std::cerr << "Fatal Error: Target scalar must be set before calling fitScalars() in RegressionTask." << std::endl;
-        exit(1);
+        ConsoleUtils::fatalError("Target scalar must be set before calling fitScalars() in RegressionTask.");
     }
 
     Task::fitScalars(trainFeatures, trainTargets, testFeatures, testTargets);
@@ -144,8 +144,7 @@ void RegressionTask::fitScalars(
 
 void RegressionTask::resetToRaw() {
     if (!targetScalar) {
-        std::cerr << "Fatal Error: Target scalar not set before resetToRaw()." << std::endl;
-        exit(1);
+        ConsoleUtils::fatalError("Target scalar not set before resetToRaw().");
     }
     Task::resetToRaw();
     targetScalar->resetToRaw();

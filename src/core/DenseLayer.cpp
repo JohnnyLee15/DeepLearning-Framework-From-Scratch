@@ -6,13 +6,14 @@
 #include "utils/VectorUtils.h"
 #include "core/MatrixT.h"
 #include <random>
+#include <sstream>
 
 const double DenseLayer::HE_INT_GAIN = 2.0;
 
-DenseLayer::DenseLayer(size_t numNeurons, size_t numWeights, Activation *activation) :
-    weights(numNeurons, numWeights), activation(activation)
+DenseLayer::DenseLayer(size_t numNeurons, size_t weightsPerNeuron, Activation *activation) :
+    weights(numNeurons, weightsPerNeuron), activation(activation)
 {
-    DenseLayer::initWeights(numNeurons, numWeights);
+    DenseLayer::initWeights(numNeurons, weightsPerNeuron);
     biases = activation->initBias(numNeurons);
 }
 
@@ -25,6 +26,30 @@ vector<uint32_t> DenseLayer::generateThreadSeeds() const {
     }
 
     return seeds;
+}
+
+void DenseLayer::writeBin(ofstream& modelBin) const {
+    uint32_t layerEncoding = Layer::Encodings::DenseLayer;
+    modelBin.write((char*) &layerEncoding, sizeof(uint32_t));
+
+    uint32_t numNeuronsWrite = (uint32_t) weights.getNumRows();
+    modelBin.write((char*) &numNeuronsWrite, sizeof(uint32_t));
+
+    uint32_t weightsPerNeuronWrite = (uint32_t) weights.getNumCols();
+    modelBin.write((char*) &weightsPerNeuronWrite, sizeof(uint32_t));
+
+    uint32_t activationEncoding = activation->getEncoding();
+    modelBin.write((char*) &activationEncoding, sizeof(uint32_t));
+
+    size_t numWeights = weights.getNumRows() * weights.getNumCols();
+    modelBin.write((char*) weights.getFlat().data(), numWeights * sizeof(double));
+    modelBin.write((char*) biases.data(), biases.size() * sizeof(double));
+}
+
+void DenseLayer::loadWeightsAndBiases(ifstream &modelBin) {
+    size_t numWeights = weights.getNumRows() * weights.getNumCols();
+    modelBin.read((char*) weights.getFlat().data(), numWeights * sizeof(double));
+    modelBin.read((char*) biases.data(), biases.size() * sizeof(double));
 }
 
 void DenseLayer::initWeights(size_t numRows, size_t numCols) {

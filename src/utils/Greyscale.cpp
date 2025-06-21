@@ -1,6 +1,7 @@
 #include "utils/Greyscale.h"
 #include "core/Matrix.h"
 #include <iostream>
+#include "utils/ConsoleUtils.h"
 #include <omp.h>
 
 const double Greyscale::MAX_GREYSCALE_VALUE = 255.0;
@@ -38,8 +39,10 @@ void Greyscale::reverseTransform(Matrix &data) const {
 }
 
 void Greyscale::throwDataFormatError() const {
-    cerr << "Fatal Error: Greyscale only supports Matrix input.\n"
-         << "Vector input is not supported for this scalar." << endl;
+    ConsoleUtils::fatalError(
+        "Greyscale only supports Matrix input.\n"
+        "Vector input is not supported for this scalar."
+    );
 }
 
 void Greyscale::fit(const vector<double> &data) {

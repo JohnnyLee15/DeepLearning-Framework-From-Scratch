@@ -12,11 +12,14 @@ class ConsoleUtils {
         // Constants
         static const int PROGRESS_BAR_LENGTH;
         static const string GREEN;
-        static const string CYAN ;
+        static const string CYAN;
+        static const string YELLOW;
+        static const string RED;
         static const string RESET_COLOUR;
         static const string FILLED;
         static const string EMPTY;
         static const string COMPLETE;
+        static const string CROSS;
         static const char SPINNER_CHARS[];
         static const size_t WIDTH;
         static const string TITLE_LINE;
@@ -39,5 +42,9 @@ class ConsoleUtils {
         static void completeMessage();
         static void printTitle();
         static void printSepLine();
+        static void printSuccess(const string&);
+        static void printWarning(const string&);
+        static void printError(const string&);
+        static void fatalError(const string&);
         
 };

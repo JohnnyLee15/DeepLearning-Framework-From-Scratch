@@ -78,3 +78,7 @@ Matrix Softmax::calculateGradient(const Matrix& preActivations) const {
 bool Softmax::isFused() const {
     return true;
 }
+
+uint32_t Softmax::getEncoding() const {
+    return Activation::Encodings::Softmax;
+}

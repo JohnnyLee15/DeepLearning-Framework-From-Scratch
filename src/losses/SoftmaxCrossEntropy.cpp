@@ -2,6 +2,7 @@
 #include "utils/TrainingUtils.h"
 #include "core/Matrix.h"
 #include <iostream>
+#include "utils/ConsoleUtils.h"
 
 const double SoftmaxCrossEntropy::CROSS_ENTROPY_EPSILON = 1e-10;
 
@@ -60,10 +61,15 @@ Matrix SoftmaxCrossEntropy::calculateGradient(
     return gradients;
 }
 
+uint32_t SoftmaxCrossEntropy::getEncoding() const {
+    return Loss::Encodings::SoftmaxCrossEntropy;
+}
+
 void SoftmaxCrossEntropy::checkInvalidGradientCall() {
-    cerr << "Fatal Error: Softmax::calculateGradient() should never be called.\n"
-         << "Softmax must be used only with the fused SoftmaxCrossEntropy loss,\n"
-         << "not as a standalone activation. Please replace the CrossEntropy loss\n"
-         << "with SoftmaxCrossEntropy to ensure correct gradient computation." << endl;
-    exit(1);
+    ConsoleUtils::fatalError(
+        "Softmax::calculateGradient() should never be called.\n"
+        "Softmax must be used only with the fused SoftmaxCrossEntropy loss,\n"
+        "not as a standalone activation. Please replace the CrossEntropy loss\n"
+        "with SoftmaxCrossEntropy to ensure correct gradient computation."
+    );
 }

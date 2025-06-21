@@ -38,4 +38,6 @@ class DenseLayer : public Layer {
         Matrix getOutputGradient() const override;
         void backprop(const Matrix&, double, const Matrix&, bool) override;
         ~DenseLayer();
+        void writeBin(ofstream&) const override;
+        void loadWeightsAndBiases(ifstream&) override;
 };

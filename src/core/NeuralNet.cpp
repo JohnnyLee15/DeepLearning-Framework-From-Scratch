@@ -9,11 +9,20 @@
 #include "losses/Loss.h"
 #include "core/Batch.h"
 #include "activations/Activation.h"
+#include "utils/BinUtils.h"
 
 using namespace std;
 
 NeuralNet::NeuralNet(vector<Layer*> layers, Loss *loss) : 
     layers(layers), loss(loss) {}
+
+const vector<Layer*>& NeuralNet::getLayers() const {
+    return layers;
+}
+
+const Loss* NeuralNet::getLoss() const {
+    return loss;
+}
 
 void NeuralNet::train(
     const Data &data,
@@ -33,6 +42,7 @@ void NeuralNet::train(
         avgLosses[k] = avgLoss;
         learningRate = initialLR/(1 + learningDecay*k);
     }
+    ConsoleUtils::printSepLine();
 }
 
 double NeuralNet::runEpoch(
@@ -158,4 +168,12 @@ NeuralNet::~NeuralNet() {
     for (size_t i = 0; i < numLayers; i++) {
         delete layers[i];
     }
+}
+
+void NeuralNet::saveToBin(const string &filename) const {
+    BinUtils::saveModel(*this, filename);
+}
+
+NeuralNet NeuralNet::loadFromBin(const string &filename) {
+    return BinUtils::loadModel(filename);
 }

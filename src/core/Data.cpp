@@ -19,24 +19,21 @@ const size_t Data::MAX_DISPLAY_COLS = 15;
 
 Data::Data() : task(nullptr), isDataLoaded(false) {}
 
-void Data::readTrain(string filename, size_t targetIdx, bool hasHeader) {
-    cout << endl << "📥 Loading training data from: " << filename << endl;
-    readCsv(filename, true, targetIdx, NO_TARGET_COL, hasHeader);
-}
-
 void Data::checkDataLoaded() const {
     if (!isDataLoaded) {
-        cerr << "Fatal Error: Attempted to access data before loading.\n"
-             << "Please ensure readTrain() is called first." << endl;
-        exit(1);
+        ConsoleUtils::fatalError(
+            "Attempted to access data before loading.\n" 
+            "Please ensure readTrain() is called first."
+        );
     }
 }
 
 void Data::checkTask(const string &context) const {
     if (!task) {
-        cerr << "Fatal Error: Task must be set before " << context << ".\n"
-             << "Call setTask() before this operation." << endl;
-        exit(1);
+        ConsoleUtils::fatalError(
+            "Task must be set before " + context + ".\n"
+            "Call setTask() before this operation."
+        );
     }
 }
 
@@ -47,18 +44,23 @@ void Data::setTask(Task *taskType) {
     task = taskType;
 }
 
+void Data::readTrain(string filename, size_t targetIdx, bool hasHeader) {
+    cout << endl << "📥 Loading training data from: \"" << filename << "\"." << endl;
+    readCsv(filename, true, targetIdx, NO_TARGET_COL, hasHeader);
+}
+
 void Data::readTrain(string filename, const string &colname) {
-    cout << endl << "📥 Loading training data from: " << filename << endl;
+    cout << endl << "📥 Loading training data from: \"" << filename << "\"." << endl;
     readCsv(filename, true, NO_TARGET_IDX, colname, true);
 }
 
 void Data::readTest(string filename, size_t targetIdx, bool hasHeader) {
-    cout << endl << "📥 Loading testing data from: " << filename << endl;
+    cout << endl << "📥 Loading testing data from: \"" << filename << "\"." << endl;
     readCsv(filename, false, targetIdx, NO_TARGET_COL, hasHeader);
 }
 
 void Data::readTest(string filename, const string &colname) {
-    cout << endl << "📥 Loading testing data from: " << filename << endl;
+    cout << endl << "📥 Loading testing data from: \"" << filename << "\"." << endl;
     readCsv(filename, false, NO_TARGET_IDX, colname, true);
 }
 
@@ -153,12 +155,12 @@ size_t Data::getColIdx(const string &colname) const {
             return i;
         }
     }
-
-    cerr << "Fatal Error: Column name \"" << colname << "\" not found in the dataset.\n"
-        << "Please verify that the specified column exists in the CSV header." << endl;
-
-    exit(1);
-
+    
+    ConsoleUtils::fatalError(
+        "Column name \"" + colname + "\" not found in the dataset.\n"
+        "Please verify that the specified column exists in the CSV header."
+    );
+    
     return numeric_limits<size_t>::max();
 }
 
