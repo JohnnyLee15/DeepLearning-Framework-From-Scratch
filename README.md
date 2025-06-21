@@ -1,94 +1,132 @@
 # MLP Neural Network in C++ 🤖
 
-This project is a from-scratch implementation of a Multi-Layer Perceptron (MLP) neural network written in C++. It includes support for training with stochastic gradient descent, learning rate decay, batching, and flexible layer definitions.
+This is a **from-scratch, modular implementation of a Multi-Layer Perceptron (MLP)** written in modern C++. It supports classification and regression tasks, fast matrix operations, and intuitive data handling — all without external ML libraries.
 
 ## Features ✨
 
-- Customizable number of layers and neurons
-- ReLU and Softmax activation functions
-- Forward and backward propagation
-- Stochastic Gradient Descent (SGD) optimizer
-- Learning rate decay
-- Batching support for efficient training
-- Basic data loading utility
+- 🔧 **Fully customizable architecture**: any number of layers, neurons, and activation functions
+- 🧠 **Supports classification and regression** with built-in task-specific utilities
+- 🏃 **Efficient forward and backward propagation** with OpenMP parallelization
+- 📆 **Mini-batch SGD training** with learning rate decay
+- 📂 **Binary model saving/loading** (`.nn` format) with overwrite and rename support
+- 🧪 **Clear console UI** for data loading, model saving, error handling, and training progress
+- 📊 **Evaluation utilities** for MAPE, accuracy, and progress bars
+- 📁 **CSV data loading** with automatic feature/target extraction and automatic one-hot encoding for categorical features
+- 🌈 **Scaler support**: greyscale normalization and min-max scaling
+- 🛠️ No external ML libraries – 100% custom C++
 
 ## Requirements ⚙️
 
-- C++11 or later
-- OpenMP (for parallelization)
-- Standard C++ libraries (no external dependencies)
+- C++17 or later
+- OpenMP (for multithreading)
+- `make` (for building the project)
+- Standard libraries only – no third-party dependencies
 
 ## Supported Platforms 🖥️
 
-- **macOS** (via Homebrew LLVM + libomp)
-- **Linux** (Ubuntu, Debian, etc.)
+- **macOS** (via Homebrew + LLVM + libomp)
+- **Linux** (Ubuntu/Debian)
 - **Windows via WSL2** (Ubuntu or other Linux distros)
-
-This project is intended for Unix-like environments. Native Windows builds are not supported.
 
 ## Installing OpenMP 🧩
 
 If you're compiling with g++, OpenMP is typically included. To install it manually:
 
-- On **macOS**:
+- **macOS**:
+
   - Make sure you have [Homebrew](https://brew.sh/) installed.
   - Then run:
-    ```bash
-    brew install libomp
-    ```
+  ```bash
+  brew install libomp
+  ```
 
-- On **Linux / WSL2 (Ubuntu, Debian, etc.)**:
-   ```bash
-   sudo apt install libomp-dev
-   ```
+- **Linux / WSL2**:
 
-- On **Windows**:
-  - Native Windows builds (e.g., MSYS2, MinGW, or Visual Studio) are **not supported**.
-  - Instead, please use [WSL2 (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/) with a Linux distribution like Ubuntu.
+  ```bash
+  sudo apt install libomp-dev
+  ```
 
-## Data Format 📂
+- ❌ Native Windows builds are not supported — use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/).
 
-- The program expects CSV files with numerical data.
-- One of the columns should be the target label (you can specify which via `targetIdx`).
-
-## How to Run 🚀
+## Usage 🚀
 
 1. Clone the repository:
 
-   ```bash
-   git clone https://github.com/JohnnyLee15/MLPNeuralNetProject.git
-   cd MLPNeuralNetProject
-   ```
+  ```bash
+  git clone https://github.com/JohnnyLee15/MLPNeuralNetProject.git
+  cd MLPNeuralNetProject
+  ```
 
 2. Compile the code:
 
-   If you have `make` installed, you can compile the program using:
+  ```bash
+  make
+  ```
 
-   ```bash
-   make
-   ```
-
-   This uses OpenMP flags internally via the Makefile.
+  The Makefile automatically includes the necessary OpenMP flags for parallelization support.
 
 3. Run the program:
 
-   Once compiled, you can run the MLP neural network:
+  Once compiled, you can run the MLP neural network:
 
-   ```bash
-   ./mlp
-   ```
+  ```bash
+  ./mlp
+  ```
 
 4. Clean the build:
 
-   To remove the object files and compiled binary:
+  To remove the object files and compiled binary:
 
-   ```bash
-   make clean
-   ```
+  ```bash
+  make clean
+  ```
+
+## Data Format 📂
+
+- Input files must be in **CSV format**.
+- The file must contain a **target column** (label or value).
+- You can specify the **column name or index** for the target in the API:
+  ```cpp
+  data.readTrain("path.csv", "label");
+  ```
+
+## Model Saving / Loading 📂
+
+- Models are saved in compact **binary format** (`.nn`) using:
+
+  ```cpp
+  nn.saveToBin("model.nn");
+  ```
+
+- Existing files will prompt for:
+
+  - `[q]` Cancel
+  - `[o]` Overwrite
+  - `[r]` Rename
+
+- Models can be loaded using:
+
+  ```cpp
+  NeuralNet nn = NeuralNet::loadFromBin("model.nn");
+  ```
 
 ## Customization 🛠️
 
-   You can modify the number of layers, neurons, learning rate, epochs, and batch size in the source code (`Main.cpp`).
+You can modify:
 
-## License ⚖️ 
-This project is licensed under the MIT License – see the [LICENSE](https://opensource.org/licenses/MIT) file for details.
+- Layer structure (in `Main.cpp`)
+- Activation functions (`ReLU`, `Linear`, `Softmax`)
+- Loss functions (`MSE`, `SoftmaxCrossEntropy`)
+- Task type (`RegressionTask` or `ClassificationTask`)
+- Training parameters:
+  - `learningRate`
+  - `decayRate`
+  - `epochs`
+  - `batchSize`
+
+---
+
+## License ⚖️
+
+MIT License – see [LICENSE](https://opensource.org/licenses/MIT)
+
