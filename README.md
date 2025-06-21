@@ -124,6 +124,85 @@ You can modify:
   - `epochs`
   - `batchSize`
 
+## Example Usage: MNIST Classification 🎯
+
+### Setup
+
+```cpp
+// Data Processing
+Data data;
+data.setTask(new ClassificationTask());
+data.readTrain("DataFiles/mnist_train.csv", "label");
+data.readTest("DataFiles/mnist_test.csv", "label");
+data.setScalars(new Greyscale());                // setScalars(featureScalar, targetScalar); only featureScalar used for classification           
+data.fitScalars();
+size_t numFeatures = data.getTrainFeatures().getNumCols();
+
+// Architecture
+Loss *loss = new SoftmaxCrossEntropy();
+vector<Layer*> layers = {
+   new DenseLayer(64, numFeatures, new ReLU()), // Hidden layer 1: 64 neurons
+   new DenseLayer(32, 64, new ReLU()),          // Hidden layer 2: 32 neurons
+   new DenseLayer(10, 32, new Softmax())        // Output layer: 10 classes
+};
+
+// Instantiation
+NeuralNet nn(layers, loss);
+
+// Train
+nn.train(
+   data,
+   0.01,  // learningRate
+   0.01,  // decayRate
+   3,     // epochs
+   32     // batchSize
+);
+
+// Save
+nn.saveToBin("modelTest.nn");
+
+// Test
+Matrix probs = nn.predict(data);
+vector<double> predictions = TrainingUtils::getPredictions(probs);
+double accuracy = TrainingUtils::getAccuracy(predictions, data.getTestTargets());
+cout << "Test Accuracy: " << accuracy << endl;
+```
+
+### Output
+
+```
+============================================================
+                  🧠 MLP NEURAL NETWORK
+               Lightweight C++ Neural Network
+============================================================
+
+📥 Loading training data from: "DataFiles/mnist_train.csv".
+[✔] Loading Data.
+[✔] Parsing Lines.
+[✔] Extracting Features.
+[✔] Extracting Targets.
+------------------------------------------------------------
+
+📥 Loading testing data from: "DataFiles/mnist_test.csv".
+[✔] Loading Data.
+[✔] Parsing Lines.
+[✔] Extracting Features.
+[✔] Extracting Targets.
+------------------------------------------------------------
+
+Epoch: 1/3
+60000/60000 |██████████████████████████████████████████████████| Accuracy: 82.30%| Avg Loss: 0.63 | Elapsed: 1.53s
+
+Epoch: 2/3
+60000/60000 |██████████████████████████████████████████████████| Accuracy: 91.45%| Avg Loss: 0.30 | Elapsed: 1.51s
+
+Epoch: 3/3
+60000/60000 |██████████████████████████████████████████████████| Accuracy: 92.84%| Avg Loss: 0.25 | Elapsed: 1.53s
+------------------------------------------------------------
+[✔] Model saved successfully as "modelTest.nn".
+------------------------------------------------------------
+Test Accuracy: 0.9323
+```
 ---
 
 ## License ⚖️
