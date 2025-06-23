@@ -33,32 +33,31 @@ int main() {
     data.readTest("DataFiles/mnist_test.csv", "label");
     data.setScalars(new Greyscale());                // setScalars(featureScalar, targetScalar); only featureScalar used for classification           
     data.fitScalars();
-    // size_t numFeatures = data.getTrainFeatures().getNumCols();
+    size_t numFeatures = data.getTrainFeatures().getNumCols();
 
-    // // Architecture
-    // Loss *loss = new SoftmaxCrossEntropy();
-    // vector<Layer*> layers = {
-    //     new DenseLayer(64, numFeatures, new ReLU()), // Hidden layer 1: 64 neurons
-    //     new DenseLayer(32, 64, new ReLU()),          // Hidden layer 2: 32 neurons
-    //     new DenseLayer(10, 32, new Softmax())        // Output layer: 10 classes
-    // };
+    // Architecture
+    Loss *loss = new SoftmaxCrossEntropy();
+    vector<Layer*> layers = {
+        new DenseLayer(64, numFeatures, new ReLU()), // Hidden layer 1: 64 neurons
+        new DenseLayer(32, 64, new ReLU()),          // Hidden layer 2: 32 neurons
+        new DenseLayer(10, 32, new Softmax())        // Output layer: 10 classes
+    };
 
-    // // Instantiation
-    // NeuralNet nn(layers, loss);
+    // Instantiation
+    NeuralNet nn(layers, loss);
 
-    // // Train
-    // nn.train(
-    //     data,
-    //     0.01,  // learningRate
-    //     0.01,  // decayRate
-    //     3,     // epochs
-    //     32     // batchSize
-    // );
+    // Train
+    nn.train(
+        data,
+        0.01,  // learningRate
+        0.01,  // decayRate
+        3,     // epochs
+        32     // batchSize
+    );
 
-    // // Save
-    // nn.saveToBin("modelTest.nn");
+    // Save
+    nn.saveToBin("modelTest.nn");
 
-    NeuralNet nn = NeuralNet::loadFromBin("modelTest.nn");
     // Test
     Matrix probs = nn.predict(data);
     vector<double> predictions = TrainingUtils::getPredictions(probs);
