@@ -56,7 +56,7 @@ int main() {
     );
 
     // Save
-    nn.saveToBin("modelTest.nn");
+    nn.saveToBin("model");
 
     // Test
     Matrix probs = nn.predict(data);

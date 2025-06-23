@@ -14,7 +14,8 @@ class BinUtils {
         static const char CANCEL;
         static const char OVERRIDE;
         static const char RENAME;
-
+        static const string MODEL_EXTENSION;
+        
         // Methods
         static bool fileExists(string, bool);
         static char getUserChoice();
@@ -24,6 +25,7 @@ class BinUtils {
         static Loss* loadLoss(ifstream&);
         static Layer* loadLayer(ifstream&);
         static Activation* loadActivation(ifstream&);
+        static string addExtension(const string&);
 
     public:
         // Methods

@@ -20,9 +20,10 @@
 const char BinUtils::CANCEL = 'q';
 const char BinUtils::OVERRIDE = 'o';
 const char BinUtils::RENAME = 'r';
+const string BinUtils::MODEL_EXTENSION = ".nn";
 
 void BinUtils::saveModel(const NeuralNet &nn, const string &filename) {
-    string fileToWrite = filename;
+    string fileToWrite = addExtension(filename);
     bool done = !fileExists(fileToWrite, false);
     bool shouldWrite = done;
     while (!done) {
@@ -35,7 +36,7 @@ void BinUtils::saveModel(const NeuralNet &nn, const string &filename) {
             shouldWrite = true; 
             ConsoleUtils::printWarning("Overwriting existing model.");
         } else if (choice == RENAME) {
-            fileToWrite = getNewModelName();
+            fileToWrite = addExtension(getNewModelName());
             done = !fileExists(fileToWrite, true);
             if (done) {
                 shouldWrite = true;
@@ -127,7 +128,7 @@ string BinUtils::getNewModelName() {
     bool done = false;
     string newFilename;
     while (!done) {
-        cout << "[>] Enter the new model name (including extension): ";
+        cout << "[>] Enter the new model name: ";
         getline(cin, newFilename);
         newFilename = CsvUtils::trim(newFilename);
 
@@ -205,10 +206,12 @@ Layer* BinUtils::loadLayer(ifstream &modelBin) {
 }
 
 NeuralNet BinUtils::loadModel(const string &filename) {
-    ifstream modelBin(filename, ios::in | ios::binary);
+    string fullFilename = addExtension(filename);
+
+    ifstream modelBin(fullFilename, ios::in | ios::binary);
     if (!modelBin) {
         ConsoleUtils::fatalError(
-            "Unable to open file \"" + filename + "\" for reading.\n" +
+            "Unable to open file \"" + fullFilename + "\" for reading.\n" +
             "Reason: " + strerror(errno) + "."
         );
     }
@@ -226,12 +229,32 @@ NeuralNet BinUtils::loadModel(const string &filename) {
 
     if (!modelBin) {
         ConsoleUtils::fatalError(
-            "Failed to fully read model from \"" + filename + "\". "
+            "Failed to fully read model from \"" + fullFilename + "\". "
             "The file may be corrupted or incomplete."
         );
     }
 
-    ConsoleUtils::printSuccess("Model successfully loaded from \"" + filename + "\".");
+    ConsoleUtils::printSuccess("Model successfully loaded from \"" + fullFilename + "\".");
     ConsoleUtils::printSepLine();
     return NeuralNet(layers, loss);
+}
+
+string BinUtils::addExtension(const string &modelName) {
+    size_t extLength = MODEL_EXTENSION.length();
+    size_t nameLength = modelName.length();
+
+    if (nameLength >= extLength) {
+        bool isMatching = true;
+        for (size_t i = 0; i < extLength && isMatching; i++) {
+            if (modelName[i + nameLength - extLength] != MODEL_EXTENSION[i]) {
+                isMatching = false;
+            }
+        }
+
+        if (!isMatching) {
+            return modelName + MODEL_EXTENSION;
+        }
+    }
+
+    return modelName;
 }

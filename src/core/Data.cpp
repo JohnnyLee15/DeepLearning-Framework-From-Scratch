@@ -45,22 +45,22 @@ void Data::setTask(Task *taskType) {
 }
 
 void Data::readTrain(string filename, size_t targetIdx, bool hasHeader) {
-    cout << endl << "📥 Loading training data from: \"" << filename << "\"." << endl;
+    cout << endl << "📥 Loading training data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, true, targetIdx, NO_TARGET_COL, hasHeader);
 }
 
 void Data::readTrain(string filename, const string &colname) {
-    cout << endl << "📥 Loading training data from: \"" << filename << "\"." << endl;
+    cout << endl << "📥 Loading training data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, true, NO_TARGET_IDX, colname, true);
 }
 
 void Data::readTest(string filename, size_t targetIdx, bool hasHeader) {
-    cout << endl << "📥 Loading testing data from: \"" << filename << "\"." << endl;
+    cout << endl << "📥 Loading testing data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, false, targetIdx, NO_TARGET_COL, hasHeader);
 }
 
 void Data::readTest(string filename, const string &colname) {
-    cout << endl << "📥 Loading testing data from: \"" << filename << "\"." << endl;
+    cout << endl << "📥 Loading testing data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, false, NO_TARGET_IDX, colname, true);
 }
 

@@ -7,6 +7,8 @@
 #include <cstring>
 #include <cerrno>
 
+const char CsvUtils::FILE_PATH_DELIMETER = '/';
+
 void CsvUtils::checkFile(const string &filename) {
     ifstream file(filename);
     if (!file) {
@@ -166,4 +168,21 @@ size_t CsvUtils::countFirstCol(const string &firstLine) {
     }
     
     return numCols;
+}
+
+string CsvUtils::trimFilePath(const string &path) {
+    int length = (int) path.length();
+    int delimIdx = -1;
+
+    for (int i = length - 1; i >= 0 && delimIdx == -1; i--) {
+        if (path[i] == FILE_PATH_DELIMETER) {
+            delimIdx = i;
+        }
+    }
+
+    if (delimIdx == -1) {
+        return path;
+    }
+
+    return path.substr(delimIdx + 1, length - delimIdx - 1);
 }

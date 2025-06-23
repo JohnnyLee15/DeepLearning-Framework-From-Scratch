@@ -10,6 +10,9 @@ class CsvUtils {
         // Methods
         static void parseLine(const string&, vector<string>&, string&, size_t);
         static void validateField(const string&, const string&);
+
+        // Constants
+        static const char FILE_PATH_DELIMETER;
         
     public:
         // Methods
@@ -20,4 +23,5 @@ class CsvUtils {
         static string toLowerCase(const string&);
         static void checkFile(const string&);
         static size_t countFirstCol(const string&);
+        static string trimFilePath(const string&);
 };
