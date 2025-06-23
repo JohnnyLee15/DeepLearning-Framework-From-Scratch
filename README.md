@@ -84,6 +84,7 @@ If you're compiling with g++, OpenMP is typically included. To install it manual
 ## Data Format 📂
 
 - Input files must be in **CSV format**.
+- Datasets must be complete: All rows should contain the same number of columns with no missing values. Incomplete datasets will cause parsing errors.
 - The file must contain a **target column** (label or value).
 - You can specify the **column name or index** for the target in the API:
   ```cpp
