@@ -32,7 +32,7 @@ int main() {
         data.setTask(new ClassificationTask());
         data.readTrain("DataFiles/MNIST/mnist_train.csv", "label");
         data.readTest("DataFiles/MNIST/mnist_test.csv", "label");
-        data.setScalars(new Greyscale());                
+        data.setScalars(new Minmax());                
         data.fitScalars();
         data.transformTrain();
         data.transformTest();
@@ -62,9 +62,6 @@ int main() {
         nn.saveToBin("modelTest.nn", data);
 
         // Test
-        // NeuralNet nn = NeuralNet::loadFromBin("modelTest", data);
-        // data.readTest("DataFiles/MNIST/mnist_test.csv", "label");
-        // data.transformTest();
         Tensor probs = nn.predict(data);
         vector<double> predictions = TrainingUtils::getPredictions(probs);
         double accuracy = TrainingUtils::getAccuracy(predictions, data.getTestTargets());

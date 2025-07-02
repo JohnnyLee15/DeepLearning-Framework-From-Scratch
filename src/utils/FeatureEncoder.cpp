@@ -89,7 +89,6 @@ Tensor FeatureEncoder::getFeatures(
     const vector<unordered_map<string, double> > &encodings,
     const vector<vector<string> > &featuresRaw
 ) {
-    ConsoleUtils::loadMessage("Extracting Features.");
     size_t numRows = featuresRaw.size();
     size_t numCols = featuresRaw[0].size();
 
@@ -113,7 +112,6 @@ Tensor FeatureEncoder::getFeatures(
             }
         }
     }
-    ConsoleUtils::completeMessage();
 
     return features;
 }

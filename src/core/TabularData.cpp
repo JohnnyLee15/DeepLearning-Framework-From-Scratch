@@ -289,6 +289,7 @@ void TabularData::readCsv(
 }
 
 Tensor TabularData::readFeatures(const vector<vector<string> > &featuresRaw) {
+    ConsoleUtils::loadMessage("Extracting Features.");
     if (isCategorical.empty()) {
         isCategorical = FeatureEncoder::getCategoricalCols(featuresRaw);
     }
@@ -297,7 +298,9 @@ Tensor TabularData::readFeatures(const vector<vector<string> > &featuresRaw) {
         featureEncodings = FeatureEncoder::encodeFeatures(featuresRaw, isCategorical);
     }
 
-    return FeatureEncoder::getFeatures(isCategorical, featureEncodings, featuresRaw);
+    Tensor features = FeatureEncoder::getFeatures(isCategorical, featureEncodings, featuresRaw);
+    ConsoleUtils::completeMessage();
+    return features;
 }
 
 vector<size_t> TabularData::generateShuffledIndices() const {
