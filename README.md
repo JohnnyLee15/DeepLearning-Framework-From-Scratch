@@ -128,7 +128,7 @@ If you're compiling with g++, OpenMP is typically included. To install it manual
 ### **Why this matters** 🏆 
 
 When you save and load with `Data`, your **entire pipeline** — feature encodings, scalars, label encodings, and tasks — stays consistent.\
-Just call `transformTrain()` and `transformTest()` and you’re ready to predict.
+Just call `transformTrain()` before training and `transformTest()` before predicting to keep your pipeline consistent.
 
 
 ## Customization 🛠️
