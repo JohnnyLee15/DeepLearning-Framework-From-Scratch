@@ -3,6 +3,7 @@
 #include <vector>
 
 class Matrix;
+class Tensor;
 
 using namespace std;
 
@@ -21,7 +22,7 @@ class MatrixT {
         size_t getNumRows() const;
         size_t getNumCols() const;
         const vector<double>& getFlat() const;
-        Matrix operator *(const Matrix&) const;
-        Matrix operator *(const MatrixT&) const;
+        Tensor operator *(const Matrix&) const;
+        Tensor operator *(const MatrixT&) const;
 
 };

@@ -6,10 +6,10 @@
 class Loss;
 class Activation;
 class Batch;
+class Tensor;
+class Data;
 
 using namespace std;
-
-class Data;
 
 class NeuralNet {
     private:
@@ -21,7 +21,7 @@ class NeuralNet {
         // Methods
         void backprop(Batch&, double);
         void forwardPass(Batch&);
-        void forwardPassInference(const Matrix&);
+        void forwardPassInference(const Tensor&);
         void updateEpochStats(EpochStats&, const Data&, const Batch&, const vector<double>&, size_t) const;
         double runEpoch(const Data&, double, vector<double>&, size_t);
         double processBatch(const Data&, Batch&, vector<double>&);
@@ -36,10 +36,10 @@ class NeuralNet {
         void train(const Data&, double, double, size_t, size_t);
         const vector<Layer*>& getLayers() const;
         const Loss* getLoss() const;
-        Matrix predict(const Data&);
-        void saveToBin(const string&) const;
+        Tensor predict(const Data&);
+        void saveToBin(const string&, const Data&) const;
         ~NeuralNet();
 
         // Static Methods
-        static NeuralNet loadFromBin(const string&);
+        static NeuralNet loadFromBin(const string&, Data&);
 };

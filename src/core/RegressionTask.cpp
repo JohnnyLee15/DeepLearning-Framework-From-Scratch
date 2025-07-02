@@ -1,15 +1,26 @@
 #include "core/RegressionTask.h"
 #include <iostream>
 #include "core/Matrix.h"
+#include "core/Tensor.h"
 #include "utils/ConsoleUtils.h"
 #include "core/Batch.h"
 #include "losses/Loss.h"
 #include "utils/Scalar.h"
+#include "utils/Greyscale.h"
+#include "utils/Minmax.h"
 #include <cmath>
 
 const string RegressionTask::PROGRESS_METRIC_NAME = "MAPE";
 
 RegressionTask::RegressionTask() : Task(PROGRESS_METRIC_NAME), targetScalar(nullptr) {} 
+
+RegressionTask::~RegressionTask() {
+    delete targetScalar;
+}
+
+uint32_t RegressionTask::getEncoding() const {
+    return Task::Encodings::Regression;
+}
 
 vector<double> RegressionTask::getTarget(
     const vector<string> &targetRaw
@@ -20,7 +31,14 @@ vector<double> RegressionTask::getTarget(
 
     #pragma omp parallel for
     for (size_t i = 0; i < numSamples; i++) {
-        target[i] = stod(targetRaw[i]);
+        try {
+            target[i] = stod(targetRaw[i]);
+        } catch (const invalid_argument &ia) {
+            ConsoleUtils::fatalError(
+                "RegressionTask cannot parse non-numeric target: \"" + targetRaw[i] + "\"."
+            );
+        }
+        
     }
     ConsoleUtils::completeMessage();
 
@@ -43,19 +61,14 @@ void RegressionTask::setTargetScalar(Scalar *scalar) {
     targetScalar = scalar;
 }
 
-vector<double> RegressionTask::parsePredictions(const Matrix& rawOutput) const {
-    checkNumOutputNeurons(rawOutput.getNumCols());
-    return rawOutput.getFlat();
-}
-
 double RegressionTask::processBatch(
     Batch& batch,
     vector<double>& predictions,
-    const Matrix& rawOutput,
+    const Tensor& rawOutput,
     const Loss* loss
 ) const {
-    if (targetScalar && targetScalar->isTransformed()) {
-        Matrix rescaledOutput = rawOutput;
+    if (targetScalar) {
+        Tensor rescaledOutput = rawOutput;
         targetScalar->reverseTransform(rescaledOutput);
 
         vector<double> rescaledTargets = batch.getTargets();
@@ -72,15 +85,15 @@ double RegressionTask::processBatch(
 
 double RegressionTask::calculateProgressMetric(
     const Batch &batch,
-    const Matrix &output,
+    const Tensor &output,
     const vector<double> &predictions,
     EpochStats &stats
 ) const {
-    checkNumOutputNeurons(output.getNumCols());
+    checkNumOutputNeurons(output.M().getNumCols());
     vector<double> outputFlat = output.getFlat();
     vector<double> batchTargets = batch.getTargets();
 
-    if (targetScalar && targetScalar->isTransformed()) {
+    if (targetScalar) {
         outputFlat = batch.getRescaledOutput().getFlat();
         batchTargets = batch.getRescaledTargets();
     }
@@ -117,9 +130,9 @@ double RegressionTask::computeMAPE(
     return 100 * stats.mapeSum/stats.nonZeroTargets;
 }
 
-Matrix RegressionTask::predict(const Matrix &activations) const {
-    Matrix rescaledOutput = activations;
-    if (targetScalar && targetScalar->isTransformed()) {
+Tensor RegressionTask::predict(const Tensor &activations) const {
+    Tensor rescaledOutput = activations;
+    if (targetScalar) {
         targetScalar->reverseTransform(rescaledOutput);
     }
 
@@ -127,19 +140,43 @@ Matrix RegressionTask::predict(const Matrix &activations) const {
 }
 
 void RegressionTask::fitScalars(
-    Matrix &trainFeatures,
-    vector<double> &trainTargets,
-    Matrix &testFeatures,
-    vector<double> &testTargets
+    Tensor &features,
+    vector<double> &targets
 ) {
     if (!targetScalar) {
         ConsoleUtils::fatalError("Target scalar must be set before calling fitScalars() in RegressionTask.");
     }
 
-    Task::fitScalars(trainFeatures, trainTargets, testFeatures, testTargets);
-    targetScalar->fit(trainTargets);
-    targetScalar->transform(trainTargets);
-    targetScalar->transform(testTargets);
+    Task::fitScalars(features, targets);
+    targetScalar->fit(targets);
+}
+
+void RegressionTask::transformScalars(
+    Tensor &features,
+    vector<double> &targets
+) {
+    if (!targetScalar) {
+        ConsoleUtils::fatalError(
+            "Feature scalar must be set and fit before calling transformScalars()."
+        );
+    }
+
+    Task::transformScalars(features, targets);
+    targetScalar->transform(targets);
+}
+
+void RegressionTask::reverseTransformScalars(
+    Tensor &features,
+    vector<double> &targets
+) {
+    if (!targetScalar) {
+        ConsoleUtils::fatalError(
+            "Feature scalar must be set and fit before calling reverseTransformScalars()."
+        );
+    }
+
+    Task::reverseTransformScalars(features, targets);
+    targetScalar->reverseTransform(targets);
 }
 
 void RegressionTask::resetToRaw() {
@@ -150,6 +187,36 @@ void RegressionTask::resetToRaw() {
     targetScalar->resetToRaw();
 }
 
-RegressionTask::~RegressionTask() {
-    delete targetScalar;
+void RegressionTask::writeBin(ofstream &modelBin) const {
+    Task::writeBin(modelBin);
+
+    if (targetScalar) {
+        targetScalar->writeBin(modelBin);
+    } else {
+        uint32_t targetScalarEncodng = Scalar::Encodings::None;
+        modelBin.write((char*) &targetScalarEncodng, sizeof(uint32_t));
+    }
+}
+
+void RegressionTask::loadFromBin(ifstream &modelBin) {
+    Task::loadFromBin(modelBin);
+
+    uint32_t scalarEncoding;
+    modelBin.read((char*) &scalarEncoding, sizeof(uint32_t));
+
+    if (scalarEncoding == Scalar::Encodings::Greyscale) {
+        targetScalar = new Greyscale();
+    } else if(scalarEncoding == Scalar::Encodings::Minmax)  {
+        targetScalar = new Minmax();
+    } else if (scalarEncoding == Scalar::Encodings::None) {
+        targetScalar = nullptr;
+    } else {
+        ConsoleUtils::fatalError(
+            "Unsupported scalar encoding \"" + to_string(scalarEncoding) + "\"."
+        ); 
+    }
+
+    if (targetScalar) {
+        targetScalar->loadFromBin(modelBin);
+    }
 }

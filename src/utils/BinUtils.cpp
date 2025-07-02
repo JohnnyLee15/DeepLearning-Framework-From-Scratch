@@ -16,13 +16,18 @@
 #include "activations/Linear.h"
 #include "activations/ReLU.h"
 #include "activations/Softmax.h"
+#include "core/Data.h"
 
 const char BinUtils::CANCEL = 'q';
 const char BinUtils::OVERRIDE = 'o';
 const char BinUtils::RENAME = 'r';
 const string BinUtils::MODEL_EXTENSION = ".nn";
 
-void BinUtils::saveModel(const NeuralNet &nn, const string &filename) {
+void BinUtils::saveModel(
+    const NeuralNet &nn, 
+    const string &filename, 
+    const Data &data
+) {
     string fileToWrite = addExtension(filename);
     bool done = !fileExists(fileToWrite, false);
     bool shouldWrite = done;
@@ -45,7 +50,7 @@ void BinUtils::saveModel(const NeuralNet &nn, const string &filename) {
     }
 
     if (shouldWrite) {
-        writeToBin(nn, fileToWrite);
+        writeToBin(nn, fileToWrite, data);
         ConsoleUtils::printSuccess("Model saved successfully as \"" + fileToWrite + "\".");
     }
 
@@ -95,7 +100,11 @@ char BinUtils::getUserChoice() {
     return choice;
 }
 
-void BinUtils::writeToBin(const NeuralNet &nn, const string &filename) {
+void BinUtils::writeToBin(
+    const NeuralNet &nn, 
+    const string &filename,
+    const Data &data
+) {
     ofstream modelBin(filename, ios::out | ios::binary);
     if (!modelBin) {
         ConsoleUtils::fatalError(
@@ -115,6 +124,8 @@ void BinUtils::writeToBin(const NeuralNet &nn, const string &filename) {
     for (uint32_t i = 0; i < numActiveLayers; i++) {
         layers[i]->writeBin(modelBin);
     }
+
+    data.writeBin(modelBin);
     modelBin.close();
 
     if (!modelBin) {
@@ -173,7 +184,7 @@ Activation* BinUtils::loadActivation(ifstream &modelBin) {
         activation = new Softmax();
     } else {
         ConsoleUtils::fatalError(
-            "Unsupported activation encoding \"" + to_string(activationEncoding) + "\""
+            "Unsupported activation encoding \"" + to_string(activationEncoding) + "\"."
         );
     }
 
@@ -184,20 +195,20 @@ Layer* BinUtils::loadLayer(ifstream &modelBin) {
     uint32_t layerEncoding;
     modelBin.read((char*) &layerEncoding, sizeof(uint32_t));
 
-    uint32_t numNeurons;
-    modelBin.read((char*) &numNeurons, sizeof(uint32_t));
-
-    uint32_t numWeights;
-    modelBin.read((char*) &numWeights, sizeof(uint32_t));
-
     Activation *activation = loadActivation(modelBin);
 
     Layer *layer = nullptr;
     if (layerEncoding == Layer::Encodings::DenseLayer) {
+        uint32_t numNeurons;
+        modelBin.read((char*) &numNeurons, sizeof(uint32_t));
+
+        uint32_t numWeights;
+        modelBin.read((char*) &numWeights, sizeof(uint32_t));
+
         layer = new DenseLayer(numNeurons, numWeights, activation);
     } else{
         ConsoleUtils::fatalError(
-            "Unsupported layer encoding \"" + to_string(layerEncoding) + "\""
+            "Unsupported layer encoding \"" + to_string(layerEncoding) + "\"."
         );
     }
 
@@ -205,7 +216,7 @@ Layer* BinUtils::loadLayer(ifstream &modelBin) {
     return layer;
 }
 
-NeuralNet BinUtils::loadModel(const string &filename) {
+NeuralNet BinUtils::loadModel(const string &filename, Data &data) {
     string fullFilename = addExtension(filename);
 
     ifstream modelBin(fullFilename, ios::in | ios::binary);
@@ -225,6 +236,7 @@ NeuralNet BinUtils::loadModel(const string &filename) {
         layers[i] = loadLayer(modelBin);
     }
 
+    data.loadFromBin(modelBin);
     modelBin.close();
 
     if (!modelBin) {

@@ -3,42 +3,18 @@
 #include <iostream>
 #include "utils/ConsoleUtils.h"
 
-Matrix::Matrix(size_t numRows, size_t numCols) : 
-    matrix(numRows * numCols, 0), numRows(numRows), numCols(numCols) {}
-
-Matrix::Matrix() :
-    numRows(0), numCols(0) {}
-
-Matrix::Matrix(const vector<vector<double> > &mat) : numRows(mat.size()) {
-    numCols = 0;
-    if (numRows > 0) {
-        numCols = mat[0].size();
-    }
-
-    matrix = vector<double>(numRows * numCols);
-
-    #pragma omp parallel for collapse(2)
-    for (size_t i = 0; i < numRows; i++) {
-        for (size_t j = 0; j < numCols; j++) {
-            matrix[i * numCols + j] = mat[i][j];
-        }
-    }
-}
+Matrix::Matrix(Tensor &tensor) : tensor(tensor) {}
 
 size_t Matrix::getNumCols() const {
-    return numCols;
+    return tensor.getShape()[1];
 }
 
 size_t Matrix::getNumRows() const {
-    return numRows;
+    return tensor.getShape()[0];
 }
 
 const vector<double>& Matrix::getFlat() const {
-    return matrix;
-}
-
-vector<double>& Matrix::getFlat() {
-    return matrix;
+    return tensor.getFlat();
 }
 
 void Matrix::checkSizeMatch(size_t mat1Cols, size_t mat2Rows) {
@@ -60,20 +36,24 @@ void Matrix::checkSameShape(
 ) {
     if (mat1Rows!= mat2Rows || mat1Cols != mat2Cols) {
         ConsoleUtils::fatalError(
-            string("Hadamard product requires matrices of the same shape.\n") +
+            operation + " requires matrices of the same shape.\n" +
             "Left matrix shape: (" + to_string(mat1Rows) + ", " + to_string(mat1Cols) + "), " +
             "Right matrix shape: (" + to_string(mat2Rows) + ", " + to_string(mat2Cols) + ")."
         );
     }
 }
 
-Matrix Matrix::operator *(const Matrix &mat2) const {
-    checkSizeMatch(numCols, mat2.numRows);
+Tensor Matrix::operator *(const Matrix &mat2) const {
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
+    size_t mat2Rows = mat2.getNumRows();
+    size_t mat2Cols = mat2.getNumCols();
+    checkSizeMatch(numCols, mat2Rows);
 
-    size_t mat2Rows = mat2.numRows;
-    size_t mat2Cols = mat2.numCols;
-
-    Matrix product(numRows, mat2Cols);
+    Tensor product({numRows, mat2Cols});
+    vector<double> &prodFlat = product.getFlat();
+    const vector<double> &matFlat = tensor.getFlat();
+    const vector<double> &mat2Flat = mat2.tensor.getFlat();
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
@@ -82,22 +62,25 @@ Matrix Matrix::operator *(const Matrix &mat2) const {
             size_t offsetProd = i * mat2Cols;
             double value = 0.0;
             for (size_t k = 0; k < mat2Rows; k++) {
-                value += matrix[offsetThis + k]* mat2.matrix[k * mat2Cols + j];
+                value += matFlat[offsetThis + k]* mat2Flat[k * mat2Cols + j];
             }
-            product.matrix[offsetProd + j] = value;
+            prodFlat[offsetProd + j] = value;
         }
     }
 
     return product;
 }
 
-Matrix Matrix::operator *(const MatrixT &mat2) const {
-    checkSizeMatch(numCols,mat2.getNumRows());
-
+Tensor Matrix::operator *(const MatrixT &mat2) const {
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
     size_t mat2Rows = mat2.getNumRows();
     size_t mat2Cols = mat2.getNumCols();
-    Matrix product(numRows, mat2Cols);
+    checkSizeMatch(numCols,mat2Rows);
 
+    Tensor product({numRows, mat2Cols});
+    vector<double> &prodFlat = product.getFlat();
+    const vector<double> &matFlat = tensor.getFlat();
     const vector<double> &mat2Flat = mat2.getFlat();
 
     #pragma omp parallel for collapse(2)
@@ -107,9 +90,9 @@ Matrix Matrix::operator *(const MatrixT &mat2) const {
             size_t offsetThis = i * numCols;
             size_t offsetProd = i * mat2Cols;
             for (size_t k = 0; k < mat2Rows; k++) {
-                value += matrix[offsetThis + k] * mat2Flat[j * mat2Rows+ k];
+                value += matFlat[offsetThis + k] * mat2Flat[j * mat2Rows+ k];
             }
-            product.matrix[offsetProd + j] = value;
+            prodFlat[offsetProd + j] = value;
         }
     }
 
@@ -117,16 +100,19 @@ Matrix Matrix::operator *(const MatrixT &mat2) const {
 }
 
 vector<double> Matrix::operator *(const vector<double> &vec) const {
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
     checkSizeMatch(numCols, vec.size());
 
     vector<double> product(numRows, 0.0);
+    const vector<double> &matFlat = tensor.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < numRows; i++) {
         double value = 0.0;
         size_t offset = i * numCols;
         for (size_t j = 0; j < numCols; j++) {
-            value += matrix[offset + j] * vec[j];
+            value += matFlat[offset + j] * vec[j];
         }
         product[i] = value;
     }
@@ -135,7 +121,10 @@ vector<double> Matrix::operator *(const vector<double> &vec) const {
 }
 
 vector<double> Matrix::colSums() const {
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
     vector<double> colSumsVec(numCols, 0.0);
+    const vector<double> &matFlat = tensor.getFlat();
 
     #pragma omp parallel 
     {
@@ -144,7 +133,7 @@ vector<double> Matrix::colSums() const {
         #pragma omp for
         for (size_t i = 0; i < numRows; i++) {
             for (size_t j = 0; j < numCols; j++) {
-                threadColSums[j] += matrix[i * numCols + j];
+                threadColSums[j] += matFlat[i * numCols + j];
             }
         }
         
@@ -159,43 +148,62 @@ vector<double> Matrix::colSums() const {
     return colSumsVec;
 }
 
-Matrix& Matrix::operator *=(const Matrix &mat2) {
-    checkSameShape(numRows, numCols, mat2.numRows, mat2.numCols, "Hadamard Product");
+Tensor& Matrix::operator *=(const Matrix &mat2) {
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
+    size_t mat2Rows = mat2.getNumRows();
+    size_t mat2Cols = mat2.getNumCols();
+    checkSameShape(numRows, numCols, mat2Rows, mat2Cols, "Hadamard Product");
     
     size_t size = numRows * numCols;
+    vector<double> &matFlat = tensor.getFlat();
+    const vector<double> &mat2Flat = mat2.tensor.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        matrix[i] *= mat2.matrix[i];
+        matFlat[i] *= mat2Flat[i];
     }
 
-    return *this;
+    return tensor;
 }
 
-Matrix& Matrix::operator *=(double scaleFactor){
+Tensor& Matrix::operator *=(double scaleFactor){
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
     size_t size = numCols * numRows;
 
+    vector<double> &matFlat = tensor.getFlat();
+
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        matrix[i] *= scaleFactor;
+        matFlat[i] *= scaleFactor;
     }
 
-    return *this;
+    return tensor;
 }
 
-Matrix& Matrix::operator +=(const Matrix &mat2) {
-    checkSameShape(numRows, numCols, mat2.numRows, mat2.numCols, "Matrix Addition");
+Tensor& Matrix::operator +=(const Matrix &mat2) {
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
+    size_t mat2Rows = mat2.getNumRows();
+    size_t mat2Cols = mat2.getNumCols();
+    checkSameShape(numRows, numCols, mat2Rows, mat2Cols, "Matrix Addition");
+
     size_t size = numRows * numCols;
+    vector<double> &matFlat = tensor.getFlat();
+    const vector<double> &mat2Flat = mat2.tensor.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        matrix[i] += mat2.matrix[i];
+        matFlat[i] += mat2Flat[i];
     }
 
-    return *this;
+    return tensor;
 }
 
 void Matrix::addToRows(const vector<double> &vec) {
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
     if (vec.size() != numCols) {
         ConsoleUtils::fatalError(
             string("Cannot broadcast vector to matrix rows.\n") +
@@ -204,14 +212,14 @@ void Matrix::addToRows(const vector<double> &vec) {
         );
     }
 
+    vector<double> &matFlat = tensor.getFlat();
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
         for (size_t j = 0; j < numCols; j++) {
-            matrix[i * numCols + j] += vec[j];
+            matFlat[i * numCols + j] += vec[j];
         }
     }
 }
-
 
 MatrixT Matrix::T() const {
     return MatrixT(*this);

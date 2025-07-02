@@ -1,10 +1,10 @@
 #include "activations/Linear.h"
 #include <algorithm>
-#include "core/Matrix.h"
+#include "core/Tensor.h"
 
 const double Linear::LINEAR_BIAS = 0.01;
 
-Matrix Linear::activate(const Matrix& z) const{
+Tensor Linear::activate(const Tensor& z) const{
     return z;
 }
 
@@ -18,12 +18,10 @@ vector<double> Linear::initBias(size_t numBiases) const {
     return biases;
 }
 
-Matrix Linear::calculateGradient(const Matrix &preActivations) const {
-    size_t numRows = preActivations.getNumRows();
-    size_t numCols = preActivations.getNumCols();
-    size_t size = numRows * numCols;
+Tensor Linear::calculateGradient(const Tensor &preActivations) const {
+    size_t size = preActivations.getSize();
 
-    Matrix gradients(numRows, numCols);
+    Tensor gradients(preActivations.getShape());
     vector<double> &gradientsFlat = gradients.getFlat();
     
     #pragma omp parallel for

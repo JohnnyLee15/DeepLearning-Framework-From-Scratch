@@ -3,6 +3,7 @@
 #include "core/DenseLayer.h"
 #include "utils/TrainingUtils.h"
 #include "activations/Activation.h"
+#include "core/Matrix.h"
 
 Batch::Batch(size_t numLayers, size_t batchSize) :
     batchSize(batchSize),
@@ -22,20 +23,26 @@ void Batch::setBatchIndices(
 }
 
 void Batch::setBatch(
-    const Matrix &train,
+    const Tensor &train,
     const vector<double> &trainLabels
 ) {
-    size_t trainCols = train.getNumCols();
+    const vector<size_t> &trainShape = train.getShape();
+    vector<size_t> batchShape = trainShape;
+    batchShape[0] = batchSize;
+    data = Tensor(batchShape);
+    size_t batchDims = batchShape.size();
+    size_t elementSize = 1;
+    for (size_t i = 1; i < batchDims; i++) {
+        elementSize *= batchShape[i];
+    }
 
-    data = Matrix(batchSize, trainCols);
     vector<double> &batchFlat = data.getFlat();
     const vector<double> &trainFlat = train.getFlat();
-
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
         size_t rdIdx = indices[i];
-        for (size_t j = 0; j < trainCols; j++) {
-            batchFlat[i*trainCols + j] = trainFlat[rdIdx * trainCols + j];
+        for (size_t j = 0; j < elementSize; j++) {
+            batchFlat[i*elementSize + j] = trainFlat[rdIdx * elementSize + j];
         }
 
         targets[i] = trainLabels[rdIdx];
@@ -44,9 +51,10 @@ void Batch::setBatch(
 
 void Batch::writeBatchPredictions(
     vector<double> &predictions,
-    const Matrix &probs
+    const Tensor &probs
 ) const {
-    size_t numCols = probs.getNumCols();
+    Matrix probsMat = probs.M();
+    size_t numCols = probsMat.getNumCols();
     const vector<double> &probsFlat = probs.getFlat();
     
     #pragma omp parallel for
@@ -59,7 +67,6 @@ size_t Batch::getCorrectPredictions(
     const vector<double> &predictions
 ) const {
     size_t correct = 0;
-    size_t batchSize = data.getNumRows();
 
     #pragma omp parallel for reduction(+:correct)
     for (size_t i = 0; i < batchSize; i++) {
@@ -71,7 +78,7 @@ size_t Batch::getCorrectPredictions(
     return correct;
 }
 
-const Matrix& Batch::getData() const {
+const Tensor& Batch::getData() const {
     return data;
 }
 
@@ -79,7 +86,7 @@ const vector<double>& Batch::getTargets() const {
     return targets;
 }
 
-void Batch::setRescaledOutput(const Matrix &outputs) {
+void Batch::setRescaledOutput(const Tensor &outputs) {
     rescaledOutput = outputs;
 }
 
@@ -87,7 +94,7 @@ void Batch::setRescaledTargets(const vector<double> &targets) {
     rescaledTargets = targets;
 }
 
-const Matrix& Batch::getRescaledOutput() const {
+const Tensor& Batch::getRescaledOutput() const {
     return rescaledOutput;
 }
 

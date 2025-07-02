@@ -14,8 +14,8 @@ class Softmax : public Activation {
 
     public:
         // Methods
-        Matrix activate(const Matrix&) const override;
-        Matrix calculateGradient(const Matrix&) const override;
+        Tensor activate(const Tensor&) const override;
+        Tensor calculateGradient(const Tensor&) const override;
         vector<double> initBias(size_t) const override;
         bool isFused() const override;
         uint32_t getEncoding() const override;

@@ -1,16 +1,18 @@
 #include "activations/Softmax.h"
 #include "utils/VectorUtils.h"
+#include "core/Tensor.h"
 #include "core/Matrix.h"
 #include <cmath>
 #include "losses/SoftmaxCrossEntropy.h"
 
 const double Softmax::SOFTMAX_BIAS = 0.0;
 
-Matrix Softmax::activate(const Matrix &z) const {
-    size_t numCols = z.getNumCols();
-    size_t numRows = z.getNumRows();
+Tensor Softmax::activate(const Tensor &z) const {
+    Matrix zMat = z.M();
+    size_t numCols = zMat.getNumCols();
+    size_t numRows = zMat.getNumRows();
 
-    Matrix activations(numRows, numCols);
+    Tensor activations({numRows, numCols});
     vector<double> &activationsFlat = activations.getFlat();
     const vector<double> &zFlat = z.getFlat();
     
@@ -70,9 +72,9 @@ vector<double> Softmax::initBias(size_t numBiases) const {
     return biases;
 }
 
-Matrix Softmax::calculateGradient(const Matrix& preActivations) const {
+Tensor Softmax::calculateGradient(const Tensor& preActivations) const {
     SoftmaxCrossEntropy::checkInvalidGradientCall();
-    return Matrix(0,0);
+    return Tensor();
 }
 
 bool Softmax::isFused() const {

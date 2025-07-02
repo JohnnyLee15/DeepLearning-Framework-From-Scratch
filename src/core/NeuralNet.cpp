@@ -2,7 +2,6 @@
 #include "core/Data.h"
 #include <cmath>
 #include <iostream>
-#include "core/Matrix.h"
 #include <algorithm>
 #include "utils/TrainingUtils.h"
 #include "utils/ConsoleUtils.h"
@@ -10,6 +9,7 @@
 #include "core/Batch.h"
 #include "activations/Activation.h"
 #include "utils/BinUtils.h"
+#include "core/Task.h"
 
 using namespace std;
 
@@ -121,12 +121,12 @@ double NeuralNet::processBatch(
     vector<double> &predictions
 ) {
     forwardPass(batch);
-    const Matrix &output = layers.back()->getActivations();
+    const Tensor &output = layers.back()->getActivations();
     return  data.getTask()->processBatch(batch, predictions, output, loss);
 }
 
 void NeuralNet::forwardPass(Batch &batch) {
-    Matrix prevActivations = batch.getData();
+    Tensor prevActivations = batch.getData();
     size_t numLayers = layers.size();
 
     for (size_t j = 0; j < numLayers; j++) {
@@ -136,24 +136,24 @@ void NeuralNet::forwardPass(Batch &batch) {
 }
 
 void NeuralNet::backprop(Batch &batch, double learningRate) {
-    Matrix outputGradients = loss->calculateGradient(batch.getTargets(),layers.back()->getActivations());
+    Tensor outputGradients = loss->calculateGradient(batch.getTargets(),layers.back()->getActivations());
     size_t numLayers = (int) layers.size();
     
     for (int i = numLayers - 1; i >= 0; i--) {
         bool isFirstLayer = (i == 0);
-        const Matrix &prevActivations = ((i == 0) ? batch.getData() : layers[i-1]->getActivations());
+        const Tensor &prevActivations = ((i == 0) ? batch.getData() : layers[i-1]->getActivations());
         layers[i]->backprop(prevActivations, learningRate, outputGradients, isFirstLayer);
         outputGradients = layers[i]->getOutputGradient();
     }
 }
 
-Matrix NeuralNet::predict(const Data &data) {
+Tensor NeuralNet::predict(const Data &data) {
     forwardPassInference(data.getTestFeatures());
     return data.getTask()->predict(layers.back()->getActivations());
 }
 
-void NeuralNet::forwardPassInference(const Matrix& data) {
-    Matrix prevActivations = data;
+void NeuralNet::forwardPassInference(const Tensor& data) {
+    Tensor prevActivations = data;
     size_t numLayers = layers.size();
     
     for (size_t j = 0; j < numLayers; j++) {
@@ -170,10 +170,10 @@ NeuralNet::~NeuralNet() {
     }
 }
 
-void NeuralNet::saveToBin(const string &filename) const {
-    BinUtils::saveModel(*this, filename);
+void NeuralNet::saveToBin(const string &filename, const Data &data) const {
+    BinUtils::saveModel(*this, filename, data);
 }
 
-NeuralNet NeuralNet::loadFromBin(const string &filename) {
-    return BinUtils::loadModel(filename);
+NeuralNet NeuralNet::loadFromBin(const string &filename, Data &data) {
+    return BinUtils::loadModel(filename, data);
 }

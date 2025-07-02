@@ -1,8 +1,6 @@
 #pragma once
 #include "core/Task.h"
 
-class Matrix;
-
 class RegressionTask : public Task {
     private:
         // Constants
@@ -21,13 +19,17 @@ class RegressionTask : public Task {
 
         // Methods
         vector<double> getTarget(const vector<string>&) override;
-        vector<double> parsePredictions(const Matrix&) const override;
-        Matrix predict(const Matrix&) const override;
+        Tensor predict(const Tensor&) const override;
         void resetToRaw() override;
         void setTargetScalar(Scalar*) override;
-        void fitScalars(Matrix&, vector<double>&, Matrix&, vector<double>&) override;
-        virtual double processBatch(Batch&, vector<double>&, const Matrix&, const Loss*) const override;
-        virtual double calculateProgressMetric(const Batch&, const Matrix&, const vector<double>&, EpochStats&) const override;
+        void fitScalars(Tensor&, vector<double>&) override;
+        void transformScalars(Tensor&, vector<double>&) override;
+        void reverseTransformScalars(Tensor&, vector<double>&) override;
+        double processBatch(Batch&, vector<double>&, const Tensor&, const Loss*) const override;
+        double calculateProgressMetric(const Batch&, const Tensor&, const vector<double>&, EpochStats&) const override;
+        void writeBin(ofstream&) const override;
+        void loadFromBin(ifstream&) override;
+        uint32_t getEncoding() const override;
         ~RegressionTask();
 
 };

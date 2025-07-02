@@ -3,15 +3,17 @@
 #include "core/Matrix.h"
 #include <iostream>
 #include "utils/ConsoleUtils.h"
+#include <cmath>
 
 const double SoftmaxCrossEntropy::CROSS_ENTROPY_EPSILON = 1e-10;
 
 double SoftmaxCrossEntropy::calculateTotalLoss(
     const vector<double> &labels,
-    const Matrix &probs
+    const Tensor &probs
 ) const {
-    size_t numRows = probs.getNumRows();
-    size_t numCols = probs.getNumCols();
+    Matrix probsMat = probs.M();
+    size_t numRows = probsMat.getNumRows();
+    size_t numCols = probsMat.getNumCols();
 
     double totalLoss = 0.0;
     const vector<double> &probsFlat = probs.getFlat();
@@ -39,14 +41,15 @@ double SoftmaxCrossEntropy::calculateDerivative(
     return value;
 }
 
-Matrix SoftmaxCrossEntropy::calculateGradient(
+Tensor SoftmaxCrossEntropy::calculateGradient(
     const vector<double> &labels, 
-    const Matrix &activations
+    const Tensor &activations
 ) const {
-    size_t numRows = activations.getNumRows();
-    size_t numCols = activations.getNumCols();
+    Matrix actMat = activations.M();
+    size_t numRows = actMat.getNumRows();
+    size_t numCols = actMat.getNumCols();
 
-    Matrix gradients(numRows, numCols);
+    Tensor gradients({numRows, numCols});
     vector<double> &gradientsFlat = gradients.getFlat();
     const vector<double> &activationsFlat = activations.getFlat();
 

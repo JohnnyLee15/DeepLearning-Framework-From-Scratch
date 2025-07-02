@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <core/Tensor.h>
 
 class MatrixT;
 
@@ -9,32 +10,25 @@ using namespace std;
 
 class Matrix {
     private:
-    
-        // Instance Variables
-        vector<double> matrix;
-        size_t numRows;
-        size_t numCols;
-        
+        Tensor &tensor;
+
     public:
         // Constructors        
-        Matrix(size_t, size_t);
-        Matrix();
-        Matrix(const vector<vector<double> >&);
+        Matrix(Tensor&);
 
         // Methods
         size_t getNumCols() const;
         size_t getNumRows() const;
-        Matrix operator *(const Matrix&) const;
-        Matrix operator *(const MatrixT&) const;
-        Matrix& operator *=(double);
-        Matrix& operator *=(const Matrix&); 
-        Matrix& operator += (const Matrix&);
+        Tensor operator *(const Matrix&) const;
+        Tensor operator *(const MatrixT&) const;
+        Tensor& operator *=(double);
+        Tensor& operator *=(const Matrix&); 
+        Tensor& operator += (const Matrix&);
         MatrixT T() const;
-        vector<double>& getFlat();
         vector<double> operator *(const vector<double>&) const;
         vector<double> colSums() const;
-        const vector<double>& getFlat() const;
         void addToRows(const vector<double>&);
+        const vector<double>& getFlat() const;
 
         // Static Methods
         static void checkSizeMatch(size_t, size_t);

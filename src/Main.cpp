@@ -3,7 +3,7 @@
 #include <vector>
 #include <sstream>
 #include "core/NeuralNet.h"
-#include "core/Data.h"
+#include "core/TabularData.h"
 #include <iomanip>
 #include "activations/ReLU.h"
 #include "activations/Softmax.h"
@@ -19,6 +19,7 @@
 #include "utils/TrainingUtils.h"
 #include "core/Layer.h"
 #include "core/DenseLayer.h"
+#include "core/Matrix.h"
 
 using namespace std;
 
@@ -27,42 +28,45 @@ int main() {
     ConsoleUtils::printTitle();
 
     // Data Processing
-    Data data;
-    data.setTask(new ClassificationTask());
-    data.readTrain("DataFiles/mnist_train.csv", "label");
-    data.readTest("DataFiles/mnist_test.csv", "label");
-    data.setScalars(new Greyscale());                // setScalars(featureScalar, targetScalar); only featureScalar used for classification           
-    data.fitScalars();
-    size_t numFeatures = data.getTrainFeatures().getNumCols();
+        TabularData data;
+        data.setTask(new ClassificationTask());
+        data.readTrain("DataFiles/MNIST/mnist_train.csv", "label");
+        data.readTest("DataFiles/MNIST/mnist_test.csv", "label");
+        data.setScalars(new Greyscale());                
+        data.fitScalars();
+        data.transformTrain();
+        data.transformTest();
+        size_t numFeatures = data.getTrainFeatures().getShape()[1]; 
 
-    // Architecture
-    Loss *loss = new SoftmaxCrossEntropy();
-    vector<Layer*> layers = {
-        new DenseLayer(64, numFeatures, new ReLU()), // Hidden layer 1: 64 neurons
-        new DenseLayer(32, 64, new ReLU()),          // Hidden layer 2: 32 neurons
-        new DenseLayer(10, 32, new Softmax())        // Output layer: 10 classes
-    };
+        // Architecture
+        Loss *loss = new SoftmaxCrossEntropy();
+            vector<Layer*> layers = {
+            new DenseLayer(64, numFeatures, new ReLU()), 
+            new DenseLayer(32, 64, new ReLU()),         
+            new DenseLayer(10, 32, new Softmax())        
+        };
 
-    // Instantiation
-    NeuralNet nn(layers, loss);
+        // Instantiation
+        NeuralNet nn(layers, loss);
 
-    // Train
-    nn.train(
-        data,
-        0.01,  // learningRate
-        0.01,  // decayRate
-        3,     // epochs
-        32     // batchSize
-    );
+        // Train
+        nn.train(
+            data,
+            0.01,  
+            0.01,  
+            3,  
+            32     
+        );
 
-    // Save
-    nn.saveToBin("model");
+        // Save
+        nn.saveToBin("modelTest.nn", data);
 
-    // Test
-    Matrix probs = nn.predict(data);
-    vector<double> predictions = TrainingUtils::getPredictions(probs);
-    double accuracy = TrainingUtils::getAccuracy(predictions, data.getTestTargets());
-    cout << "Test Accuracy: " << accuracy << endl;
-    
-    return 0;
+        // Test
+        // NeuralNet nn = NeuralNet::loadFromBin("modelTest", data);
+        // data.readTest("DataFiles/MNIST/mnist_test.csv", "label");
+        // data.transformTest();
+        Tensor probs = nn.predict(data);
+        vector<double> predictions = TrainingUtils::getPredictions(probs);
+        double accuracy = TrainingUtils::getAccuracy(predictions, data.getTestTargets());
+        cout << "Test Accuracy: " << accuracy << endl;
 }

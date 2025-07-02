@@ -5,6 +5,7 @@ class NeuralNet;
 class Loss;
 class Activation;
 class Layer;
+class Data;
 
 using namespace std;
 
@@ -19,7 +20,7 @@ class BinUtils {
         // Methods
         static bool fileExists(string, bool);
         static char getUserChoice();
-        static void writeToBin(const NeuralNet&, const string&);
+        static void writeToBin(const NeuralNet&, const string&, const Data&);
         static string getNewModelName();
         static void printOptions();
         static Loss* loadLoss(ifstream&);
@@ -29,6 +30,6 @@ class BinUtils {
 
     public:
         // Methods
-        static void saveModel(const NeuralNet&, const string&);
-        static NeuralNet loadModel(const string&);
+        static void saveModel(const NeuralNet&, const string&, const Data&);
+        static NeuralNet loadModel(const string&, Data&);
 };

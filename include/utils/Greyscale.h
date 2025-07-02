@@ -8,10 +8,11 @@ class Greyscale : public Scalar {
     
     public:
         // Methods
-        void transform(Matrix&) override;
-        void reverseTransform(Matrix&) const override; 
+        void transform(Tensor&) override;
+        void reverseTransform(Tensor&) const override; 
         void fit(const vector<double>&) override;
         void transform(vector<double>&) override;
         void reverseTransform(vector<double>&) const override;
+        uint32_t getEncoding() const override;
 };
 

@@ -7,13 +7,14 @@
 #include "core/MatrixT.h"
 #include <random>
 #include <sstream>
+#include "core/Matrix.h"
 
 const double DenseLayer::HE_INT_GAIN = 2.0;
 
 DenseLayer::DenseLayer(size_t numNeurons, size_t weightsPerNeuron, Activation *activation) :
-    weights(numNeurons, weightsPerNeuron), activation(activation)
+    weights({numNeurons, weightsPerNeuron}), activation(activation)
 {
-    DenseLayer::initWeights(numNeurons, weightsPerNeuron);
+    initWeights(numNeurons, weightsPerNeuron);
     biases = activation->initBias(numNeurons);
 }
 
@@ -29,25 +30,26 @@ vector<uint32_t> DenseLayer::generateThreadSeeds() const {
 }
 
 void DenseLayer::writeBin(ofstream& modelBin) const {
-    uint32_t layerEncoding = Layer::Encodings::DenseLayer;
-    modelBin.write((char*) &layerEncoding, sizeof(uint32_t));
-
-    uint32_t numNeuronsWrite = (uint32_t) weights.getNumRows();
-    modelBin.write((char*) &numNeuronsWrite, sizeof(uint32_t));
-
-    uint32_t weightsPerNeuronWrite = (uint32_t) weights.getNumCols();
-    modelBin.write((char*) &weightsPerNeuronWrite, sizeof(uint32_t));
+    Layer::writeBin(modelBin);
 
     uint32_t activationEncoding = activation->getEncoding();
     modelBin.write((char*) &activationEncoding, sizeof(uint32_t));
 
-    size_t numWeights = weights.getNumRows() * weights.getNumCols();
+    Matrix weightsMat = weights.M();
+    uint32_t numNeuronsWrite = (uint32_t) weightsMat.getNumRows();
+    modelBin.write((char*) &numNeuronsWrite, sizeof(uint32_t));
+
+    uint32_t weightsPerNeuronWrite = (uint32_t) weightsMat.getNumCols();
+    modelBin.write((char*) &weightsPerNeuronWrite, sizeof(uint32_t));
+
+    size_t numWeights = weightsMat.getNumRows() * weightsMat.getNumCols();
     modelBin.write((char*) weights.getFlat().data(), numWeights * sizeof(double));
     modelBin.write((char*) biases.data(), biases.size() * sizeof(double));
 }
 
 void DenseLayer::loadWeightsAndBiases(ifstream &modelBin) {
-    size_t numWeights = weights.getNumRows() * weights.getNumCols();
+    Matrix weightsMat = weights.M();
+    size_t numWeights = weightsMat.getNumRows() * weightsMat.getNumCols();
     modelBin.read((char*) weights.getFlat().data(), numWeights * sizeof(double));
     modelBin.read((char*) biases.data(), biases.size() * sizeof(double));
 }
@@ -71,48 +73,56 @@ void DenseLayer::initWeights(size_t numRows, size_t numCols) {
     }
 }
 
-void DenseLayer::calActivations(const Matrix&prevActivations) {
-    preActivations = prevActivations * weights.T();
-    preActivations.addToRows(biases);
+void DenseLayer::calActivations(const Tensor&prevActivations) {
+    preActivations = prevActivations.M() * weights.M().T();
+    preActivations.M().addToRows(biases);
     activations = activation->activate(preActivations);
 }
 
-const Matrix DenseLayer::getActivations() const {
+const Tensor DenseLayer::getActivations() const {
     return activations;
 }
 
 void DenseLayer::backprop(
-    const Matrix &prevActivations,
+    const Tensor &prevActivations,
     double learningRate,
-    const Matrix &outputGradients,
+    const Tensor &outputGradients,
     bool isFirstLayer
 ) {
     dZ = outputGradients;
+    Matrix dZMat = dZ.M();
+    Matrix weightsMat = weights.M();
+
     if (!activation->isFused()) {
-        dZ *= activation->calculateGradient(preActivations);
+        dZMat *= activation->calculateGradient(preActivations).M();
     }
 
-    size_t batchSize = dZ.getNumRows();
+    size_t batchSize = dZMat.getNumRows();
     double scaleFactor = -learningRate/batchSize;
 
-    Matrix weightGradients = dZ.T() * prevActivations;
-    vector<double> biasGradients = dZ.colSums();
+    Tensor weightGradients = dZMat.T() * prevActivations.M();
+    Matrix weightsGradMat = weightGradients.M();
+    vector<double> biasGradients = dZMat.colSums();
 
-    weightGradients *= scaleFactor;
+    weightsGradMat *= scaleFactor;
     VectorUtils::scaleVecInplace(biasGradients, scaleFactor);
 
-    weights += weightGradients;
+    weightsMat += weightsGradMat;
     VectorUtils::addVecInplace(biases, biasGradients);
 
     if (!isFirstLayer) {
-        dZ = dZ * weights;
+        dZ = dZMat * weightsMat;
     }
 }
 
-Matrix DenseLayer::getOutputGradient() const {
+Tensor DenseLayer::getOutputGradient() const {
     return dZ;
 }
 
 DenseLayer::~DenseLayer() {
     delete activation;
+}
+
+uint32_t DenseLayer::getEncoding() const {
+    return Layer::Encodings::DenseLayer;
 }

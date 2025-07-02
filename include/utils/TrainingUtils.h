@@ -2,7 +2,7 @@
 
 #include <vector>
 
-class Matrix;
+class Tensor;
 
 using namespace std;
 
@@ -15,6 +15,7 @@ class TrainingUtils {
         // Methods
         static double getAccuracy(const vector<double>&, const vector<double>&);
         static double clipDerivative(double);
-        static vector<double> getPredictions(const Matrix&);
+        static vector<double> getPredictions(const Tensor&);
         static double getPrediction(const vector<double> &, size_t, size_t);
+        static double getRMSE(const Tensor&, const vector<double>&);
 };

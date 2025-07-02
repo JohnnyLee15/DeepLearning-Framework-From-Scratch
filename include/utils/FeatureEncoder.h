@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-class Matrix;
+class Tensor;
 
 using namespace std;
 
@@ -17,7 +17,11 @@ class FeatureEncoder {
     public:
         // Methods
         static vector<bool> getCategoricalCols(const vector<vector<string> >&);
-        static vector<size_t> getOffsets(const vector<bool>&, const vector<unordered_map<string, double> >&, size_t, int&);
+        static vector<size_t> getOffsets(const vector<bool>&, const vector<unordered_map<string, double> >&, size_t, size_t&);
         static vector<unordered_map<string, double> > encodeFeatures(const vector<vector<string> >&, const vector<bool>&);
-        static Matrix getFeatures(const vector<vector<string> >&);
+        static Tensor getFeatures(
+            const vector<bool>&, 
+            const vector<unordered_map<string, double> >&, 
+            const vector<vector<string> >&
+        );
 };

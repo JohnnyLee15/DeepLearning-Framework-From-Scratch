@@ -1,8 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <cstdint>
-#include "core/Matrix.h"
+#include "core/Tensor.h"
 #include "core/Layer.h"
 
 class Activation;
@@ -16,10 +15,10 @@ class DenseLayer : public Layer {
         static const double HE_INT_GAIN;
 
         // Instance Variables
-        Matrix activations;
-        Matrix preActivations;
-        Matrix weights;
-        Matrix dZ;
+        Tensor activations;
+        Tensor preActivations;
+        Tensor weights;
+        Tensor dZ;
         Activation *activation;
         vector<double> biases;
 
@@ -33,11 +32,12 @@ class DenseLayer : public Layer {
         DenseLayer(size_t, size_t, Activation*);
 
         // Methods
-        void calActivations(const Matrix&) override;
-        const Matrix getActivations() const override;
-        Matrix getOutputGradient() const override;
-        void backprop(const Matrix&, double, const Matrix&, bool) override;
+        void calActivations(const Tensor&) override;
+        const Tensor getActivations() const override;
+        Tensor getOutputGradient() const override;
+        void backprop(const Tensor&, double, const Tensor&, bool) override;
         ~DenseLayer();
         void writeBin(ofstream&) const override;
         void loadWeightsAndBiases(ifstream&) override;
+        uint32_t getEncoding() const override;
 };

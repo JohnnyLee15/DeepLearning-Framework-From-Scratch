@@ -1,11 +1,11 @@
 #include "losses/MSE.h"
-#include "core/Matrix.h"
+#include "core/Tensor.h"
 #include <cassert>
 #include <cmath>
 
 double MSE::calculateTotalLoss(
     const vector<double>& targets, 
-    const Matrix& activations
+    const Tensor& activations
 ) const {
     const vector<double> &actFlat = activations.getFlat();
     assert(actFlat.size() == targets.size());
@@ -22,15 +22,15 @@ double MSE::calculateTotalLoss(
     return totalLoss;
 }
 
-Matrix MSE::calculateGradient(
+Tensor MSE::calculateGradient(
     const vector<double> &targets, 
-    const Matrix &activations
+    const Tensor &activations
 ) const {
     const vector<double> &actFlat = activations.getFlat();
     assert(actFlat.size() == targets.size());
 
     size_t size = actFlat.size();
-    Matrix gradients(size, 1);
+    Tensor gradients({size, 1});
 
     vector<double> &gradientsFlat = gradients.getFlat();
     const vector<double> &activationsFlat = activations.getFlat();

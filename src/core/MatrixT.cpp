@@ -16,13 +16,13 @@ const vector<double>& MatrixT::getFlat() const {
     return matrix.getFlat();
 }
 
-Matrix MatrixT::operator *(const Matrix &mat2) const {
+Tensor MatrixT::operator *(const Matrix &mat2) const {
     Matrix::checkSizeMatch(numCols, mat2.getNumRows());
 
     size_t mat2Rows = mat2.getNumRows();
     size_t mat2Cols = mat2.getNumCols();
-    Matrix product(numRows, mat2Cols);
 
+    Tensor product({numRows, mat2Cols});
     vector<double> &productFlat = product.getFlat();
     const vector<double> &mat2Flat = mat2.getFlat();
     const vector<double> &flat = matrix.getFlat();
@@ -42,17 +42,17 @@ Matrix MatrixT::operator *(const Matrix &mat2) const {
     return product;
 }
 
-Matrix MatrixT::operator *(const MatrixT &mat2) const {
+Tensor MatrixT::operator *(const MatrixT &mat2) const {
     Matrix::checkSizeMatch(numCols, mat2.numRows);
 
     size_t mat2Rows = mat2.numRows;
     size_t mat2Cols = mat2.numCols;
-    Matrix product(numRows, mat2Cols);
 
+    Tensor product({numRows, mat2Cols});
     vector<double> &productFlat = product.getFlat();
     const vector<double> &mat2Flat = mat2.getFlat();
     const vector<double> &flat = matrix.getFlat();
-
+    
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
         for (size_t j = 0; j < mat2Cols; j++) {

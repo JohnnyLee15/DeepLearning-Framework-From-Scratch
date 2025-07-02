@@ -5,8 +5,8 @@
 class MSE : public Loss {
     public:
         // Methods
-        double calculateTotalLoss(const vector<double>&, const Matrix&) const override;    
-        Matrix calculateGradient(const vector<double>&, const Matrix&) const override;
+        double calculateTotalLoss(const vector<double>&, const Tensor&) const override;    
+        Tensor calculateGradient(const vector<double>&, const Tensor&) const override;
         double formatLoss(double) const override;
         uint32_t getEncoding() const override;
 };

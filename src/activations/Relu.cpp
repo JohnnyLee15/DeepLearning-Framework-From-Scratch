@@ -1,16 +1,13 @@
 #include "activations/ReLU.h"
 #include <algorithm>
-#include "core/Matrix.h"
+#include "core/Tensor.h"
 
 const double ReLU::RELU_BIAS = 0.01;
 
-Matrix ReLU::activate(const Matrix& z) const{
-    size_t numRows = z.getNumRows();
-    size_t numCols = z.getNumCols();
-    size_t size = numRows * numCols;
+Tensor ReLU::activate(const Tensor& z) const{
+    size_t size = z.getSize();
     const vector<double> &zFlat = z.getFlat();
-
-    Matrix activations(numRows, numCols);
+    Tensor activations(z.getShape());
     vector<double> &activationsFlat = activations.getFlat();
     
     #pragma omp parallel for
@@ -30,13 +27,11 @@ vector<double> ReLU::initBias(size_t numBiases) const {
     return biases;
 }
 
-Matrix ReLU::calculateGradient(const Matrix &preActivations) const {
-    size_t numRows = preActivations.getNumRows();
-    size_t numCols = preActivations.getNumCols();
-    size_t size = numRows * numCols;
+Tensor ReLU::calculateGradient(const Tensor &preActivations) const {
+    size_t size = preActivations.getSize();
     const vector<double> &preFlat = preActivations.getFlat();
 
-    Matrix gradients(numRows, numCols);
+    Tensor gradients(preActivations.getShape());
     vector<double> &gradientsFlat = gradients.getFlat();
     
     #pragma omp parallel for

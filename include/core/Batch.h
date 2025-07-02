@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "core/Matrix.h"
+#include "core/Tensor.h"
 
 class Loss;
 class DenseLayer;
@@ -15,22 +15,22 @@ class Batch {
         vector<size_t> indices;
         vector<double> targets;
         vector<double> rescaledTargets;
-        Matrix data;
-        Matrix rescaledOutput;
+        Tensor data;
+        Tensor rescaledOutput;
 
     public:
         // Constructor
         Batch(size_t, size_t);
 
         // Methods
-        void setBatch(const Matrix&, const vector<double> &);
+        void setBatch(const Tensor&, const vector<double> &);
         void setBatchIndices(size_t, size_t, const vector<size_t>&);
-        const Matrix& getData() const;
+        const Tensor& getData() const;
         const vector<double>& getTargets() const;
-        void writeBatchPredictions(vector<double>&, const Matrix&) const;
+        void writeBatchPredictions(vector<double>&, const Tensor&) const;
         size_t getCorrectPredictions(const vector<double>&) const; 
-        void setRescaledOutput(const Matrix&);
+        void setRescaledOutput(const Tensor&);
         void setRescaledTargets(const vector<double>&);
-        const Matrix& getRescaledOutput() const;
+        const Tensor& getRescaledOutput() const;
         const vector<double>& getRescaledTargets() const;
 };

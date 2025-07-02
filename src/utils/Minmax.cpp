@@ -1,13 +1,26 @@
 #include "utils/Minmax.h"
 #include "core/Matrix.h"
+#include "core/Tensor.h"
 #include "utils/VectorUtils.h"
 #include <omp.h>
+#include "utils/ConsoleUtils.h"
 
-void Minmax::fit(const Matrix &data) {
+void Minmax::checkRank(const Tensor &data) const {
+    if (data.getRank() != 2) {
+        ConsoleUtils::fatalError(
+            "Minmax scaling only supports rank-2 tensors (matrices).\n"
+            "Received tensor with rank: " + std::to_string(data.getRank()) + "."
+        );
+    }
+}
+
+void Minmax::fit(const Tensor &data) {
+    checkRank(data);
     Scalar::fit(data);
-
-    size_t numCols = data.getNumCols();
-    size_t numRows = data.getNumRows();
+    
+    Matrix dataMat = data.M();
+    size_t numCols = dataMat.getNumCols();
+    size_t numRows = dataMat.getNumRows();
     const vector<double> &dataFlat = data.getFlat();
     minVals = vector<double>(numCols, VectorUtils::INF);
     maxVals = vector<double>(numCols, -VectorUtils::INF);
@@ -54,11 +67,13 @@ void Minmax::fit(const vector<double> &data) {
     maxVals = vector<double>(1, maxVal);
 }
 
-void Minmax::transform(Matrix &data) {
+void Minmax::transform(Tensor &data) {
+    checkRank(data);
     Scalar::transform(data);
 
-    size_t numCols = data.getNumCols();
-    size_t numRows = data.getNumRows();
+    Matrix dataMat = data.M();
+    size_t numCols = dataMat.getNumCols();
+    size_t numRows = dataMat.getNumRows();
     vector<double> &dataFlat = data.getFlat();
 
     #pragma omp parallel for
@@ -89,11 +104,12 @@ void Minmax::transform(vector<double> &data) {
     }
 }
 
-void Minmax::reverseTransform(Matrix &data) const {
-    Scalar::reverseTransform(data);
+void Minmax::reverseTransform(Tensor &data) const {
+    checkRank(data);
 
-    size_t numCols = data.getNumCols();
-    size_t numRows = data.getNumRows();
+    Matrix dataMat = data.M();
+    size_t numCols = dataMat.getNumCols();
+    size_t numRows = dataMat.getNumRows();
     vector<double> &dataFlat = data.getFlat();
 
     #pragma omp parallel for
@@ -110,16 +126,46 @@ void Minmax::reverseTransform(Matrix &data) const {
 }
 
 void Minmax::reverseTransform(vector<double> &data) const {
-    Scalar::reverseTransform(data);
-
     size_t size = data.size();
 
     double scaleFactor = maxVals[0] - minVals[0];
     if (scaleFactor == 0.0) {
         scaleFactor = 1.0;
     }
+    
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
         data[i] = data[i] * scaleFactor + minVals[0];
     }
+}
+
+void Minmax::writeBin(ofstream &modelBin) const {
+    Scalar::writeBin(modelBin);
+
+    uint32_t minSize = minVals.size();
+    uint32_t maxSize = maxVals.size();
+
+    modelBin.write((char*) &minSize, sizeof(uint32_t));
+    modelBin.write((char*) minVals.data(), minSize * sizeof(double));
+
+    modelBin.write((char*) &maxSize, sizeof(uint32_t));
+    modelBin.write((char*) maxVals.data(), maxSize * sizeof(double));
+}
+
+void Minmax::loadFromBin(ifstream &modelBin) {
+    Scalar::loadFromBin(modelBin);
+
+    uint32_t minSize;
+    modelBin.read((char*) &minSize, sizeof(uint32_t));
+    minVals.resize(minSize);
+    modelBin.read((char*) minVals.data(), minSize * sizeof(double));
+
+    uint32_t maxSize;
+    modelBin.read((char*) &maxSize, sizeof(uint32_t));
+    maxVals.resize(maxSize);
+    modelBin.read((char*) maxVals.data(), maxSize * sizeof(double));
+}
+
+uint32_t Minmax::getEncoding() const {
+    return Scalar::Encodings::Minmax;
 }

@@ -1,6 +1,7 @@
 #include "utils/TrainingUtils.h"
 #include <cmath>
 #include "core/Matrix.h"
+#include <cmath>
 
 const double TrainingUtils::GRADIENT_THRESHOLD = 1.0;
 
@@ -43,9 +44,10 @@ double TrainingUtils::getPrediction(
     return prediction;
 }
 
-vector<double> TrainingUtils::getPredictions(const Matrix &probs) {
-    size_t numRows = probs.getNumRows();
-    size_t numCols = probs.getNumCols();
+vector<double> TrainingUtils::getPredictions(const Tensor &probs) {
+    Matrix probsMat = probs.M();
+    size_t numRows = probsMat.getNumRows();
+    size_t numCols = probsMat.getNumCols();
     vector<double> predictions(numRows);
     const vector<double> &probsFlat = probs.getFlat();
 
@@ -55,5 +57,23 @@ vector<double> TrainingUtils::getPredictions(const Matrix &probs) {
     }
 
     return predictions;
+}
+
+
+double TrainingUtils::getRMSE(
+    const Tensor &predicted,
+    const vector<double> &actual
+) {
+    const vector<double> &predictedFlat = predicted.getFlat();
+    size_t size = predictedFlat.size();
+    // check size
+
+    double total = 0.0;
+    for (size_t i = 0; i < size; i++) {
+        double diff = (predictedFlat[i] - actual[i]);
+        total += (diff * diff);
+    }
+
+    return sqrt(total / size);
 }
 

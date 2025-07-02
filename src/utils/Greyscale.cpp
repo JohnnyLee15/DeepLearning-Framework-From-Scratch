@@ -1,46 +1,38 @@
 #include "utils/Greyscale.h"
-#include "core/Matrix.h"
+#include "core/Tensor.h"
 #include <iostream>
 #include "utils/ConsoleUtils.h"
 #include <omp.h>
 
 const double Greyscale::MAX_GREYSCALE_VALUE = 255.0;
 
-void Greyscale::transform(Matrix &data) {
+void Greyscale::transform(Tensor &data) {
     Scalar::transform(data);
 
-    size_t numRows = data.getNumRows();
-    size_t numCols = data.getNumCols();
+    size_t size = data.getSize();
 
     vector<double> &dataFlat = data.getFlat();
 
-    #pragma omp parallel for collapse(2)
-    for (size_t i = 0; i < numRows; i++) {
-        for (size_t j = 0; j < numCols; j++) {
-            dataFlat[i*numCols + j] /= MAX_GREYSCALE_VALUE;
-        }
+    #pragma omp parallel for
+    for (size_t i = 0; i < size; i++) {
+        dataFlat[i] /= MAX_GREYSCALE_VALUE;
     }
 }
 
-void Greyscale::reverseTransform(Matrix &data) const {
-    Scalar::reverseTransform(data);
-
-    size_t numRows = data.getNumRows();
-    size_t numCols = data.getNumCols();
-
+void Greyscale::reverseTransform(Tensor &data) const {
+    size_t size = data.getSize();
     vector<double> &dataFlat = data.getFlat();
 
-    #pragma omp parallel for collapse(2)
-    for (size_t i = 0; i < numRows; i++) {
-        for (size_t j = 0; j < numCols; j++) {
-            dataFlat[i*numCols + j] *= MAX_GREYSCALE_VALUE;
-        }
+    #pragma omp parallel for
+    for (size_t i = 0; i < size; i++) {
+        dataFlat[i] *= MAX_GREYSCALE_VALUE;
+        
     }
 }
 
 void Greyscale::throwDataFormatError() const {
     ConsoleUtils::fatalError(
-        "Greyscale only supports Matrix input.\n"
+        "Greyscale only supports Tensor input.\n"
         "Vector input is not supported for this scalar."
     );
 }
@@ -55,4 +47,8 @@ void Greyscale::transform(vector<double> &data) {
 
 void Greyscale::reverseTransform(vector<double> &data) const {
     throwDataFormatError();
+}
+
+uint32_t Greyscale::getEncoding() const {
+    return Scalar::Encodings::Greyscale;
 }

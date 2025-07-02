@@ -2,7 +2,7 @@
 #include "utils/ConsoleUtils.h"
 #include <iostream>
 
-void Scalar::fit(const Matrix &data) {
+void Scalar::fit(const Tensor &data) {
     fitted = true;
 }
 
@@ -16,35 +16,28 @@ void Scalar::checkFitted() {
     }
 }
 
-void Scalar::checkTransformed() const {
-    if (!transformed) {
-        ConsoleUtils::fatalError("Cannot reverse transform before calling transform().");
-    }
-}
-
-void Scalar::transform(Matrix &data) {
+void Scalar::transform(Tensor &data) {
     checkFitted();
-    transformed = true;
 }
 
 void Scalar::transform(vector<double> &data) {
     checkFitted();
-    transformed = true;
-}
-
-void Scalar::reverseTransform(Matrix &data) const {
-    checkTransformed();
-}
-
-void Scalar::reverseTransform(vector<double> &data) const {
-    checkTransformed();
 }
 
 void Scalar::resetToRaw() {
     fitted = false;
-    transformed = false;
 }
 
-bool Scalar::isTransformed() const {
-    return transformed;
+void Scalar::writeBin(ofstream &modelBin) const {
+    uint32_t scalarEncoding = getEncoding();
+    modelBin.write((char*) &scalarEncoding, sizeof(uint32_t));
+
+    uint8_t fittedByte = fitted ? 1 : 0;
+    modelBin.write((char*) &fittedByte, sizeof(uint8_t));
+}
+
+void Scalar::loadFromBin(ifstream &modelBin) {
+    uint8_t fittedByte;
+    modelBin.read((char*) &fittedByte, sizeof(uint8_t));
+    fitted = (fittedByte == 1);
 }

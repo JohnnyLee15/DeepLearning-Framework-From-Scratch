@@ -2,15 +2,15 @@
 #include <cstdint>
 #include <vector>
 
-class Matrix;
+class Tensor;
 
 using namespace std;
 
 class Activation {
     public:
         // Methods
-        virtual Matrix activate(const Matrix&) const = 0;
-        virtual Matrix calculateGradient(const Matrix&) const = 0;
+        virtual Tensor activate(const Tensor&) const = 0;
+        virtual Tensor calculateGradient(const Tensor&) const = 0;
         virtual vector<double> initBias(size_t) const = 0;
         virtual ~Activation() = default;
         virtual bool isFused() const;

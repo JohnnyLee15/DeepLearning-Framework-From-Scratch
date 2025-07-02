@@ -1,6 +1,6 @@
 #include <utils/FeatureEncoder.h>
 #include <utils/ConsoleUtils.h>
-#include "core/Matrix.h"
+#include "core/Tensor.h"
 #include <stdexcept>
 
 bool FeatureEncoder::getValueType(const string &value) {
@@ -69,7 +69,7 @@ vector<size_t> FeatureEncoder::getOffsets(
     const vector<bool> &isCategorical,
     const vector<unordered_map<string, double> > &encodings,
     size_t numCols,
-    int &totalCols
+    size_t &totalCols
 ) {
     vector<size_t> offsets(numCols);
     for (size_t i = 0; i < numCols; i++) {
@@ -84,18 +84,18 @@ vector<size_t> FeatureEncoder::getOffsets(
     return offsets;
 }
 
-Matrix FeatureEncoder::getFeatures(
+Tensor FeatureEncoder::getFeatures(
+    const vector<bool> &isCategorical,
+    const vector<unordered_map<string, double> > &encodings,
     const vector<vector<string> > &featuresRaw
 ) {
     ConsoleUtils::loadMessage("Extracting Features.");
-    vector<bool> isCategorical = getCategoricalCols(featuresRaw);
     size_t numRows = featuresRaw.size();
     size_t numCols = featuresRaw[0].size();
-    vector<unordered_map<string, double> > encodings = encodeFeatures(featuresRaw, isCategorical);
 
-    int totalCols = 0;
+    size_t totalCols = 0;
     vector<size_t> offsets = getOffsets(isCategorical, encodings, numCols, totalCols);
-    Matrix features(numRows, totalCols);
+    Tensor features({numRows, totalCols});
     vector<double> &featuresFlat = features.getFlat();
 
     #pragma omp parallel for
@@ -103,8 +103,11 @@ Matrix FeatureEncoder::getFeatures(
         for (size_t j = 0; j < numCols; j++) {
             size_t offset = offsets[j];
             if (isCategorical[j]) {
-                size_t catIdx = encodings[j].at(featuresRaw[i][j]);
-                featuresFlat[i * totalCols + offset + catIdx] = 1;
+                unordered_map<string, double>::const_iterator it = encodings[j].find(featuresRaw[i][j]);
+                if (it != encodings[j].end()) {
+                    size_t catIdx = it->second;
+                    featuresFlat[i * totalCols + offset + catIdx] = 1;
+                }
             } else {
                 featuresFlat[i * totalCols + offset] = stod(featuresRaw[i][j]);
             }
