@@ -8,6 +8,10 @@
 #include <random>
 #include <sstream>
 #include "core/Matrix.h"
+#include "activations/Linear.h"
+#include "activations/ReLU.h"
+#include "activations/Softmax.h"
+#include "utils/ConsoleUtils.h"
 
 const double DenseLayer::HE_INT_GAIN = 2.0;
 
@@ -17,6 +21,8 @@ DenseLayer::DenseLayer(size_t numNeurons, size_t weightsPerNeuron, Activation *a
     initWeights(numNeurons, weightsPerNeuron);
     biases = activation->initBias(numNeurons);
 }
+
+DenseLayer::DenseLayer() : activation(nullptr) {}
 
 vector<uint32_t> DenseLayer::generateThreadSeeds() const {
     size_t numSeeds = omp_get_max_threads();
@@ -47,7 +53,35 @@ void DenseLayer::writeBin(ofstream& modelBin) const {
     modelBin.write((char*) biases.data(), biases.size() * sizeof(double));
 }
 
-void DenseLayer::loadWeightsAndBiases(ifstream &modelBin) {
+void DenseLayer::loadActivation(ifstream &modelBin) {
+    uint32_t activationEncoding;
+    modelBin.read((char*) &activationEncoding, sizeof(uint32_t));
+
+    if (activationEncoding == Activation::Encodings::Linear){
+        activation = new Linear();
+    } else if (activationEncoding == Activation::Encodings::ReLU) {
+        activation = new ReLU();
+    } else if (activationEncoding == Activation::Encodings::Softmax) {
+        activation = new Softmax();
+    } else {
+        ConsoleUtils::fatalError(
+            "Unsupported activation encoding \"" + to_string(activationEncoding) + "\"."
+        );
+    }
+}
+
+void DenseLayer::loadFromBin(ifstream &modelBin) {
+    loadActivation(modelBin);
+
+    uint32_t numNeurons;
+    modelBin.read((char*) &numNeurons, sizeof(uint32_t));
+
+    uint32_t weightsPerNeuron;
+    modelBin.read((char*) &weightsPerNeuron, sizeof(uint32_t));
+
+    weights = Tensor({numNeurons, weightsPerNeuron});
+    biases = vector<double>(numNeurons);
+    
     Matrix weightsMat = weights.M();
     size_t numWeights = weightsMat.getNumRows() * weightsMat.getNumCols();
     modelBin.read((char*) weights.getFlat().data(), numWeights * sizeof(double));

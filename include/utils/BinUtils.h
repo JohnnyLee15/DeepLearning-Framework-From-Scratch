@@ -1,11 +1,7 @@
 #pragma once
 #include <string>
 
-class NeuralNet;
-class Loss;
-class Activation;
-class Layer;
-class Data;
+class Pipeline;
 
 using namespace std;
 
@@ -20,16 +16,13 @@ class BinUtils {
         // Methods
         static bool fileExists(string, bool);
         static char getUserChoice();
-        static void writeToBin(const NeuralNet&, const string&, const Data&);
+        static void writeToBin(const Pipeline&, const string&);
         static string getNewModelName();
         static void printOptions();
-        static Loss* loadLoss(ifstream&);
-        static Layer* loadLayer(ifstream&);
-        static Activation* loadActivation(ifstream&);
         static string addExtension(const string&);
 
     public:
         // Methods
-        static void saveModel(const NeuralNet&, const string&, const Data&);
-        static NeuralNet loadModel(const string&, Data&);
+        static void savePipeline(const Pipeline&, const string&);
+        static Pipeline loadPipeline(const string&);
 };

@@ -6,28 +6,38 @@
 
 const double Greyscale::MAX_GREYSCALE_VALUE = 255.0;
 
-void Greyscale::transform(Tensor &data) {
-    Scalar::transform(data);
+Tensor Greyscale::transform(const Tensor &data) const {
+    checkFitted();
+
+    Tensor transformed(data.getShape());
+    vector<double> &transformedFlat = transformed.getFlat();
 
     size_t size = data.getSize();
-
-    vector<double> &dataFlat = data.getFlat();
+    const vector<double> &dataFlat = data.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        dataFlat[i] /= MAX_GREYSCALE_VALUE;
+      transformedFlat[i] = (dataFlat[i] / MAX_GREYSCALE_VALUE);
     }
+
+    return transformed;
 }
 
-void Greyscale::reverseTransform(Tensor &data) const {
+Tensor Greyscale::reverseTransform(const Tensor &data) const {
+    checkFitted();
+
+    Tensor transformed(data.getShape());
+    vector<double> &transformedFlat = transformed.getFlat();
+
     size_t size = data.getSize();
-    vector<double> &dataFlat = data.getFlat();
+    const vector<double> &dataFlat = data.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        dataFlat[i] *= MAX_GREYSCALE_VALUE;
-        
+        transformedFlat[i] = (dataFlat[i] * MAX_GREYSCALE_VALUE);
     }
+
+    return transformed;
 }
 
 void Greyscale::throwDataFormatError() const {
@@ -41,12 +51,14 @@ void Greyscale::fit(const vector<double> &data) {
     throwDataFormatError();
 }
 
-void Greyscale::transform(vector<double> &data) {
+vector<double> Greyscale::transform(const vector<double> &data) const {
     throwDataFormatError();
+    return {};
 }
 
-void Greyscale::reverseTransform(vector<double> &data) const {
+vector<double> Greyscale::reverseTransform(const vector<double> &data) const {
     throwDataFormatError();
+    return {};
 }
 
 uint32_t Greyscale::getEncoding() const {

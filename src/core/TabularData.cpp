@@ -10,24 +10,32 @@
 #include "core/Matrix.h"
 #include "utils/TrainingUtils.h"
 #include <cstdint>
-#include "core/RegressionTask.h"
-#include "core/ClassificationTask.h"
-
-random_device TabularData::rd;
-mt19937 TabularData::generator(TabularData::rd());
+#include "utils/TargetEncoder.h"
 
 const string TabularData::NO_TARGET_COL = "";
 const size_t TabularData::NO_TARGET_IDX = numeric_limits<size_t>::max();
-const size_t TabularData::MAX_DISPLAY_COLS = 250;
+const size_t TabularData::MAX_DISPLAY_COLS = 25;
+const string TabularData::REGRESSION_TASK = "regression";
+const string TabularData::CLASSIFICATION_TASK = "classification";
 
-TabularData::TabularData() : task(nullptr), isDataLoaded(false), isLoadedFromModel(false) {}
+TabularData::TabularData(const string &taskType) : 
+    isTrainLoaded(false), isTestLoaded(false), isLoadedFromModel(false) {
+    string taskFormatted = CsvUtils::toLowerCase(CsvUtils::trim(taskType));
 
-TabularData::~TabularData() {
-    delete task;
+    if (taskFormatted != REGRESSION_TASK && taskFormatted != CLASSIFICATION_TASK) {
+        ConsoleUtils::fatalError(
+            "Invalid task type: \"" + taskType + "\".\n"
+            "Must be \"" + REGRESSION_TASK + "\" or \"" + CLASSIFICATION_TASK + "\"."
+        );
+    }
+
+    task = taskFormatted;
 }
 
-void TabularData::checkDataLoaded() const {
-    if (!isDataLoaded) {
+TabularData::TabularData() {}
+
+void TabularData::checkTrainLoaded() const {
+    if (!isTrainLoaded) {
         ConsoleUtils::fatalError(
             "Attempted to access data before loading.\n" 
             "Please ensure readTrain() is called first."
@@ -35,151 +43,79 @@ void TabularData::checkDataLoaded() const {
     }
 }
 
-void TabularData::checkTask(const string &context) const {
-    if (!task) {
+void TabularData::checkTestLoaded() const {
+    if (!isTestLoaded) {
         ConsoleUtils::fatalError(
-            "Task must be set before " + context + ".\n"
-            "Call setTask() before this operation."
+            "Attempted to access data before loading.\n" 
+            "Please ensure readTest() is called first."
         );
     }
-}
-
-void TabularData::setTask(Task *taskType) {
-    if (task) {
-        delete task;
-    }
-    task = taskType;
 }
 
 void TabularData::readTrain(string filename, size_t targetIdx, bool hasHeader) {
     cout << endl << "📥 Loading training data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, true, targetIdx, NO_TARGET_COL, hasHeader);
+    isTrainLoaded = true;
 }
 
 void TabularData::readTrain(string filename, const string &colname) {
     cout << endl << "📥 Loading training data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, true, NO_TARGET_IDX, colname, true);
+    isTrainLoaded = true;
 }
 
 void TabularData::readTest(string filename, size_t targetIdx, bool hasHeader) {
     cout << endl << "📥 Loading testing data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, false, targetIdx, NO_TARGET_COL, hasHeader);
+    isTestLoaded = true;
 }
 
 void TabularData::readTest(string filename, const string &colname) {
     cout << endl << "📥 Loading testing data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, false, NO_TARGET_IDX, colname, true);
+    isTestLoaded = true;
 }
 
 const Tensor& TabularData::getTrainFeatures() const {
-    checkDataLoaded();
+    checkTrainLoaded();
     return trainFeatures;
 }
 
 const Tensor& TabularData::getTestFeatures() const {
-    checkDataLoaded();
+    checkTestLoaded();
     return testFeatures;
 }
 
 const vector<double>& TabularData::getTrainTargets() const {
-    checkDataLoaded();
+    checkTrainLoaded();
     return trainTargets;
 }
 
 const vector<double>& TabularData::getTestTargets() const {
-    checkDataLoaded();
+    checkTestLoaded();
     return testTargets;
 }
 
 size_t TabularData::getNumTrainSamples() const {
-    checkDataLoaded();
+    checkTrainLoaded();
     return trainFeatures.M().getNumRows();
 }
 
-const Task* TabularData::getTask() const {
-    checkDataLoaded();
-    return task;
-}
-
 void TabularData::headTrain(size_t numRows) const {
+    checkTrainLoaded();
     head(numRows, trainFeatures);
 }
 
 void TabularData::headTest(size_t numRows) const {
+    checkTestLoaded();
     head(numRows, testFeatures);
-}
-
-void TabularData::setScalars(Scalar *featureScalar, Scalar *targetScalar) {
-    checkTask("setting scalars");
-    if (isLoadedFromModel) {
-        ConsoleUtils::fatalError(
-            "setScalars() is not allowed after loading a saved model. "
-            "Use transformTrain() and transformTest() instead."
-        );
-    }
-
-    task->setFeatureScalar(featureScalar);
-    if (targetScalar) {
-        task->setTargetScalar(targetScalar);
-    }
-}
-
-void TabularData::fitScalars() {
-    checkDataLoaded();
-    if (isLoadedFromModel) {
-        ConsoleUtils::fatalError(
-            "fitScalars() is not allowed after loading a saved model. "
-            "Use transformTrain() and transformTest() instead."
-        );
-    }
-    task->fitScalars(trainFeatures, trainTargets);
-}
-
-void TabularData::transformTrain() {
-    checkTask("setting scalars");
-    task->transformScalars(trainFeatures, trainTargets);
-}
-
-void TabularData::transformTest() {
-    checkTask("setting scalars");
-    task->transformScalars(testFeatures, testTargets);
-}
-
-void TabularData::reverseTransformTrain() {
-    checkTask("setting scalars");
-    task->reverseTransformScalars(trainFeatures, trainTargets);
-}
-
-void TabularData::reverseTransformTest() {
-    checkTask("setting scalars");
-    task->reverseTransformScalars(testFeatures, testTargets);
-}
-
-void TabularData::resetToRaw() {
-    if (!isDataLoaded) {
-        cerr << "Warning: Attempted to reset data before loading. No action taken." << endl;
-        return;
-    }
-
-    trainFeatures = rawTrainFeatures;
-    trainTargets = rawTrainTargets;
-    testFeatures = rawTestFeatures;
-    testTargets = rawTestTargets;
-
-    if (task) {
-        task->resetToRaw();
-    }
 }
 
 void TabularData::setData(const Tensor &features, vector<double> &target, bool isTrainData) {
     if (isTrainData) {
-        rawTrainFeatures = features;
-        rawTrainTargets = target;
         trainFeatures = features;
         trainTargets = target;
     } else {
-        rawTestFeatures = features;
-        rawTestTargets = target;
         testFeatures = features;
         testTargets = target;
     }
@@ -207,7 +143,6 @@ void TabularData::head(
     size_t numRows,
     const Tensor &mat
 ) const {
-    checkDataLoaded();
     Matrix newMat = mat.M();
     const vector<double> &matFlat = mat.getFlat();
     size_t matRows = newMat.getNumRows();
@@ -268,7 +203,6 @@ void TabularData::readCsv(
     const string& colname,
     bool hasHeader
 ) {
-    checkTask("reading CSV data");
     vector<string> lines = validateAndLoadCsv(filename, hasHeader);
 
     if (colname != NO_TARGET_COL) {
@@ -280,12 +214,25 @@ void TabularData::readCsv(
     parseRawData(featuresRaw, targetsRaw, lines, targetIdx);
 
     Tensor features = readFeatures(featuresRaw);
-    vector<double> target = task->getTarget(targetsRaw);
+    vector<double> target = readTargets(targetsRaw);
 
     setData(features, target, isTrainData);
-    isDataLoaded = true;
-
     ConsoleUtils::printSepLine();
+}
+
+vector<double> TabularData::readTargets(const vector<string> &targetsRaw) {
+    ConsoleUtils::loadMessage("Extracting Targets.");
+    if (task == REGRESSION_TASK) {
+        return TargetEncoder::getRegressionTarget(targetsRaw);
+    } 
+
+    if (labelMap.empty()) {
+        labelMap = TargetEncoder::createLabelMap(targetsRaw);
+    }
+
+    vector<double> targets = TargetEncoder::getClassificationTarget(targetsRaw, labelMap);
+    ConsoleUtils::completeMessage();
+    return targets;
 }
 
 Tensor TabularData::readFeatures(const vector<vector<string> > &featuresRaw) {
@@ -303,20 +250,13 @@ Tensor TabularData::readFeatures(const vector<vector<string> > &featuresRaw) {
     return features;
 }
 
-vector<size_t> TabularData::generateShuffledIndices() const {
-    checkDataLoaded();
-    size_t size = trainFeatures.M().getNumRows();
-    vector<size_t> indices(size, 0);
-    
-    for (size_t i = 0; i < size; i++) {
-        indices[i] = i;
-    }
-
-    shuffle(indices.begin(), indices.end(), generator);
-    return indices;
-}
-
 void TabularData::writeBin(ofstream &modelBin) const {
+    Data::writeBin(modelBin);
+
+    uint32_t taskLen = task.size();
+    modelBin.write((char*) &taskLen, sizeof(uint32_t));
+    modelBin.write(task.c_str(), taskLen);
+
     uint32_t headerSize =  header.size();
     modelBin.write((char*) &headerSize, sizeof(uint32_t));
     for (uint32_t i = 0; i < headerSize; i++) {
@@ -348,11 +288,27 @@ void TabularData::writeBin(ofstream &modelBin) const {
         }
     }
 
-    task->writeBin(modelBin);
+    if (task == CLASSIFICATION_TASK) {
+        uint32_t mapSize = labelMap.size();
+        modelBin.write((char*) &mapSize, sizeof(uint32_t));
+        for (const pair<const string, int > &pair : labelMap) {
+            uint32_t keyLen = pair.first.size();
+            modelBin.write((char*) &keyLen, sizeof(uint32_t));
+            modelBin.write(pair.first.c_str(), keyLen);
+
+            uint32_t mapVal = pair.second;
+            modelBin.write((char*) &mapVal, sizeof(uint32_t));
+        }
+    }
 }
 
 void TabularData::loadFromBin(ifstream &modelBin) {
     isLoadedFromModel = true;
+    
+    uint32_t taskLen;
+    modelBin.read((char*) &taskLen, sizeof(uint32_t));
+    task = string(taskLen, '\0');
+    modelBin.read(task.data(), taskLen);
 
     uint32_t headerSize;
     modelBin.read((char*) &headerSize, sizeof(uint32_t));
@@ -395,17 +351,25 @@ void TabularData::loadFromBin(ifstream &modelBin) {
         }
     }
 
-    uint32_t taskEncoding;
-    modelBin.read((char*) &taskEncoding, sizeof(uint32_t));
-    if (taskEncoding == Task::Encodings::Regression) {
-        task = new RegressionTask();
-    } else if (taskEncoding == Task::Encodings::Classification) {
-        task = new ClassificationTask();
-    } else {
-        ConsoleUtils::fatalError(
-            "Unsupported task encoding \"" + to_string(taskEncoding) + "\"."
-        );
-    }
+    if (task == CLASSIFICATION_TASK) {
+        uint32_t mapSize;
+        modelBin.read((char*) &mapSize, sizeof(uint32_t));
 
-    task->loadFromBin(modelBin);
+        for (uint32_t i = 0; i < mapSize; i++) {
+            uint32_t keyLen;
+            modelBin.read((char*) &keyLen, sizeof(uint32_t));
+
+            string key(keyLen, '\0');
+            modelBin.read(key.data(), keyLen);
+
+            uint32_t value;
+            modelBin.read((char*) &value, sizeof(uint32_t));
+
+            labelMap[key] = value;
+        }
+    }
+}
+
+uint32_t TabularData::getEncoding() const {
+    return Data::Encodings::Tabular;
 }

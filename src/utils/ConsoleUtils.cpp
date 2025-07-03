@@ -1,6 +1,7 @@
 #include "utils/ConsoleUtils.h"
 #include <iostream>
 #include <iomanip>
+#include "core/ProgressMetric.h"
 
 const int ConsoleUtils::PROGRESS_BAR_LENGTH = 50;
 const string ConsoleUtils::GREEN = "\033[32m";
@@ -21,12 +22,12 @@ string ConsoleUtils::currentLoadMessage = "";
 atomic<bool> ConsoleUtils::spinnerRunning = false;
 thread ConsoleUtils::spinnerThread;
 
-void ConsoleUtils::printProgressBar(EpochStats &stats){
-    double progress = (double) stats.samplesProcessed / stats.numSamples;
+void ConsoleUtils::printProgressBar(ProgressMetric &metric){
+    double progress = (double) metric.getSamplesProcessed() / metric.getNumSamples();
     int progressChar = (int) (progress * PROGRESS_BAR_LENGTH);
-    int sampleWidth = to_string(stats.numSamples).length();
+    int sampleWidth = to_string(metric.getNumSamples()).length();
 
-    cout << "\r\033[K" << setw(sampleWidth) << stats.samplesProcessed << "/" << stats.numSamples << " |";
+    cout << "\r\033[K" << setw(sampleWidth) << metric.getSamplesProcessed() << "/" << metric.getNumSamples() << " |";
     for (int i = 0; i < PROGRESS_BAR_LENGTH; i++) {
         if (i <= progressChar) {
             cout << GREEN << FILLED << RESET_COLOUR;
@@ -35,11 +36,11 @@ void ConsoleUtils::printProgressBar(EpochStats &stats){
         }
     }
 
-    cout << fixed << setprecision(2) << "| " << stats.progressMetricName << ": " << stats.progressMetric 
-        << "%| Avg Loss: " << stats.avgLoss << " | Elapsed: " << stats.timeElapsed  <<"s" 
+    cout << fixed << setprecision(2) << "| " << metric.getName() << ": " << metric.calculate() 
+        << "%| Avg Loss: " << metric.getAvgLoss() << " | Elapsed: " << metric.getTimeElapsed() <<"s" 
         << defaultfloat << setprecision(6);
 
-    if (stats.samplesProcessed  == stats.numSamples) {
+    if (metric.getSamplesProcessed()  == metric.getNumSamples()) {
         cout << endl;
     } else {
         cout << "\r";

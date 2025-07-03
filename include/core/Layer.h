@@ -15,7 +15,7 @@ class Layer {
         virtual void backprop(const Tensor&, double, const Tensor&, bool) = 0;
         virtual ~Layer() = default;
         virtual void writeBin(ofstream&) const;
-        virtual void loadWeightsAndBiases(ifstream&) = 0;
+        virtual void loadFromBin(ifstream&) = 0;
         virtual uint32_t getEncoding() const = 0;
 
         // Enums

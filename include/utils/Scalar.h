@@ -12,20 +12,17 @@ class Scalar {
         // Instance Variables
         bool fitted;
 
-        // Methods
-        void checkFitted();
-
     public:
         // Methods
         virtual void fit(const Tensor&);
-        virtual void transform(Tensor&) = 0;
-        virtual void reverseTransform(Tensor&) const = 0;
+        virtual Tensor transform(const Tensor&) const = 0;
+        virtual Tensor reverseTransform(const Tensor&) const = 0;
 
         virtual void fit(const vector<double>&);
-        virtual void transform(vector<double>&) = 0;
-        virtual void reverseTransform(vector<double>&) const = 0;
+        virtual vector<double> transform(const vector<double>&) const = 0;
+        virtual vector<double> reverseTransform(const vector<double>&) const = 0;
 
-        virtual void resetToRaw();
+        virtual void reset();
 
         virtual ~Scalar() = default;
 
@@ -33,6 +30,8 @@ class Scalar {
         virtual void loadFromBin(ifstream&);
         
         virtual uint32_t getEncoding() const = 0;
+        
+        void checkFitted() const;
 
         // Enums
         enum Encodings : uint32_t {

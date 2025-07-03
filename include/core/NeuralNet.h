@@ -1,13 +1,14 @@
 #pragma once
 #include <vector>
 #include "core/Layer.h"
-#include "utils/EpochStats.h"
+#include <fstream>
+#include <random>
 
 class Loss;
 class Activation;
 class Batch;
 class Tensor;
-class Data;
+class ProgressMetric;
 
 using namespace std;
 
@@ -18,28 +19,33 @@ class NeuralNet {
         vector<double> avgLosses;
         Loss *loss;
 
+        // Static variables;
+        static random_device rd;
+        static mt19937 generator;
+
         // Methods
         void backprop(Batch&, double);
         void forwardPass(Batch&);
         void forwardPassInference(const Tensor&);
-        void updateEpochStats(EpochStats&, const Data&, const Batch&, const vector<double>&, size_t) const;
-        double runEpoch(const Data&, double, vector<double>&, size_t);
-        double processBatch(const Data&, Batch&, vector<double>&);
-        Batch makeBatch(size_t, size_t, const Data&, const vector<size_t>&) const;
-        EpochStats initEpochStats(const Data&) const;
+        double runEpoch(const Tensor&, const vector<double>&, double, size_t, ProgressMetric&);
+        Batch makeBatch(size_t, size_t, const Tensor&, const vector<double>&, const vector<size_t>&) const;
+        void loadLoss(ifstream&);
+        void loadLayer(ifstream&);
+        vector<size_t> generateShuffledIndices(const Tensor&) const;
 
     public:
-        // Constructor
+        // Constructors
         NeuralNet(vector<Layer*>, Loss*);
+        NeuralNet();
 
         //Methods
-        void train(const Data&, double, double, size_t, size_t);
+        void fit(const Tensor&, const vector<double>&, double, double, size_t, size_t, ProgressMetric&);
         const vector<Layer*>& getLayers() const;
         const Loss* getLoss() const;
-        Tensor predict(const Data&);
-        void saveToBin(const string&, const Data&) const;
+        Tensor predict(const Tensor&);
+        void writeBin(ofstream&) const;
+        void loadFromBin(ifstream&);
         ~NeuralNet();
 
-        // Static Methods
-        static NeuralNet loadFromBin(const string&, Data&);
+        
 };

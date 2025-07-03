@@ -1,5 +1,4 @@
 #include "core/NeuralNet.h"
-#include "core/Data.h"
 #include <cmath>
 #include <iostream>
 #include <algorithm>
@@ -9,12 +8,18 @@
 #include "core/Batch.h"
 #include "activations/Activation.h"
 #include "utils/BinUtils.h"
-#include "core/Task.h"
+#include "core/ProgressMetric.h"
+#include "losses/MSE.h"
+#include "losses/SoftmaxCrossEntropy.h"
+#include "core/DenseLayer.h"
 
-using namespace std;
+random_device NeuralNet::rd;
+mt19937 NeuralNet::generator(NeuralNet::rd());
 
 NeuralNet::NeuralNet(vector<Layer*> layers, Loss *loss) : 
     layers(layers), loss(loss) {}
+
+NeuralNet::NeuralNet() : loss(nullptr) {}
 
 const vector<Layer*>& NeuralNet::getLayers() const {
     return layers;
@@ -24,20 +29,21 @@ const Loss* NeuralNet::getLoss() const {
     return loss;
 }
 
-void NeuralNet::train(
-    const Data &data,
+void NeuralNet::fit(
+    const Tensor &features,
+    const vector<double> &targets,
     double learningRate,
     double learningDecay,
     size_t numEpochs,
-    size_t batchSize
+    size_t batchSize,
+    ProgressMetric &metric
 ) {
     double initialLR = learningRate;
     avgLosses.resize(numEpochs);
     for (size_t k = 0; k < numEpochs; k++) {
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
 
-        vector<double> predictions(data.getNumTrainSamples(), -1);
-        double avgLoss = runEpoch(data, learningRate, predictions, batchSize);
+        double avgLoss = runEpoch(features, targets, learningRate, batchSize, metric);
 
         avgLosses[k] = avgLoss;
         learningRate = initialLR/(1 + learningDecay*k);
@@ -46,83 +52,44 @@ void NeuralNet::train(
 }
 
 double NeuralNet::runEpoch(
-    const Data &data,
+    const Tensor &features,
+    const vector<double> &targets,
     double learningRate,
-    vector<double> &predictions,
-    size_t batchSize
+    size_t batchSize,
+    ProgressMetric &metric
 ) {
-    EpochStats stats = initEpochStats(data);
-    size_t numBatches = (stats.numSamples + batchSize - 1)/batchSize;
-    vector<size_t> shuffledIndices = data.generateShuffledIndices();
+    metric.init();
+    size_t numBatches = (targets.size() + batchSize - 1)/batchSize;
+    vector<size_t> shuffledIndices = generateShuffledIndices(features);
 
     for (size_t b = 0; b < numBatches; b++) {
         size_t start = b * batchSize;
-        size_t end = min((b + 1) * batchSize, stats.numSamples);
-        size_t currBatchSize = end - start;
-        Batch batch = makeBatch(start, end, data, shuffledIndices);
+        size_t end = min((b + 1) * batchSize, targets.size());
+        Batch batch = makeBatch(start, end, features, targets, shuffledIndices);
 
-        stats.totalLoss += processBatch(data, batch, predictions);
+        forwardPass(batch);
+        double batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getActivations());
         backprop(batch, learningRate);
-        updateEpochStats(stats, data, batch, predictions, currBatchSize);
+        metric.update(batch, loss, layers.back()->getActivations(), batchTotalLoss);
+        ConsoleUtils::printProgressBar(metric);
     }
 
-    return stats.totalLoss/stats.numSamples;
-}
-
-void NeuralNet::updateEpochStats(
-    EpochStats& stats, 
-    const Data &data,
-    const Batch &batch,
-    const vector<double> &predictions,
-    size_t batchSize
-) const {
-    stats.samplesProcessed += (batchSize);
-    stats.avgLoss = loss->formatLoss(stats.totalLoss/stats.samplesProcessed);
-    stats.timeElapsed = chrono::duration<double>(chrono::steady_clock::now() - stats.startTime).count();
-    stats.progressMetric = data.getTask()->calculateProgressMetric(
-        batch, layers.back()->getActivations(), predictions, stats
-    );
-    ConsoleUtils::printProgressBar(stats);
-}
-
-EpochStats NeuralNet::initEpochStats(const Data &data) const{
-    return EpochStats {
-        .totalLoss = 0.0,
-        .timeElapsed = 0.0,
-        .avgLoss = 0.0,
-        .mapeSum = 0.0,
-        .progressMetric = 0.0,
-        .samplesProcessed = 0,
-        .correctPredictions = 0,
-        .numSamples = data.getNumTrainSamples(),
-        .nonZeroTargets = 0,
-        .startTime = chrono::steady_clock::now(),
-        .progressMetricName = data.getTask()->getProgressMetricName()
-    };
+    return metric.getTotalLoss()/targets.size();
 }
 
 Batch NeuralNet::makeBatch(
     size_t start,
     size_t end,
-    const Data &data,
+    const Tensor &features,
+    const vector<double> &targets,
     const vector<size_t> &shuffledIndices
 ) const {
     size_t batchSize = end - start;
     Batch batch = Batch(layers.size() + 1, batchSize);
     batch.setBatchIndices(start, end, shuffledIndices);
-    batch.setBatch(data.getTrainFeatures(), data.getTrainTargets());
+    batch.setBatch(features, targets);
 
     return batch;
-}
-
-double NeuralNet::processBatch(
-    const Data &data,
-    Batch &batch,
-    vector<double> &predictions
-) {
-    forwardPass(batch);
-    const Tensor &output = layers.back()->getActivations();
-    return  data.getTask()->processBatch(batch, predictions, output, loss);
 }
 
 void NeuralNet::forwardPass(Batch &batch) {
@@ -147,9 +114,9 @@ void NeuralNet::backprop(Batch &batch, double learningRate) {
     }
 }
 
-Tensor NeuralNet::predict(const Data &data) {
-    forwardPassInference(data.getTestFeatures());
-    return data.getTask()->predict(layers.back()->getActivations());
+Tensor NeuralNet::predict(const Tensor &features) {
+    forwardPassInference(features);
+    return layers.back()->getActivations();
 }
 
 void NeuralNet::forwardPassInference(const Tensor& data) {
@@ -162,6 +129,22 @@ void NeuralNet::forwardPassInference(const Tensor& data) {
     }
 }
 
+vector<size_t> NeuralNet::generateShuffledIndices(const Tensor &features) const {
+    if (features.getShape().size() == 0) {
+        return vector<size_t>();
+    }
+
+    size_t size = features.getShape()[0];
+    vector<size_t> indices(size, 0);
+    
+    for (size_t i = 0; i < size; i++) {
+        indices[i] = i;
+    }
+
+    shuffle(indices.begin(), indices.end(), generator);
+    return indices;
+}
+
 NeuralNet::~NeuralNet() {
     delete loss;
     size_t numLayers = layers.size();
@@ -170,10 +153,58 @@ NeuralNet::~NeuralNet() {
     }
 }
 
-void NeuralNet::saveToBin(const string &filename, const Data &data) const {
-    BinUtils::saveModel(*this, filename, data);
+void NeuralNet::writeBin(ofstream &modelBin) const {
+    uint32_t lossEncoding = loss->getEncoding();
+    modelBin.write((char*) &lossEncoding, sizeof(uint32_t));
+
+    uint32_t numActiveLayers = layers.size();
+    modelBin.write((char*) &numActiveLayers, sizeof(uint32_t));
+
+    for (uint32_t i = 0; i < numActiveLayers; i++) {
+        layers[i]->writeBin(modelBin);
+    }
 }
 
-NeuralNet NeuralNet::loadFromBin(const string &filename, Data &data) {
-    return BinUtils::loadModel(filename, data);
+void NeuralNet::loadLoss(ifstream &modelBin) {
+    uint32_t lossEncoding;
+    modelBin.read((char*) &lossEncoding, sizeof(uint32_t));
+
+    if (lossEncoding == Loss::Encodings::MSE) {
+        loss = new MSE();
+    } else if (lossEncoding == Loss::Encodings::SoftmaxCrossEntropy) {
+        loss = new SoftmaxCrossEntropy();
+    } else {
+        ConsoleUtils::fatalError(
+            "Unsupported loss encoding \"" + to_string(lossEncoding) + "\" in model file."
+        );
+    } 
+}
+
+void NeuralNet::loadLayer(ifstream &modelBin) {
+    uint32_t layerEncoding;
+    modelBin.read((char*) &layerEncoding, sizeof(uint32_t));
+
+    Layer *layer = nullptr;
+    if (layerEncoding == Layer::Encodings::DenseLayer) {
+        layer = new DenseLayer();
+    } else{
+        ConsoleUtils::fatalError(
+            "Unsupported layer encoding \"" + to_string(layerEncoding) + "\"."
+        );
+    }
+
+    if (layer) {
+        layer->loadFromBin(modelBin);
+        layers.push_back(layer);
+    }
+}
+
+void NeuralNet::loadFromBin(ifstream &modelBin) {
+    loadLoss(modelBin);
+    uint32_t numActiveLayers;
+    modelBin.read((char*) &numActiveLayers, sizeof(uint32_t));
+
+    for (uint32_t i = 0; i < numActiveLayers; i++) {
+        loadLayer(modelBin);
+    }
 }

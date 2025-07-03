@@ -14,9 +14,7 @@ class Batch {
         size_t batchSize;
         vector<size_t> indices;
         vector<double> targets;
-        vector<double> rescaledTargets;
         Tensor data;
-        Tensor rescaledOutput;
 
     public:
         // Constructor
@@ -28,9 +26,7 @@ class Batch {
         const Tensor& getData() const;
         const vector<double>& getTargets() const;
         void writeBatchPredictions(vector<double>&, const Tensor&) const;
-        size_t getCorrectPredictions(const vector<double>&) const; 
-        void setRescaledOutput(const Tensor&);
-        void setRescaledTargets(const vector<double>&);
-        const Tensor& getRescaledOutput() const;
-        const vector<double>& getRescaledTargets() const;
+        size_t getCorrectPredictions(const vector<double>&) const;
+        size_t getSize() const;
+        const vector<size_t>& getIndices() const;
 };

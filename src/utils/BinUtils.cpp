@@ -2,32 +2,18 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include "core/Layer.h"
-#include "core/DenseLayer.h"
-#include "core/NeuralNet.h"
-#include "losses/Loss.h"
 #include "utils/CsvUtils.h"
 #include "utils/ConsoleUtils.h"
 #include <cerrno>
 #include <cstring>
-#include "losses/MSE.h"
-#include "losses/SoftmaxCrossEntropy.h"
-#include "activations/Activation.h"
-#include "activations/Linear.h"
-#include "activations/ReLU.h"
-#include "activations/Softmax.h"
-#include "core/Data.h"
+#include "core/Pipeline.h"
 
 const char BinUtils::CANCEL = 'q';
 const char BinUtils::OVERRIDE = 'o';
 const char BinUtils::RENAME = 'r';
 const string BinUtils::MODEL_EXTENSION = ".nn";
 
-void BinUtils::saveModel(
-    const NeuralNet &nn, 
-    const string &filename, 
-    const Data &data
-) {
+void BinUtils::savePipeline(const Pipeline &pipe, const string &filename) {
     string fileToWrite = addExtension(filename);
     bool done = !fileExists(fileToWrite, false);
     bool shouldWrite = done;
@@ -50,7 +36,7 @@ void BinUtils::saveModel(
     }
 
     if (shouldWrite) {
-        writeToBin(nn, fileToWrite, data);
+        writeToBin(pipe, fileToWrite);
         ConsoleUtils::printSuccess("Model saved successfully as \"" + fileToWrite + "\".");
     }
 
@@ -100,34 +86,17 @@ char BinUtils::getUserChoice() {
     return choice;
 }
 
-void BinUtils::writeToBin(
-    const NeuralNet &nn, 
-    const string &filename,
-    const Data &data
-) {
+void BinUtils::writeToBin(const Pipeline &pipe, const string &filename) {
     ofstream modelBin(filename, ios::out | ios::binary);
     if (!modelBin) {
         ConsoleUtils::fatalError(
             "Could not open \"" + filename + "\": " + strerror(errno) + "."
         );
-    } 
-
-    const Loss *loss = nn.getLoss();
-    const vector<Layer*> &layers = nn.getLayers();
-
-    uint32_t lossEncoding = loss->getEncoding();
-    modelBin.write((char*) &lossEncoding, sizeof(uint32_t));
-
-    uint32_t numActiveLayers = layers.size();
-    modelBin.write((char*) &numActiveLayers, sizeof(uint32_t));
-
-    for (uint32_t i = 0; i < numActiveLayers; i++) {
-        layers[i]->writeBin(modelBin);
     }
 
-    data.writeBin(modelBin);
-    modelBin.close();
+    pipe.writeBin(modelBin);
 
+    modelBin.close();
     if (!modelBin) {
         ConsoleUtils::fatalError(
             "Failed to write model to \"" + filename + "\". The file may be corrupted."
@@ -153,70 +122,8 @@ string BinUtils::getNewModelName() {
     return newFilename;
 }
 
-Loss* BinUtils::loadLoss(ifstream &modelBin) {
-    uint32_t lossEncoding;
-    modelBin.read((char*) &lossEncoding, sizeof(uint32_t));
 
-    Loss *loss = nullptr;
-    if (lossEncoding == Loss::Encodings::MSE) {
-        loss = new MSE();
-    } else if (lossEncoding == Loss::Encodings::SoftmaxCrossEntropy) {
-        loss = new SoftmaxCrossEntropy();
-    } else {
-        ConsoleUtils::fatalError(
-            "Unsupported loss encoding \"" + to_string(lossEncoding) + "\" in model file."
-        );
-    } 
-
-    return loss;
-}
-
-Activation* BinUtils::loadActivation(ifstream &modelBin) {
-    uint32_t activationEncoding;
-    modelBin.read((char*) &activationEncoding, sizeof(uint32_t));
-
-    Activation *activation = nullptr;
-    if (activationEncoding == Activation::Encodings::Linear){
-        activation = new Linear();
-    } else if (activationEncoding == Activation::Encodings::ReLU) {
-        activation = new ReLU();
-    } else if (activationEncoding == Activation::Encodings::Softmax) {
-        activation = new Softmax();
-    } else {
-        ConsoleUtils::fatalError(
-            "Unsupported activation encoding \"" + to_string(activationEncoding) + "\"."
-        );
-    }
-
-    return activation;
-}
-
-Layer* BinUtils::loadLayer(ifstream &modelBin) {
-    uint32_t layerEncoding;
-    modelBin.read((char*) &layerEncoding, sizeof(uint32_t));
-
-    Activation *activation = loadActivation(modelBin);
-
-    Layer *layer = nullptr;
-    if (layerEncoding == Layer::Encodings::DenseLayer) {
-        uint32_t numNeurons;
-        modelBin.read((char*) &numNeurons, sizeof(uint32_t));
-
-        uint32_t numWeights;
-        modelBin.read((char*) &numWeights, sizeof(uint32_t));
-
-        layer = new DenseLayer(numNeurons, numWeights, activation);
-    } else{
-        ConsoleUtils::fatalError(
-            "Unsupported layer encoding \"" + to_string(layerEncoding) + "\"."
-        );
-    }
-
-    layer->loadWeightsAndBiases(modelBin);
-    return layer;
-}
-
-NeuralNet BinUtils::loadModel(const string &filename, Data &data) {
+Pipeline BinUtils::loadPipeline(const string &filename) {
     string fullFilename = addExtension(filename);
 
     ifstream modelBin(fullFilename, ios::in | ios::binary);
@@ -227,16 +134,8 @@ NeuralNet BinUtils::loadModel(const string &filename, Data &data) {
         );
     }
 
-    Loss *loss = loadLoss(modelBin);
-    uint32_t numActiveLayers;
-    modelBin.read((char*) &numActiveLayers, sizeof(uint32_t));
-
-    vector<Layer*> layers(numActiveLayers);
-    for (uint32_t i = 0; i < numActiveLayers; i++) {
-        layers[i] = loadLayer(modelBin);
-    }
-
-    data.loadFromBin(modelBin);
+    Pipeline pipe;
+    pipe.loadComponents(modelBin);
     modelBin.close();
 
     if (!modelBin) {
@@ -248,7 +147,7 @@ NeuralNet BinUtils::loadModel(const string &filename, Data &data) {
 
     ConsoleUtils::printSuccess("Model successfully loaded from \"" + fullFilename + "\".");
     ConsoleUtils::printSepLine();
-    return NeuralNet(layers, loss);
+    return pipe;
 }
 
 string BinUtils::addExtension(const string &modelName) {

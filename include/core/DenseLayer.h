@@ -26,10 +26,12 @@ class DenseLayer : public Layer {
         // Methods
         void initWeights(size_t, size_t);
         vector<uint32_t> generateThreadSeeds() const;
+        void loadActivation(ifstream&);
 
     public:
-        // Constructor
+        // Constructors
         DenseLayer(size_t, size_t, Activation*);
+        DenseLayer();
 
         // Methods
         void calActivations(const Tensor&) override;
@@ -38,6 +40,6 @@ class DenseLayer : public Layer {
         void backprop(const Tensor&, double, const Tensor&, bool) override;
         ~DenseLayer();
         void writeBin(ofstream&) const override;
-        void loadWeightsAndBiases(ifstream&) override;
+        void loadFromBin(ifstream&) override;
         uint32_t getEncoding() const override;
 };

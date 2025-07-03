@@ -49,35 +49,6 @@ void Batch::setBatch(
     }
 }
 
-void Batch::writeBatchPredictions(
-    vector<double> &predictions,
-    const Tensor &probs
-) const {
-    Matrix probsMat = probs.M();
-    size_t numCols = probsMat.getNumCols();
-    const vector<double> &probsFlat = probs.getFlat();
-    
-    #pragma omp parallel for
-    for (size_t i = 0; i < batchSize; i++) {
-        predictions[indices[i]] = TrainingUtils::getPrediction(probsFlat, i, numCols);
-    }
-}
-
-size_t Batch::getCorrectPredictions(
-    const vector<double> &predictions
-) const {
-    size_t correct = 0;
-
-    #pragma omp parallel for reduction(+:correct)
-    for (size_t i = 0; i < batchSize; i++) {
-        if (predictions[indices[i]] == targets[i]){ 
-            correct++;
-        }
-    }
-
-    return correct;
-}
-
 const Tensor& Batch::getData() const {
     return data;
 }
@@ -86,18 +57,10 @@ const vector<double>& Batch::getTargets() const {
     return targets;
 }
 
-void Batch::setRescaledOutput(const Tensor &outputs) {
-    rescaledOutput = outputs;
+size_t Batch::getSize() const {
+    return data.getShape()[0];
 }
 
-void Batch::setRescaledTargets(const vector<double> &targets) {
-    rescaledTargets = targets;
-}
-
-const Tensor& Batch::getRescaledOutput() const {
-    return rescaledOutput;
-}
-
-const vector<double>& Batch::getRescaledTargets() const {
-    return rescaledTargets;
+const vector<size_t>& Batch::getIndices() const {
+    return indices;
 }

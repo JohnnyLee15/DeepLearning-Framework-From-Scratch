@@ -10,21 +10,13 @@ void Scalar::fit(const vector<double> &data) {
     fitted = true;
 }
 
-void Scalar::checkFitted() {
+void Scalar::checkFitted() const {
     if (!fitted) {
         ConsoleUtils::fatalError("Cannot transform data before calling fit().");
     }
 }
 
-void Scalar::transform(Tensor &data) {
-    checkFitted();
-}
-
-void Scalar::transform(vector<double> &data) {
-    checkFitted();
-}
-
-void Scalar::resetToRaw() {
+void Scalar::reset() {
     fitted = false;
 }
 

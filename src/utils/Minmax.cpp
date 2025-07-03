@@ -14,6 +14,16 @@ void Minmax::checkRank(const Tensor &data) const {
     }
 }
 
+void Minmax::checkDims(size_t toFitDim) const {
+    if (minVals.size() != toFitDim) {
+        ConsoleUtils::fatalError(
+            "Minmax scaling dimension mismatch:\n"
+            "Expected numCols = " + std::to_string(minVals.size()) +
+            ", but got " + std::to_string(toFitDim) + "."
+        );
+    }
+}
+
 void Minmax::fit(const Tensor &data) {
     checkRank(data);
     Scalar::fit(data);
@@ -22,6 +32,7 @@ void Minmax::fit(const Tensor &data) {
     size_t numCols = dataMat.getNumCols();
     size_t numRows = dataMat.getNumRows();
     const vector<double> &dataFlat = data.getFlat();
+
     minVals = vector<double>(numCols, VectorUtils::INF);
     maxVals = vector<double>(numCols, -VectorUtils::INF);
 
@@ -67,14 +78,18 @@ void Minmax::fit(const vector<double> &data) {
     maxVals = vector<double>(1, maxVal);
 }
 
-void Minmax::transform(Tensor &data) {
+Tensor Minmax::transform(const Tensor &data) const {
+    checkFitted();
     checkRank(data);
-    Scalar::transform(data);
+    checkDims(data.getShape()[1]);
+
+    Tensor transformed(data.getShape());
+    vector<double> &transformedFlat = transformed.getFlat();
 
     Matrix dataMat = data.M();
     size_t numCols = dataMat.getNumCols();
     size_t numRows = dataMat.getNumRows();
-    vector<double> &dataFlat = data.getFlat();
+    const vector<double> &dataFlat = data.getFlat();
 
     #pragma omp parallel for
     for (size_t j = 0; j < numCols; j++) {
@@ -84,15 +99,19 @@ void Minmax::transform(Tensor &data) {
         }
 
         for (size_t i = 0; i < numRows; i++) {
-            dataFlat[i * numCols + j] = (dataFlat[i * numCols + j] - minVals[j])/scaleFactor;
+            transformedFlat[i * numCols + j] = (dataFlat[i * numCols + j] - minVals[j])/scaleFactor;
         }
     }
+
+    return transformed;
 }
 
-void Minmax::transform(vector<double> &data) {
-    Scalar::transform(data);
+vector<double> Minmax::transform(const vector<double> &data) const {
+    checkFitted();
+    checkDims(1);
 
     size_t size = data.size();
+    vector<double> transformed(size);
 
     double scaleFactor = maxVals[0] - minVals[0];
     if (scaleFactor == 0.0) {
@@ -100,17 +119,24 @@ void Minmax::transform(vector<double> &data) {
     }
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        data[i] = (data[i] - minVals[0])/scaleFactor;
+        transformed[i] = (data[i] - minVals[0])/scaleFactor;
     }
+
+    return transformed;
 }
 
-void Minmax::reverseTransform(Tensor &data) const {
+Tensor Minmax::reverseTransform(const Tensor &data) const {
+    checkFitted();
     checkRank(data);
+    checkDims(data.getShape()[1]);
+
+    Tensor transformed(data.getShape());
+    vector<double> &transformedFlat = transformed.getFlat();
 
     Matrix dataMat = data.M();
     size_t numCols = dataMat.getNumCols();
     size_t numRows = dataMat.getNumRows();
-    vector<double> &dataFlat = data.getFlat();
+    const vector<double> &dataFlat = data.getFlat();
 
     #pragma omp parallel for
     for (size_t j = 0; j < numCols; j++) {
@@ -120,13 +146,19 @@ void Minmax::reverseTransform(Tensor &data) const {
         }
 
         for (size_t i = 0; i < numRows; i++) {
-            dataFlat[i * numCols + j] = dataFlat[i * numCols + j] * scaleFactor + minVals[j];
+            transformedFlat[i * numCols + j] = dataFlat[i * numCols + j] * scaleFactor + minVals[j];
         }
     }
+
+    return transformed;
 }
 
-void Minmax::reverseTransform(vector<double> &data) const {
+vector<double> Minmax::reverseTransform(const vector<double> &data) const {
+    checkFitted();
+    checkDims(1);
+    
     size_t size = data.size();
+    vector<double> transformed(size);
 
     double scaleFactor = maxVals[0] - minVals[0];
     if (scaleFactor == 0.0) {
@@ -135,8 +167,15 @@ void Minmax::reverseTransform(vector<double> &data) const {
     
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        data[i] = data[i] * scaleFactor + minVals[0];
+        transformed[i] = data[i] * scaleFactor + minVals[0];
     }
+
+    return transformed;
+}
+
+void Minmax::reset() {
+    minVals.clear();
+    maxVals.clear();
 }
 
 void Minmax::writeBin(ofstream &modelBin) const {

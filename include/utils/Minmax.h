@@ -9,16 +9,22 @@ class Minmax : public Scalar {
 
         // Methods
         void checkRank(const Tensor&) const;
+        void checkDims(size_t) const;
 
     public:
         // Methods
         void fit(const Tensor&) override;
-        void transform(Tensor&) override;
-        void reverseTransform(Tensor&) const override;
+        Tensor transform(const Tensor&) const override;
+        Tensor reverseTransform(const Tensor&) const override;
+
         void fit(const vector<double>&) override;
-        void transform(vector<double>&) override;
-        void reverseTransform(vector<double>&) const override;
+        vector<double> transform(const vector<double>&) const override;
+        vector<double> reverseTransform(const vector<double>&) const override;
+
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
+
         uint32_t getEncoding() const override;
+
+        void reset() override;
 };

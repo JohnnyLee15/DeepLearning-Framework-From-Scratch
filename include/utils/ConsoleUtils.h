@@ -3,7 +3,8 @@
 #include <string>
 #include <atomic>
 #include <thread>
-#include "utils/EpochStats.h"
+
+class ProgressMetric;
 
 using namespace std;
 
@@ -32,12 +33,11 @@ class ConsoleUtils {
 
         // Methods
         static void runSpinner();
-        static void printStats(EpochStats&);
         static string centerText(const string&, size_t);
 
     public:
         // Methods
-        static void printProgressBar(EpochStats &stats);
+        static void printProgressBar(ProgressMetric&);
         static void loadMessage(const string&);
         static void completeMessage();
         static void printTitle();
