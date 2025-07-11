@@ -1,7 +1,4 @@
 DataFiles/
-
-.DS_Store
-
+**/.DS_Store
 .vscode
-
-/include/.DS_Store
+**/std_*.h
