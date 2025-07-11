@@ -21,9 +21,6 @@ class Matrix {
         size_t getNumRows() const;
         Tensor operator *(const Matrix&) const;
         Tensor operator *(const MatrixT&) const;
-        Tensor& operator *=(double);
-        Tensor& operator *=(const Matrix&); 
-        Tensor& operator += (const Matrix&);
         MatrixT T() const;
         vector<double> operator *(const vector<double>&) const;
         vector<double> colSums() const;

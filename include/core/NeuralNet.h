@@ -27,6 +27,7 @@ class NeuralNet {
         void backprop(Batch&, double);
         void forwardPass(Batch&);
         void forwardPassInference(const Tensor&);
+        void build(const Tensor&);
         double runEpoch(const Tensor&, const vector<double>&, double, size_t, ProgressMetric&);
         Batch makeBatch(size_t, size_t, const Tensor&, const vector<double>&, const vector<size_t>&) const;
         void loadLoss(ifstream&);

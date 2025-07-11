@@ -15,14 +15,27 @@
 
 const double DenseLayer::HE_INT_GAIN = 2.0;
 
-DenseLayer::DenseLayer(size_t numNeurons, size_t weightsPerNeuron, Activation *activation) :
-    weights({numNeurons, weightsPerNeuron}), activation(activation)
-{
-    initWeights(numNeurons, weightsPerNeuron);
-    biases = activation->initBias(numNeurons);
-}
+DenseLayer::DenseLayer(size_t numNeurons,  Activation *activation) :
+    numNeurons(numNeurons), activation(activation) {}
 
 DenseLayer::DenseLayer() : activation(nullptr) {}
+
+void DenseLayer::checkBuildSize(const vector<size_t> &inShape) const {
+    if (inShape.size() != 2) {
+        ConsoleUtils::fatalError(
+            "DenseLayer build error: Expected 2D input (batch_size, features), "
+            "but got tensor with " + to_string(inShape.size()) + " dimensions."
+        );
+    }
+}
+
+void DenseLayer::build(const vector<size_t> &inShape) {
+    checkBuildSize(inShape);
+    size_t weightsPerNeuron = inShape[1];
+    weights = Tensor({numNeurons, weightsPerNeuron});
+    initWeights();
+    biases = activation->initBias(numNeurons);
+}
 
 vector<uint32_t> DenseLayer::generateThreadSeeds() const {
     size_t numSeeds = omp_get_max_threads();
@@ -35,6 +48,33 @@ vector<uint32_t> DenseLayer::generateThreadSeeds() const {
     return seeds;
 }
 
+void DenseLayer::initWeights() {
+    size_t numRows = weights.M().getNumRows();
+    size_t numCols = weights.M().getNumCols();
+
+    size_t size = numRows * numCols;
+    double std = sqrt(HE_INT_GAIN/numCols);
+    vector<double> &weightsFlat = weights.getFlat();
+    vector<uint32_t> seeds = generateThreadSeeds();
+
+    #pragma omp parallel
+    {
+        int thread = omp_get_thread_num();
+        mt19937 generator(seeds[thread]);
+        normal_distribution<double> distribution(0, std);
+
+        #pragma omp for
+        for (size_t i = 0; i < size; i++) {
+            weightsFlat[i] = distribution(generator);
+        }
+    }
+}
+
+vector<size_t> DenseLayer::getBuildOutShape(const vector<size_t> &inShape) const {
+    checkBuildSize(inShape);
+    return {0, numNeurons};
+}
+
 void DenseLayer::writeBin(ofstream& modelBin) const {
     Layer::writeBin(modelBin);
 
@@ -42,7 +82,7 @@ void DenseLayer::writeBin(ofstream& modelBin) const {
     modelBin.write((char*) &activationEncoding, sizeof(uint32_t));
 
     Matrix weightsMat = weights.M();
-    uint32_t numNeuronsWrite = (uint32_t) weightsMat.getNumRows();
+    uint32_t numNeuronsWrite = (uint32_t) numNeurons;
     modelBin.write((char*) &numNeuronsWrite, sizeof(uint32_t));
 
     uint32_t weightsPerNeuronWrite = (uint32_t) weightsMat.getNumCols();
@@ -73,8 +113,9 @@ void DenseLayer::loadActivation(ifstream &modelBin) {
 void DenseLayer::loadFromBin(ifstream &modelBin) {
     loadActivation(modelBin);
 
-    uint32_t numNeurons;
-    modelBin.read((char*) &numNeurons, sizeof(uint32_t));
+    uint32_t numNeuronsRead;
+    modelBin.read((char*) &numNeuronsRead, sizeof(uint32_t));
+    numNeurons = numNeuronsRead;
 
     uint32_t weightsPerNeuron;
     modelBin.read((char*) &weightsPerNeuron, sizeof(uint32_t));
@@ -88,32 +129,13 @@ void DenseLayer::loadFromBin(ifstream &modelBin) {
     modelBin.read((char*) biases.data(), biases.size() * sizeof(double));
 }
 
-void DenseLayer::initWeights(size_t numRows, size_t numCols) {
-    size_t size = numRows * numCols;
-    double std = sqrt(HE_INT_GAIN/numCols);
-    vector<double> &weightsFlat = weights.getFlat();
-    vector<uint32_t> seeds = generateThreadSeeds();
-
-    #pragma omp parallel
-    {
-        int thread = omp_get_thread_num();
-        mt19937 generator(seeds[thread]);
-        normal_distribution<double> distribution(0, std);
-
-        #pragma omp for
-        for (size_t i = 0; i < size; i++) {
-            weightsFlat[i] = distribution(generator);
-        }
-    }
-}
-
-void DenseLayer::calActivations(const Tensor&prevActivations) {
+void DenseLayer::forward(const Tensor&prevActivations) {
     preActivations = prevActivations.M() * weights.M().T();
     preActivations.M().addToRows(biases);
     activations = activation->activate(preActivations);
 }
 
-const Tensor DenseLayer::getActivations() const {
+const Tensor& DenseLayer::getOutput() const {
     return activations;
 }
 
@@ -124,28 +146,26 @@ void DenseLayer::backprop(
     bool isFirstLayer
 ) {
     dZ = outputGradients;
-    Matrix dZMat = dZ.M();
-    Matrix weightsMat = weights.M();
 
     if (!activation->isFused()) {
-        dZMat *= activation->calculateGradient(preActivations).M();
+        dZ *= activation->calculateGradient(preActivations);
     }
 
+    Matrix dZMat = dZ.M();
     size_t batchSize = dZMat.getNumRows();
     double scaleFactor = -learningRate/batchSize;
 
-    Tensor weightGradients = dZMat.T() * prevActivations.M();
-    Matrix weightsGradMat = weightGradients.M();
+    Tensor dW = dZMat.T() * prevActivations.M();
     vector<double> biasGradients = dZMat.colSums();
 
-    weightsGradMat *= scaleFactor;
+    dW *= scaleFactor;
     VectorUtils::scaleVecInplace(biasGradients, scaleFactor);
 
-    weightsMat += weightsGradMat;
+    weights += dW;
     VectorUtils::addVecInplace(biases, biasGradients);
 
     if (!isFirstLayer) {
-        dZ = dZMat * weightsMat;
+        dZ = dZMat * weights.M();
     }
 }
 

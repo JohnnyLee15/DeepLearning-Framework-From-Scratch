@@ -1,7 +1,6 @@
 #include "losses/SoftmaxCrossEntropy.h"
 #include "utils/TrainingUtils.h"
 #include "core/Matrix.h"
-#include <iostream>
 #include "utils/ConsoleUtils.h"
 #include <cmath>
 

@@ -52,25 +52,25 @@ void TabularData::checkTestLoaded() const {
     }
 }
 
-void TabularData::readTrain(string filename, size_t targetIdx, bool hasHeader) {
+void TabularData::readTrain(const string &filename, size_t targetIdx, bool hasHeader) {
     cout << endl << "📥 Loading training data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, true, targetIdx, NO_TARGET_COL, hasHeader);
     isTrainLoaded = true;
 }
 
-void TabularData::readTrain(string filename, const string &colname) {
+void TabularData::readTrain(const string &filename, const string &colname) {
     cout << endl << "📥 Loading training data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, true, NO_TARGET_IDX, colname, true);
     isTrainLoaded = true;
 }
 
-void TabularData::readTest(string filename, size_t targetIdx, bool hasHeader) {
+void TabularData::readTest(const string &filename, size_t targetIdx, bool hasHeader) {
     cout << endl << "📥 Loading testing data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, false, targetIdx, NO_TARGET_COL, hasHeader);
     isTestLoaded = true;
 }
 
-void TabularData::readTest(string filename, const string &colname) {
+void TabularData::readTest(const string &filename, const string &colname) {
     cout << endl << "📥 Loading testing data from: \"" << CsvUtils::trimFilePath(filename) << "\"." << endl;
     readCsv(filename, false, NO_TARGET_IDX, colname, true);
     isTestLoaded = true;
@@ -197,7 +197,7 @@ void TabularData::parseRawData(
 }
 
 void TabularData::readCsv(
-    string filename, 
+    const string &filename, 
     bool isTrainData, 
     size_t targetIdx, 
     const string& colname,

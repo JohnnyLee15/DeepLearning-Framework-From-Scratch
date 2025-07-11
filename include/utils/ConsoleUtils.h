@@ -45,6 +45,8 @@ class ConsoleUtils {
         static void printSuccess(const string&);
         static void printWarning(const string&);
         static void printError(const string&);
+
+        [[noreturn]]  
         static void fatalError(const string&);
         
 };

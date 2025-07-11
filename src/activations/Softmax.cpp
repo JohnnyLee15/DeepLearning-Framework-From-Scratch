@@ -63,13 +63,7 @@ double Softmax::getMaxPreActivation(
 }
 
 vector<double> Softmax::initBias(size_t numBiases) const {
-    vector<double> biases(numBiases);
-    #pragma omp parallel for
-    for (size_t i = 0; i < numBiases; i++) {
-        biases[i] = SOFTMAX_BIAS;
-    }
-
-    return biases;
+    return vector<double>(numBiases, SOFTMAX_BIAS);
 }
 
 Tensor Softmax::calculateGradient(const Tensor& preActivations) const {

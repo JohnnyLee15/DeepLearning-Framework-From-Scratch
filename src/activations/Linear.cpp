@@ -9,13 +9,7 @@ Tensor Linear::activate(const Tensor& z) const{
 }
 
 vector<double> Linear::initBias(size_t numBiases) const {
-    vector<double> biases(numBiases);
-    #pragma omp parallel for
-    for (size_t i = 0; i < numBiases; i++) {
-        biases[i] = LINEAR_BIAS;
-    }
-
-    return biases;
+    return vector<double>(numBiases, LINEAR_BIAS);
 }
 
 Tensor Linear::calculateGradient(const Tensor &preActivations) const {

@@ -38,6 +38,7 @@ void NeuralNet::fit(
     size_t batchSize,
     ProgressMetric &metric
 ) {
+    build(features);
     double initialLR = learningRate;
     avgLosses.resize(numEpochs);
     for (size_t k = 0; k < numEpochs; k++) {
@@ -49,6 +50,16 @@ void NeuralNet::fit(
         learningRate = initialLR/(1 + learningDecay*k);
     }
     ConsoleUtils::printSepLine();
+}
+
+void NeuralNet::build(const Tensor &features) {
+    size_t numLayers = layers.size();
+
+    vector<size_t> inShape = features.getShape();
+    for (size_t i = 0; i < numLayers; i++) {
+        layers[i]->build(inShape);
+        inShape = layers[i]->getBuildOutShape(inShape);
+    }
 }
 
 double NeuralNet::runEpoch(
@@ -68,9 +79,9 @@ double NeuralNet::runEpoch(
         Batch batch = makeBatch(start, end, features, targets, shuffledIndices);
 
         forwardPass(batch);
-        double batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getActivations());
+        double batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getOutput());
         backprop(batch, learningRate);
-        metric.update(batch, loss, layers.back()->getActivations(), batchTotalLoss);
+        metric.update(batch, loss, layers.back()->getOutput(), batchTotalLoss);
         ConsoleUtils::printProgressBar(metric);
     }
 
@@ -97,18 +108,18 @@ void NeuralNet::forwardPass(Batch &batch) {
     size_t numLayers = layers.size();
 
     for (size_t j = 0; j < numLayers; j++) {
-        layers[j]->calActivations(prevActivations);
-        prevActivations = layers[j]->getActivations();
+        layers[j]->forward(prevActivations);
+        prevActivations = layers[j]->getOutput();
     }
 }
 
 void NeuralNet::backprop(Batch &batch, double learningRate) {
-    Tensor outputGradients = loss->calculateGradient(batch.getTargets(),layers.back()->getActivations());
+    Tensor outputGradients = loss->calculateGradient(batch.getTargets(),layers.back()->getOutput());
     size_t numLayers = (int) layers.size();
     
     for (int i = numLayers - 1; i >= 0; i--) {
         bool isFirstLayer = (i == 0);
-        const Tensor &prevActivations = ((i == 0) ? batch.getData() : layers[i-1]->getActivations());
+        const Tensor &prevActivations = ((i == 0) ? batch.getData() : layers[i-1]->getOutput());
         layers[i]->backprop(prevActivations, learningRate, outputGradients, isFirstLayer);
         outputGradients = layers[i]->getOutputGradient();
     }
@@ -116,7 +127,7 @@ void NeuralNet::backprop(Batch &batch, double learningRate) {
 
 Tensor NeuralNet::predict(const Tensor &features) {
     forwardPassInference(features);
-    return layers.back()->getActivations();
+    return layers.back()->getOutput();
 }
 
 void NeuralNet::forwardPassInference(const Tensor& data) {
@@ -124,8 +135,8 @@ void NeuralNet::forwardPassInference(const Tensor& data) {
     size_t numLayers = layers.size();
     
     for (size_t j = 0; j < numLayers; j++) {
-        layers[j]->calActivations(prevActivations);
-        prevActivations = layers[j]->getActivations();
+        layers[j]->forward(prevActivations);
+        prevActivations = layers[j]->getOutput();
     }
 }
 

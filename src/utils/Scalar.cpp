@@ -1,6 +1,5 @@
 #include "utils/Scalar.h"
 #include "utils/ConsoleUtils.h"
-#include <iostream>
 
 void Scalar::fit(const Tensor &data) {
     fitted = true;

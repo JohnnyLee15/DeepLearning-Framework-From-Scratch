@@ -1,6 +1,5 @@
 #include "core/Matrix.h"
 #include "core/MatrixT.h"
-#include <iostream>
 #include "utils/ConsoleUtils.h"
 
 Matrix::Matrix(Tensor &tensor) : tensor(tensor) {}
@@ -146,59 +145,6 @@ vector<double> Matrix::colSums() const {
     }
 
     return colSumsVec;
-}
-
-Tensor& Matrix::operator *=(const Matrix &mat2) {
-    size_t numRows = getNumRows();
-    size_t numCols = getNumCols();
-    size_t mat2Rows = mat2.getNumRows();
-    size_t mat2Cols = mat2.getNumCols();
-    checkSameShape(numRows, numCols, mat2Rows, mat2Cols, "Hadamard Product");
-    
-    size_t size = numRows * numCols;
-    vector<double> &matFlat = tensor.getFlat();
-    const vector<double> &mat2Flat = mat2.tensor.getFlat();
-
-    #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        matFlat[i] *= mat2Flat[i];
-    }
-
-    return tensor;
-}
-
-Tensor& Matrix::operator *=(double scaleFactor){
-    size_t numRows = getNumRows();
-    size_t numCols = getNumCols();
-    size_t size = numCols * numRows;
-
-    vector<double> &matFlat = tensor.getFlat();
-
-    #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        matFlat[i] *= scaleFactor;
-    }
-
-    return tensor;
-}
-
-Tensor& Matrix::operator +=(const Matrix &mat2) {
-    size_t numRows = getNumRows();
-    size_t numCols = getNumCols();
-    size_t mat2Rows = mat2.getNumRows();
-    size_t mat2Cols = mat2.getNumCols();
-    checkSameShape(numRows, numCols, mat2Rows, mat2Cols, "Matrix Addition");
-
-    size_t size = numRows * numCols;
-    vector<double> &matFlat = tensor.getFlat();
-    const vector<double> &mat2Flat = mat2.tensor.getFlat();
-
-    #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        matFlat[i] += mat2Flat[i];
-    }
-
-    return tensor;
 }
 
 void Matrix::addToRows(const vector<double> &vec) {

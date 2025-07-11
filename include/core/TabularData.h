@@ -6,8 +6,6 @@
 #include "core/Tensor.h"
 #include "core/Data.h"
 
-using namespace std;
-
 class TabularData : public Data {
     private:
         // Constants
@@ -37,7 +35,7 @@ class TabularData : public Data {
         string task;
 
         // Methods
-        void readCsv(string, bool, size_t, const string&, bool);
+        void readCsv(const string&, bool, size_t, const string&, bool);
         void setData(const Tensor&, vector<double>&, bool);
         void head(size_t, const Tensor&) const;
         void checkTrainLoaded() const;
@@ -54,18 +52,18 @@ class TabularData : public Data {
         TabularData();
 
         // Methods
-        void readTrain(string, size_t, bool header = false) override;
-        void readTest(string, size_t, bool header = false) override;
-        void readTrain(string, const string&) override;
-        void readTest(string, const string&) override;
+        void readTrain(const string&, size_t, bool header = false);
+        void readTest(const string&, size_t, bool header = false);
+        void readTrain(const string&, const string&);
+        void readTest(const string&, const string&);
         // void readAllData(string, int, float);
         const Tensor& getTrainFeatures() const override;
         const Tensor& getTestFeatures() const override;
         const vector<double>& getTrainTargets() const override;
         const vector<double>& getTestTargets() const override;
         size_t getNumTrainSamples() const override;
-        void headTrain(size_t numRows = 6) const override;
-        void headTest(size_t numRows = 6) const override;
+        void headTrain(size_t numRows = 6) const;
+        void headTest(size_t numRows = 6) const;
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
         uint32_t getEncoding() const override;

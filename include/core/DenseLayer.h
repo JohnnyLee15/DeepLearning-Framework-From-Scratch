@@ -15,6 +15,7 @@ class DenseLayer : public Layer {
         static const double HE_INT_GAIN;
 
         // Instance Variables
+        size_t numNeurons;
         Tensor activations;
         Tensor preActivations;
         Tensor weights;
@@ -22,24 +23,26 @@ class DenseLayer : public Layer {
         Activation *activation;
         vector<double> biases;
 
-
         // Methods
-        void initWeights(size_t, size_t);
+        void initWeights();
         vector<uint32_t> generateThreadSeeds() const;
         void loadActivation(ifstream&);
+        void checkBuildSize(const vector<size_t>&) const;
 
     public:
         // Constructors
-        DenseLayer(size_t, size_t, Activation*);
+        DenseLayer(size_t, Activation*);
         DenseLayer();
 
         // Methods
-        void calActivations(const Tensor&) override;
-        const Tensor getActivations() const override;
+        void forward(const Tensor&) override;
+        const Tensor& getOutput() const override;
         Tensor getOutputGradient() const override;
         void backprop(const Tensor&, double, const Tensor&, bool) override;
         ~DenseLayer();
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
         uint32_t getEncoding() const override;
+        void build(const vector<size_t>&) override;
+        vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
 };

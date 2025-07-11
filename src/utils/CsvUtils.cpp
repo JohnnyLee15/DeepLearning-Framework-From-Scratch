@@ -2,7 +2,6 @@
 #include "utils/ConsoleUtils.h"
 #include <sstream>
 #include <fstream>
-#include <iostream>
 #include <cctype>
 #include <cstring>
 #include <cerrno>

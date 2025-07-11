@@ -18,13 +18,7 @@ Tensor ReLU::activate(const Tensor& z) const{
 }
 
 vector<double> ReLU::initBias(size_t numBiases) const {
-    vector<double> biases(numBiases);
-    #pragma omp parallel for
-    for (size_t i = 0; i < numBiases; i++) {
-        biases[i] = RELU_BIAS;
-    }
-
-    return biases;
+    return vector<double>(numBiases, RELU_BIAS);
 }
 
 Tensor ReLU::calculateGradient(const Tensor &preActivations) const {
