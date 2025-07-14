@@ -19,6 +19,7 @@ class NeuralNet {
         vector<float> avgLosses;
         Loss *loss;
         size_t maxBatchSize;
+        Tensor dL;
 
         // Static variables;
         static random_device rd;
@@ -34,6 +35,8 @@ class NeuralNet {
         void loadLoss(ifstream&);
         void loadLayer(ifstream&);
         vector<size_t> generateShuffledIndices(const Tensor&) const;
+        void reShapeDL(size_t);
+        void revertReShapeDL();
 
     public:
         // Constructors

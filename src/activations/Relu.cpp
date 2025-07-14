@@ -29,16 +29,22 @@ Tensor ReLU::initBias(size_t numBiases) const {
 }
 
 void ReLU::calculateGradient(const Tensor &z, Tensor &dZ) const {
-    size_t size = z.getSize();
-    const vector<float> &preFlat = z.getFlat();
-    vector<float> &dzFlat = dZ.getFlat();
-    
-    #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        if (preFlat[i] > 0) {
-            dzFlat[i] = 1.0;
-        } else {
-            dzFlat[i] = 0.0;
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __OBJC__
+         calculateGradientGpu(z, dZ);
+        #endif
+    } else {
+        size_t size = z.getSize();
+        const vector<float> &preFlat = z.getFlat();
+        vector<float> &dzFlat = dZ.getFlat();
+        
+        #pragma omp parallel for
+        for (size_t i = 0; i < size; i++) {
+            if (preFlat[i] > 0) {
+                dzFlat[i] = 1.0;
+            } else {
+                dzFlat[i] = 0.0;
+            }
         }
     }
 }

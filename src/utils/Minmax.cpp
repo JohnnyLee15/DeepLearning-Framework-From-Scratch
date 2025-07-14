@@ -33,13 +33,13 @@ void Minmax::fit(const Tensor &data) {
     size_t numRows = dataMat.getNumRows();
     const vector<float> &dataFlat = data.getFlat();
 
-    minVals = vector<float>(numCols, numeric_limits<float>::infinity());
-    maxVals = vector<float>(numCols, -numeric_limits<float>::infinity());
+    minVals = vector<float>(numCols, numeric_limits<float>::max());
+    maxVals = vector<float>(numCols, -numeric_limits<float>::max());
 
     #pragma omp parallel
     {
-        vector<float> threadMinVals(numCols, numeric_limits<float>::infinity());
-        vector<float> threadMaxVals(numCols, -numeric_limits<float>::infinity());
+        vector<float> threadMinVals(numCols, numeric_limits<float>::max());
+        vector<float> threadMaxVals(numCols, -numeric_limits<float>::max());
 
         #pragma omp for
         for (size_t j = 0; j < numCols; j++) {
@@ -64,8 +64,8 @@ void Minmax::fit(const vector<float> &data) {
     Scalar::fit(data);
 
     size_t size = data.size();
-    float minVal = numeric_limits<float>::infinity();
-    float maxVal = -numeric_limits<float>::infinity();
+    float minVal = numeric_limits<float>::max();
+    float maxVal = -numeric_limits<float>::max();
 
     #pragma omp parallel for reduction(min:minVal) reduction(max:maxVal)
     for (size_t i = 0; i < size; i++) {

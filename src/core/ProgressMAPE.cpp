@@ -26,7 +26,7 @@ void ProgressMAPE::update(
     ProgressMetric::update(batch, loss, outputActivations, batchTotalLoss);
 
     const vector<float> &outputFlat = outputActivations.getFlat();
-    const vector<float> &batchTargets = batch.getTargets();
+    const vector<float> &batchTargets = batch.getTargets().getFlat();
 
     size_t numBatchSamples = outputFlat.size();
     float localMapeSum = 0.0;

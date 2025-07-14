@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <vector>
+#include "core/GpuEngine.h"
 
 class Tensor;
 
@@ -22,4 +23,9 @@ class Activation {
             ReLU,
             Softmax
         };
+
+        // Gpu
+        #ifdef __OBJC__
+            virtual void calculateGradientGpu(const Tensor&, Tensor&) const = 0;
+        #endif
 };

@@ -7,7 +7,7 @@
 const float SoftmaxCrossEntropy::CROSS_ENTROPY_EPSILON = 1e-10;
 
 float SoftmaxCrossEntropy::calculateTotalLoss(
-    const vector<float> &labels,
+    const Tensor &labels,
     const Tensor &probs
 ) const {
     Matrix probsMat = probs.M();
@@ -16,10 +16,11 @@ float SoftmaxCrossEntropy::calculateTotalLoss(
 
     float totalLoss = 0.0;
     const vector<float> &probsFlat = probs.getFlat();
+    const vector<float> &labelsFlat = labels.getFlat();
 
     #pragma omp parallel for reduction(+:totalLoss)
     for (size_t i = 0; i < numRows; i++) {
-        totalLoss += -log(max(CROSS_ENTROPY_EPSILON, probsFlat[i * numCols + (int) labels[i]]));
+        totalLoss += -log(max(CROSS_ENTROPY_EPSILON, probsFlat[i * numCols + (int) labelsFlat[i]]));
     }
 
     return totalLoss;
@@ -40,27 +41,32 @@ float SoftmaxCrossEntropy::calculateDerivative(
     return value;
 }
 
-Tensor SoftmaxCrossEntropy::calculateGradient(
-    const vector<float> &labels, 
-    const Tensor &activations
+void SoftmaxCrossEntropy::calculateGradient(
+    const Tensor &labels, 
+    const Tensor &a,
+    Tensor &dL
 ) const {
-    Matrix actMat = activations.M();
-    size_t numRows = actMat.getNumRows();
-    size_t numCols = actMat.getNumCols();
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __OBJC__
+            calculateGradientGpu(targets, a, dL);
+        #endif
+    } else {
+        Matrix aMat = a.M();
+        size_t numRows = aMat.getNumRows();
+        size_t numCols = aMat.getNumCols();
 
-    Tensor gradients({numRows, numCols});
-    vector<float> &gradientsFlat = gradients.getFlat();
-    const vector<float> &activationsFlat = activations.getFlat();
+        vector<float> &dlFlat = dL.getFlat();
+        const vector<float> &aFlat = a.getFlat();
+        const vector<float> &labelsFlat = labels.getFlat();
 
-    #pragma omp parallel for collapse(2)
-    for (size_t i = 0; i < numRows; i++) {
-        for (size_t j = 0; j < numCols; j++) {
-            size_t labelIdx = (size_t) labels[i];
-            gradientsFlat[i * numCols + j] = calculateDerivative(activationsFlat[i * numCols + j], j, labelIdx);
+        #pragma omp parallel for collapse(2)
+        for (size_t i = 0; i < numRows; i++) {
+            for (size_t j = 0; j < numCols; j++) {
+                size_t labelIdx = (size_t) labelsFlat[i];
+                dlFlat[i * numCols + j] = calculateDerivative(aFlat[i * numCols + j], j, labelIdx);
+            }
         }
     }
-    
-    return gradients;
 }
 
 uint32_t SoftmaxCrossEntropy::getEncoding() const {

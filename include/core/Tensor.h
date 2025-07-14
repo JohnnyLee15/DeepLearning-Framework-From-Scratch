@@ -73,8 +73,7 @@ class Tensor {
         Tensor maxPool2dGrad(const Tensor&, const vector<size_t>&) const;
 
         void hadamard(const Tensor&);
-        void scale(float);
-        void add(const Tensor&);
+        void applyGrad(const Tensor&, float);
 
         void uploadToGpu();
         void downloadFromGpu();
@@ -93,7 +92,6 @@ class Tensor {
             void downloadFromGpuMm();
 
             void hadamardGpu(const Tensor&);
-            void scaleGpu(float);
-            void addGpu(const Tensor&);
+            void applyGradGpu(const Tensor&, float);
         #endif
 };

@@ -31,7 +31,7 @@ void ProgressAccuracy::update(
     size_t numCols = probsMat.getNumCols();
     const vector<float> &probsFlat = outputActivations.getFlat();
     const vector<size_t> &indices = batch.getIndices();
-    const vector<float> &batchTargets = batch.getTargets();
+    const vector<float> &batchTargets = batch.getTargets().getFlat();
     size_t localCorrect = 0;
 
     #pragma omp parallel for reduction(+:localCorrect)

@@ -9,7 +9,7 @@ id<MTLBuffer> MatrixT::getGpuData() const {
 void MatrixT::mTmGpu(
     const Matrix &mat2,
     Tensor &prod
-) {
+) const {
     Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
     Matrix::matMatEngine(
         getGpuData(),
@@ -25,7 +25,7 @@ void MatrixT::mTmGpu(
 void MatrixT::mTmTGpu(
     const MatrixT &mat2,
     Tensor &prod
-) {
+) const {
     Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
     Matrix::matMatEngine(
         getGpuData(),

@@ -82,7 +82,7 @@ void DenseLayer::initWeights() {
 
 vector<size_t> DenseLayer::getBuildOutShape(const vector<size_t> &inShape) const {
     checkBuildSize(inShape);
-    return {0, numNeurons};
+    return {getMaxBatchSize(), numNeurons};
 }
 
 void DenseLayer::writeBin(ofstream& modelBin) const {
@@ -188,11 +188,8 @@ void DenseLayer::backprop(
     gradMat.T().mTm(prevActivations.M(), dW);
     gradMat.colSums(dB);
 
-    dW.scale(scaleFactor);
-    dB.scale(scaleFactor);
-    
-    weights.add(dW);
-    biases.add(dB);
+    weights.applyGrad(dW, scaleFactor);
+    biases.applyGrad(dB, scaleFactor);
 
     if (!isFirstLayer) {
         gradMat.mm(weights, dX);
@@ -214,4 +211,8 @@ DenseLayer::~DenseLayer() {
 
 uint32_t DenseLayer::getEncoding() const {
     return Layer::Encodings::DenseLayer;
+}
+
+void DenseLayer::downloadOutputFromGpu() {
+    activations.downloadFromGpu();
 }

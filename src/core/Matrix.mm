@@ -72,6 +72,8 @@ void Matrix::matMatEngine(
     
     [encoder endEncoding];
     [cmdBuf commit];
+
+    GpuEngine::setLastCmdBuf(cmdBuf);
 }
 
 void Matrix::colSumsGpu(Tensor &vec) const {
@@ -99,6 +101,8 @@ void Matrix::colSumsGpu(Tensor &vec) const {
     
     [encoder endEncoding];
     [cmdBuf commit];
+
+    GpuEngine::setLastCmdBuf(cmdBuf);
 }
 
 void Matrix::addToRowsGpu(const Tensor &vec) {
@@ -128,4 +132,6 @@ void Matrix::addToRowsGpu(const Tensor &vec) {
     
     [encoder endEncoding];
     [cmdBuf commit];
+
+    GpuEngine::setLastCmdBuf(cmdBuf);
 }

@@ -10,7 +10,8 @@ CXXFLAGS := -std=c++17 \
 LDFLAGS := -fopenmp
 
 # Source files: always .cpp
-SRC := $(shell find src -name '*.cpp')
+CPP_SRC := $(shell find src -name '*.cpp')
+CPP_OBJ := $(CPP_SRC:.cpp=.o)
 
 # macOS specifics
 ifeq ($(UNAME_S), Darwin)
@@ -26,12 +27,14 @@ ifeq ($(UNAME_S), Darwin)
 	METAL_LIB := CoreKernels.metallib
 
 	# Add .mm files too
-	SRC += $(shell find src -name '*.mm')
+	MM_SRC := $(shell find src -name '*.mm')
+	MM_OBJ := $(MM_SRC:.mm=.o)
+
+	OBJ := $(CPP_OBJ) $(MM_OBJ)
+else
+	OBJ := $(CPP_OBJ)
 endif
 
-# Objects from final SRC
-OBJ := $(SRC:.cpp=.o)
-OBJ += $(SRC:.mm=.o)
 
 TARGET := mlp
 
@@ -61,9 +64,9 @@ $(METAL_LIB): $(METAL_AIR)
 	xcrun -sdk macosx metallib $^ -o $@
 endif
 
-# # Clean
-# clean:
-# 	rm -f $(TARGET) $(OBJ)
-# 	@if [ "$(UNAME_S)" = "Darwin" ]; then \
-# 		rm -f $(METAL_AIR) $(METAL_LIB); \
-# 	fi
+# Clean
+clean:
+	rm -f $(TARGET) $(CPP_OBJ)
+ifeq ($(UNAME_S), Darwin)
+	rm -f $(MM_OBJ) $(METAL_AIR) $(METAL_LIB)
+endif

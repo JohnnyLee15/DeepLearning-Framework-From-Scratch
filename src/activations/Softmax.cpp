@@ -48,7 +48,7 @@ float Softmax::getMaxPreActivation(
     size_t row, 
     size_t numCols
 ) const {
-    float maxVal = -numeric_limits<float>::infinity();
+    float maxVal = -numeric_limits<float>::max();
 
     for (size_t j = 0; j < numCols; j++) {
         float value = z[row * numCols + j];
@@ -76,7 +76,13 @@ Tensor Softmax::initBias(size_t numBiases) const {
 
 
 void Softmax::calculateGradient(const Tensor &z, Tensor &dZ) const {
-    SoftmaxCrossEntropy::checkInvalidGradientCall();
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __OBJC__
+            calculateGradientGpu(z, dZ);
+        #endif
+    } else {
+        SoftmaxCrossEntropy::checkInvalidGradientCall();
+    }   
 }
 
 bool Softmax::isFused() const {

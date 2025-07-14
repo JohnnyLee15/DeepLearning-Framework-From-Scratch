@@ -8,7 +8,7 @@
 Batch::Batch(size_t numLayers, size_t batchSize) :
     batchSize(batchSize),
     indices(batchSize),
-    targets(batchSize)
+    targets({batchSize})
 {}
 
 void Batch::setBatchIndices(
@@ -37,6 +37,7 @@ void Batch::setBatch(
     }
 
     vector<float> &batchFlat = data.getFlat();
+    vector<float> targetsFlat = targets.getFlat();
     const vector<float> &trainFlat = train.getFlat();
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
@@ -45,7 +46,7 @@ void Batch::setBatch(
             batchFlat[i*elementSize + j] = trainFlat[rdIdx * elementSize + j];
         }
 
-        targets[i] = trainLabels[rdIdx];
+        targetsFlat[i] = trainLabels[rdIdx];
     }
 }
 
@@ -53,7 +54,7 @@ const Tensor& Batch::getData() const {
     return data;
 }
 
-const vector<float>& Batch::getTargets() const {
+const Tensor& Batch::getTargets() const {
     return targets;
 }
 

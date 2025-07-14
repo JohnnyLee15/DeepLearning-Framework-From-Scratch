@@ -19,4 +19,9 @@ class Softmax : public Activation {
         Tensor initBias(size_t) const override;
         bool isFused() const override;
         uint32_t getEncoding() const override;
+
+        // Gpu
+        #ifdef __OBJC__
+            void calculateGradientGpu(const Tensor&, Tensor&) const override;
+        #endif
 };

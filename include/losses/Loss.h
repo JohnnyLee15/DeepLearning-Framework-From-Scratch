@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <vector>
+#include "core/GpuEngine.h"
 
 class Tensor;
 class Tensor;
@@ -10,8 +11,8 @@ using namespace std;
 class Loss {
     public:
         // Methods
-        virtual float calculateTotalLoss(const vector<float>&, const Tensor&) const = 0;    
-        virtual Tensor calculateGradient(const vector<float>&, const Tensor&) const = 0;
+        virtual float calculateTotalLoss(const Tensor&, const Tensor&) const = 0;    
+        virtual void calculateGradient(const Tensor&, const Tensor&, Tensor&) const = 0;
         virtual ~Loss() = default;
         virtual float formatLoss(float) const;
         virtual uint32_t getEncoding() const = 0;
@@ -20,4 +21,9 @@ class Loss {
             MSE,
             SoftmaxCrossEntropy
         };
+
+        // Gpu
+        #ifdef __OBJC__
+             virtual void calculateGradientGpu(const Tensor&, const Tensor&, Tensor&) const = 0;
+        #endif
 };

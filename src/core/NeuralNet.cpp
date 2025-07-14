@@ -56,6 +56,7 @@ void NeuralNet::build(size_t batchSize, const Tensor &features) {
     size_t numLayers = layers.size();
 
     maxBatchSize = batchSize;
+
     vector<size_t> inShape = features.getShape();
     inShape[0] = maxBatchSize;
 
@@ -63,6 +64,10 @@ void NeuralNet::build(size_t batchSize, const Tensor &features) {
         layers[i]->build(inShape);
         inShape = layers[i]->getBuildOutShape(inShape);
     }
+
+    vector<size_t> lossShape = layers.back()->getOutput().getShape();
+    lossShape[0] = maxBatchSize;
+    dL = Tensor(lossShape);
 }
 
 float NeuralNet::runEpoch(
@@ -84,6 +89,8 @@ float NeuralNet::runEpoch(
         forwardPass(batch);
         float batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getOutput());
         backprop(batch, learningRate);
+
+        layers.back()->downloadOutputFromGpu();
         metric.update(batch, loss, layers.back()->getOutput(), batchTotalLoss);
         ConsoleUtils::printProgressBar(metric);
     }
@@ -116,15 +123,40 @@ void NeuralNet::forwardPass(Batch &batch) {
     }
 }
 
+void NeuralNet::reShapeDL(size_t currBatchSize) {
+    vector<size_t> lossShape = layers.back()->getOutput().getShape();
+    lossShape[0] = currBatchSize;
+    dL.reShape(lossShape);
+}
+
+void NeuralNet::revertReShapeDL() {
+    vector<size_t> lossShape = layers.back()->getOutput().getShape();
+    lossShape[0] = maxBatchSize;
+    dL.reShape(lossShape);
+}
+
 void NeuralNet::backprop(Batch &batch, float learningRate) {
-    Tensor outputGradients = loss->calculateGradient(batch.getTargets(),layers.back()->getOutput());
+    if (batch.getSize() < maxBatchSize) {
+        reShapeDL(batch.getSize());
+    }
+
+    loss->calculateGradient(batch.getTargets(),layers.back()->getOutput(), dL);
     size_t numLayers = (int) layers.size();
     
+    Tensor *grad = &dL;
     for (int i = numLayers - 1; i >= 0; i--) {
         bool isFirstLayer = (i == 0);
-        const Tensor &prevActivations = ((i == 0) ? batch.getData() : layers[i-1]->getOutput());
-        layers[i]->backprop(prevActivations, learningRate, outputGradients, isFirstLayer);
-        outputGradients = layers[i]->getOutputGradient();
+        const Tensor &prevActivations = ((i == 0) 
+            ? batch.getData() 
+            : layers[i-1]->getOutput());
+
+        layers[i]->backprop(prevActivations, learningRate, *grad, isFirstLayer);
+
+        grad = &layers[i]->getOutputGradient();
+    }
+
+    if (batch.getSize() < maxBatchSize) {
+        revertReShapeDL();
     }
 }
 

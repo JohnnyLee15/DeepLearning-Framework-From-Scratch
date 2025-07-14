@@ -1,7 +1,11 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-value"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#include <stb/stb_image_resize.h>
+#pragma clang diagnostic pop
 
 #include "utils/ImageTransform2D.h"
-#include "stb/stb_image_resize.h"
 #include "utils/ConsoleUtils.h"
 
 const float ImageTransform2D::MAX_COLOUR_VALUE = 255.0;

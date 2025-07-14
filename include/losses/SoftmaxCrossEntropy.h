@@ -11,10 +11,15 @@ class SoftmaxCrossEntropy : public Loss {
 
     public:
         // Methods
-        Tensor calculateGradient(const vector<float>&, const Tensor&) const override;
-        float calculateTotalLoss(const vector<float>&, const Tensor&) const override;
+        void calculateGradient(const Tensor&, const Tensor&, Tensor&) const override;
+        float calculateTotalLoss(const Tensor&, const Tensor&) const override;
         uint32_t getEncoding() const override;
 
         // Static Methods
         static void checkInvalidGradientCall();
+
+        // Gpu
+        #ifdef __OBJC__
+            void calculateGradient(const Tensor&, const Tensor&, Tensor&) const override;
+        #endif
 };

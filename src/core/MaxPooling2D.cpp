@@ -1,6 +1,5 @@
 #include "core/MaxPooling2D.h"
 #include "utils/ConsoleUtils.h"
-#include "utils/VectorUtils.h"
 
 MaxPooling2D::MaxPooling2D(
     size_t kRows,

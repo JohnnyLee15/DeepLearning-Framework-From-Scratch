@@ -26,6 +26,7 @@ class Layer {
         virtual uint32_t getEncoding() const = 0;
         virtual void build(const vector<size_t>&);
         virtual vector<size_t> getBuildOutShape(const vector<size_t>&) const = 0;
+        virtual void downloadOutputFromGpu();
 
         size_t getMaxBatchSize() const;
 

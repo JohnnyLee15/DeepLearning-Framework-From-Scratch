@@ -6,6 +6,9 @@
 
 class GpuEngine {
     private:
+        // Static Variables
+        static bool usingGpu;
+
         #ifdef __OBJC__
             // Static Variables:
             static id<MTLDevice> gpuDevice;
@@ -21,18 +24,26 @@ class GpuEngine {
             static id<MTLComputePipelineState> addToRowsPipeline;
 
             static id<MTLComputePipelineState> hadamardPipeline;
-            static id<MTLComputePipelineState> scalePipeline;
-            static id<MTLComputePipelineState> addPipeline;
+            static id<MTLComputePipelineState> applyGradPipeline;
+
+            static id<MTLComputePipelineState> calculateLinearGradPipeline;
+            static id<MTLComputePipelineState> calculateReluGradPipeline;
+
+            static id<MTLComputePipelineState> calculateMSEGradPipeline;
+            static id<MTLComputePipelineState> calculateSoftmaxCrossEntropyPipeline;
+
+            static id<MTLCommandBuffer> lastCmdBuf;
 
             // Static Methods
             static void initLib();
             static void initPipe(const char*, id<MTLComputePipelineState>&);
             static void initAllPipes();
+            static void setLastCmdBuf(id<MTLCommandBuffer>);
         #endif
 
     public:
-        // Static Variables
-        static bool usingGpu;
+
+        static bool isUsingGpu();
 
         #ifdef __OBJC__
             // Static Methods
@@ -50,8 +61,15 @@ class GpuEngine {
             static id<MTLComputePipelineState> getAddToRowsPipe();
 
             static id<MTLComputePipelineState> getHadamardPipe();
-            static id<MTLComputePipelineState> getScalePipe();
-            static id<MTLComputePipelineState> getAddPipe();
+            static id<MTLComputePipelineState> getApplyGradPipe();
+
+            static id<MTLComputePipelineState> getCalculateLinearGradPipie();
+            static id<MTLComputePipelineState> getCalculateReluGradPipe();
+
+            static id<MTLComputePipelineState> getCalculateMSEGradPipie();
+            static id<MTLComputePipelineState> getCalculateSoftmaxCrossEntropyGradPipe();
+
+            static id<MTLCommandBuffer> getLastCmdBuf();
         #endif
 };
 

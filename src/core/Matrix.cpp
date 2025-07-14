@@ -43,7 +43,7 @@ void Matrix::checkSameShape(
 }
 
 void Matrix::mm(const Matrix &mat2, Tensor &prod) const {
-    if (GpuEngine::usingGpu) {
+    if (GpuEngine::isUsingGpu()) {
         #ifdef __OBJC__
             mmGpu(mat2, prod);
         #endif
@@ -74,7 +74,7 @@ void Matrix::mm(const Matrix &mat2, Tensor &prod) const {
 }
 
 void Matrix::mmT(const MatrixT &mat2, Tensor &prod) const {
-    if (GpuEngine::usingGpu) {
+    if (GpuEngine::isUsingGpu()) {
         #ifdef __OBJC__
             mmTGpu(mat2, prod);
         #endif
@@ -105,7 +105,7 @@ void Matrix::mmT(const MatrixT &mat2, Tensor &prod) const {
 }
 
 void Matrix::colSums(Tensor &vec) const {
-    if (GpuEngine::usingGpu) {
+    if (GpuEngine::isUsingGpu()) {
         #ifdef __OBJC__
             colSumsGpu(vec);
         #endif
@@ -138,7 +138,7 @@ void Matrix::colSums(Tensor &vec) const {
 }
 
 void Matrix::addToRows(const Tensor &vec) {
-    if (GpuEngine::usingGpu) {
+    if (GpuEngine::isUsingGpu()) {
         #ifdef __OBJC__
             addToRowsGpu(vec);
         #endif

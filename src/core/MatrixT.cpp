@@ -17,7 +17,7 @@ const vector<float>& MatrixT::getFlat() const {
 }
 
 void MatrixT::mTm(const Matrix &mat2, Tensor &prod) const {
-    if (GpuEngine::usingGpu) {
+    if (GpuEngine::isUsingGpu()) {
         #ifdef __OBJC__
             mTmGpu(mat2, prod);
         #endif
@@ -46,7 +46,7 @@ void MatrixT::mTm(const Matrix &mat2, Tensor &prod) const {
 }
 
 void MatrixT::mTmT(const MatrixT &mat2, Tensor &prod) const {
-    if (GpuEngine::usingGpu) {
+    if (GpuEngine::isUsingGpu()) {
         #ifdef __OBJC__
             mTmTGpu(mat2, prod);
         #endif

@@ -24,13 +24,19 @@ Tensor Linear::initBias(size_t numBiases) const {
 
 
 void Linear::calculateGradient(const Tensor &z, Tensor &dZ) const {
-    size_t size = z.getSize();
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __OBJC__
+            calculateGradientGpu(z, dZ);
+        #endif
+    } else {
+        size_t size = z.getSize();
 
-    vector<float> &dzFlat = dZ.getFlat();
-    
-    #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        dzFlat[i] = 1;
+        vector<float> &dzFlat = dZ.getFlat();
+        
+        #pragma omp parallel for
+        for (size_t i = 0; i < size; i++) {
+            dzFlat[i] = 1;
+        }
     }
 }
 

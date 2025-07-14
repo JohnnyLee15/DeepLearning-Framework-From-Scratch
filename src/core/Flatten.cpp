@@ -42,6 +42,9 @@ Tensor Flatten::getOutputGradient() const {
 
 void Flatten::build(const vector<size_t> &givenShape) {
     checkInputSize(givenShape);
+
+    Layer::build(inShape);
+
     inShape = givenShape;
     outShape = getBuildOutShape(givenShape);
 }
@@ -55,7 +58,7 @@ vector<size_t> Flatten::getBuildOutShape(const vector<size_t> &givenShape) const
         flatSize *= givenShape[i];
     }
 
-    return {givenShape[0], flatSize};
+    return {getMaxBatchSize(), flatSize};
 }
 
 void Flatten::writeBin(ofstream &modelBin) const {}

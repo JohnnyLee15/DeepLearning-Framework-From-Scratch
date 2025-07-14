@@ -28,6 +28,8 @@ void Conv2D::checkBuildSize(const vector<size_t> &inShape) const {
 void Conv2D::build(const vector<size_t> &inShape) {
     checkBuildSize(inShape);
 
+    Layer::build(inShape);
+
     size_t batchSize = inShape[0];
     size_t inRows = inShape[1];
     size_t inCols = inShape[2];
@@ -95,7 +97,7 @@ vector<size_t> Conv2D::getBuildOutShape(const vector<size_t> &inShape) const {
     checkBuildSize(inShape);
     Tensor dummy(inShape);
     WindowDims win = dummy.computeInputWindow(kRows, kCols, padding, stride);
-    return {0, win.outRows, win.outCols, numKernals};
+    return {getMaxBatchSize(), win.outRows, win.outCols, numKernals};
 }
 
 void Conv2D::forward(const Tensor &input) {
@@ -124,11 +126,8 @@ void Conv2D::backprop(
     Tensor dW = prevActProcessed.conv2dWeights(grad, numKernals, kRows, kCols, stride);
     grad.reduceSumBias(dB);
 
-    dW.scale(scaleFactor);
-    dB.scale(scaleFactor);
-
-    kernals.add(dW);
-    biases.add(dB);
+    kernals.applyGrad(dW, scaleFactor);
+    biases.applyGrad(dB, scaleFactor);
 
     if (stride > 1) {
         grad = grad.gradUpsample(stride);
