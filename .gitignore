@@ -1,4 +1,3 @@
 DataFiles/
 **/.DS_Store
 .vscode
-**/stb_*.h

@@ -1,6 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 
-#include "utils/stb_image.h"
+#include "stb/stb_image.h"
 #include <fstream>
 #include <filesystem>
 #include <iostream>
@@ -42,7 +42,7 @@ int main() {
     ImageTransform2D *transformer = new ImageTransform2D(64,64,1);
 
     string trainPath = "DataFiles/chest_xray/train";
-    vector<double> trainFeaturesRaw;
+    vector<float> trainFeaturesRaw;
     vector<string> trainTargetsRaw;
     size_t numTrainSamples = 0;
 
@@ -73,7 +73,7 @@ int main() {
                 ConsoleUtils::fatalError("Could not load image: " + imgPath);
             }
 
-            vector<double> processed = transformer->transform(input, h, w, c);
+            vector<float> processed = transformer->transform(input, h, w, c);
             trainFeaturesRaw.insert(trainFeaturesRaw.end(), processed.begin(), processed.end());
             trainTargetsRaw.push_back(label);
             numTrainSamples++;
@@ -84,7 +84,7 @@ int main() {
     cout << "DONE TRAIN" << endl;
 
     string testPath = "DataFiles/chest_xray/test";
-    vector<double> testFeaturesRaw;
+    vector<float> testFeaturesRaw;
     vector<string> testTargetsRaw;
     size_t numTestSamples = 0;
     for (const auto &labelDir : fs::directory_iterator(testPath)) {
@@ -103,7 +103,7 @@ int main() {
                 ConsoleUtils::fatalError("Could not load image: " + imgPath);
             }
 
-            vector<double>  processed = transformer->transform(input, h, w, c);
+            vector<float>  processed = transformer->transform(input, h, w, c);
             testFeaturesRaw.insert(testFeaturesRaw.end(), processed.begin(), processed.end());
             testTargetsRaw.push_back(label);
             numTestSamples++;
@@ -122,8 +122,8 @@ int main() {
     data.setTrainTargets(trainTargetsRaw);
     data.setTestTargets(testTargetsRaw);
 
-    const vector<double> &yTrain = data.getTrainTargets();
-    const vector<double> &yTest = data.getTestTargets();
+    const vector<float> &yTrain = data.getTrainTargets();
+    const vector<float> &yTest = data.getTestTargets();
 
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
@@ -149,7 +149,7 @@ int main() {
     );
 
     Tensor output = nn.predict(xTest);
-    vector<double> preds = TrainingUtils::getPredictions(output);
-    double accuracy = TrainingUtils::getAccuracy(yTest, preds);
+    vector<float> preds = TrainingUtils::getPredictions(output);
+    float accuracy = TrainingUtils::getAccuracy(yTest, preds);
     cout << "Accuracy: " << accuracy << endl;
 }

@@ -24,7 +24,7 @@ void Batch::setBatchIndices(
 
 void Batch::setBatch(
     const Tensor &train,
-    const vector<double> &trainLabels
+    const vector<float> &trainLabels
 ) {
     const vector<size_t> &trainShape = train.getShape();
     vector<size_t> batchShape = trainShape;
@@ -36,8 +36,8 @@ void Batch::setBatch(
         elementSize *= batchShape[i];
     }
 
-    vector<double> &batchFlat = data.getFlat();
-    const vector<double> &trainFlat = train.getFlat();
+    vector<float> &batchFlat = data.getFlat();
+    const vector<float> &trainFlat = train.getFlat();
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
         size_t rdIdx = indices[i];
@@ -53,7 +53,7 @@ const Tensor& Batch::getData() const {
     return data;
 }
 
-const vector<double>& Batch::getTargets() const {
+const vector<float>& Batch::getTargets() const {
     return targets;
 }
 

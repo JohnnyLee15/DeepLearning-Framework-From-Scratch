@@ -3,31 +3,67 @@ UNAME_S := $(shell uname -s)
 
 # Defaults
 CXX := g++
-CXXFLAGS := -std=c++17 -Iinclude -Wall -fopenmp -O3 -march=native -funroll-loops -ffast-math
+CXXFLAGS := -std=c++17 \
+			-isystem include/stb \
+			-Iinclude \
+			-Wall -fopenmp -O3 -march=native -funroll-loops -ffast-math
 LDFLAGS := -fopenmp
 
-# macOS-specific paths (Homebrew LLVM + libomp)
+# Source files: always .cpp
+SRC := $(shell find src -name '*.cpp')
+
+# macOS specifics
 ifeq ($(UNAME_S), Darwin)
-    CXX := /opt/homebrew/opt/llvm/bin/clang++
-    CXXFLAGS += -I/opt/homebrew/opt/libomp/include
-    LDFLAGS := -L/opt/homebrew/opt/libomp/lib -lomp
+	SYSROOT  := $(shell xcrun --show-sdk-path)
+	CXX      := /opt/homebrew/opt/llvm/bin/clang++
+	CXXFLAGS += -isysroot $(SYSROOT) -I/opt/homebrew/opt/libomp/include
+    LDFLAGS  := -isysroot $(SYSROOT) -L/opt/homebrew/opt/libomp/lib -lomp \
+                -framework Metal -framework Foundation
+
+	# Add Metal files
+	METAL_SRC := $(shell find src/metal -name '*.metal')
+	METAL_AIR := $(METAL_SRC:.metal=.air)
+	METAL_LIB := CoreKernels.metallib
+
+	# Add .mm files too
+	SRC += $(shell find src -name '*.mm')
 endif
 
-# CPP files
-SRC := $(shell find src -name '*.cpp')
+# Objects from final SRC
 OBJ := $(SRC:.cpp=.o)
+OBJ += $(SRC:.mm=.o)
+
 TARGET := mlp
 
 # Main
 all: $(TARGET)
 
+ifeq ($(UNAME_S), Darwin)
+$(TARGET): $(OBJ) $(METAL_LIB)
+	$(CXX) $(OBJ) -o $(TARGET) $(LDFLAGS)
+else
 $(TARGET): $(OBJ)
 	$(CXX) $(OBJ) -o $(TARGET) $(LDFLAGS)
+endif
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Clean
-clean:
-	rm -f $(TARGET) $(OBJ)
 
+ifeq ($(UNAME_S), Darwin)
+%.o: %.mm
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.air: %.metal
+	xcrun -sdk macosx metal -c $< -o $@
+
+$(METAL_LIB): $(METAL_AIR)
+	xcrun -sdk macosx metallib $^ -o $@
+endif
+
+# # Clean
+# clean:
+# 	rm -f $(TARGET) $(OBJ)
+# 	@if [ "$(UNAME_S)" = "Darwin" ]; then \
+# 		rm -f $(METAL_AIR) $(METAL_LIB); \
+# 	fi

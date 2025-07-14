@@ -6,14 +6,14 @@ class ProgressMAPE : public ProgressMetric {
         static const string NAME;
 
         size_t numNonZeroTargets;
-        double runningSum;
+        float runningSum;
 
-        double computeMAPE(const vector<double>&, const vector<double>&);
+        float computeMAPE(const vector<float>&, const vector<float>&);
         
     public:
         ProgressMAPE(size_t);
         string getName() const override;
         void init() override;
-        void update(const Batch&, const Loss*, const Tensor&, double) override;
-        double calculate() const override;
+        void update(const Batch&, const Loss*, const Tensor&, float) override;
+        float calculate() const override;
 };

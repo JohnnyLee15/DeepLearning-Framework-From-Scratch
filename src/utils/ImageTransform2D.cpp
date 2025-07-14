@@ -1,17 +1,17 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 
 #include "utils/ImageTransform2D.h"
-#include "utils/stb_image_resize.h"
+#include "stb/stb_image_resize.h"
 #include "utils/ConsoleUtils.h"
 
-const double ImageTransform2D::MAX_COLOUR_VALUE = 255.0;
+const float ImageTransform2D::MAX_COLOUR_VALUE = 255.0;
 
 ImageTransform2D::ImageTransform2D(int height, int width, int channels) :
     height(height), width(width), channels(channels) {}
 
 ImageTransform2D::ImageTransform2D() {}
 
-vector<double> ImageTransform2D::transform(
+vector<float> ImageTransform2D::transform(
     const unsigned char *input,
     int origHeight,
     int origWidth,
@@ -24,10 +24,10 @@ vector<double> ImageTransform2D::transform(
         channels
     );
 
-    vector<double> normalized(height * width * channels);
+    vector<float> normalized(height * width * channels);
     size_t size = height * width * channels;
     for (size_t i = 0; i < size; i++) {
-        normalized[i] = (double) resized[i] / MAX_COLOUR_VALUE;
+        normalized[i] = (float) resized[i] / MAX_COLOUR_VALUE;
     }
 
     return normalized;

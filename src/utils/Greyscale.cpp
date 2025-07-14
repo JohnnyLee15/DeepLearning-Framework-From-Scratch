@@ -4,16 +4,16 @@
 #include "utils/ConsoleUtils.h"
 #include <omp.h>
 
-const double Greyscale::MAX_GREYSCALE_VALUE = 255.0;
+const float Greyscale::MAX_GREYSCALE_VALUE = 255.0;
 
 Tensor Greyscale::transform(const Tensor &data) const {
     checkFitted();
 
     Tensor transformed(data.getShape());
-    vector<double> &transformedFlat = transformed.getFlat();
+    vector<float> &transformedFlat = transformed.getFlat();
 
     size_t size = data.getSize();
-    const vector<double> &dataFlat = data.getFlat();
+    const vector<float> &dataFlat = data.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
@@ -27,10 +27,10 @@ Tensor Greyscale::reverseTransform(const Tensor &data) const {
     checkFitted();
 
     Tensor transformed(data.getShape());
-    vector<double> &transformedFlat = transformed.getFlat();
+    vector<float> &transformedFlat = transformed.getFlat();
 
     size_t size = data.getSize();
-    const vector<double> &dataFlat = data.getFlat();
+    const vector<float> &dataFlat = data.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
@@ -47,16 +47,16 @@ void Greyscale::throwDataFormatError() const {
     );
 }
 
-void Greyscale::fit(const vector<double> &data) {
+void Greyscale::fit(const vector<float> &data) {
     throwDataFormatError();
 }
 
-vector<double> Greyscale::transform(const vector<double> &data) const {
+vector<float> Greyscale::transform(const vector<float> &data) const {
     throwDataFormatError();
     return {};
 }
 
-vector<double> Greyscale::reverseTransform(const vector<double> &data) const {
+vector<float> Greyscale::reverseTransform(const vector<float> &data) const {
     throwDataFormatError();
     return {};
 }

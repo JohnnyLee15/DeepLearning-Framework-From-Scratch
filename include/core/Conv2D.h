@@ -15,11 +15,16 @@ class Conv2D : public Layer {
         size_t numKernals;
         size_t kRows;
         size_t kCols;
+
         Tensor kernals;
         Tensor activations;
         Tensor preActivations;
-        Tensor dZ;
-        vector<double> biases;
+        Tensor dB;
+        Tensor dW;
+        Tensor dA;
+        Tensor dX;
+        Tensor biases;
+
         Activation *activation;
         Tensor::Paddings padding;
         size_t stride;
@@ -34,7 +39,7 @@ class Conv2D : public Layer {
     public:
         Conv2D(size_t, size_t, size_t, size_t, const string&, Activation*);
         void forward(const Tensor&) override;
-        void backprop(const Tensor&, double, const Tensor&, bool) override;
+        void backprop(const Tensor&, float, Tensor&, bool) override;
         const Tensor& getOutput() const override;
         Tensor getOutputGradient() const override;
         void build(const vector<size_t>&) override;

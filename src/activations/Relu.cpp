@@ -2,41 +2,45 @@
 #include <algorithm>
 #include "core/Tensor.h"
 
-const double ReLU::RELU_BIAS = 0.01;
+const float ReLU::RELU_BIAS = 0.01;
 
-Tensor ReLU::activate(const Tensor& z) const{
+void ReLU::activate(const Tensor &z, Tensor &a) const{
     size_t size = z.getSize();
-    const vector<double> &zFlat = z.getFlat();
-    Tensor activations(z.getShape());
-    vector<double> &activationsFlat = activations.getFlat();
+    const vector<float> &zFlat = z.getFlat();
+    vector<float> &aFlat = a.getFlat();
     
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        activationsFlat[i] = max(0.0, zFlat[i]);
+        aFlat[i] = max(0.0f, zFlat[i]);
     }
-    return activations;
 }
 
-vector<double> ReLU::initBias(size_t numBiases) const {
-    return vector<double>(numBiases, RELU_BIAS);
+Tensor ReLU::initBias(size_t numBiases) const {
+    Tensor biases({numBiases});
+    vector<float> &biasFlat = biases.getFlat();
+
+    #pragma omp parallel for
+    for (size_t i = 0; i < numBiases; i++) {
+        biasFlat[i] = RELU_BIAS;
+    }
+
+    biases.uploadToGpu();
+    return biases;
 }
 
-Tensor ReLU::calculateGradient(const Tensor &preActivations) const {
-    size_t size = preActivations.getSize();
-    const vector<double> &preFlat = preActivations.getFlat();
-
-    Tensor gradients(preActivations.getShape());
-    vector<double> &gradientsFlat = gradients.getFlat();
+void ReLU::calculateGradient(const Tensor &z, Tensor &dZ) const {
+    size_t size = z.getSize();
+    const vector<float> &preFlat = z.getFlat();
+    vector<float> &dzFlat = dZ.getFlat();
     
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
         if (preFlat[i] > 0) {
-            gradientsFlat[i] = 1;
+            dzFlat[i] = 1.0;
         } else {
-            gradientsFlat[i] = 0;
+            dzFlat[i] = 0.0;
         }
     }
-    return gradients;
 }
 
 uint32_t ReLU::getEncoding() const {

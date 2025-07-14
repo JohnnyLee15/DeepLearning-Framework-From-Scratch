@@ -31,7 +31,7 @@ vector<size_t> MaxPooling2D::getBuildOutShape(const vector<size_t> &inShape) con
 
     Tensor dummy(inShape);
     WindowDims win = dummy.computeInputWindow(kRows, kCols, padding, stride);
-    return {0, win.outRows, win.outCols, inShape[3]};
+    return {getMaxBatchSize(), win.outRows, win.outCols, inShape[3]};
 }
 
 void MaxPooling2D::forward(const Tensor &input) {
@@ -43,8 +43,8 @@ void MaxPooling2D::forward(const Tensor &input) {
 
 void MaxPooling2D::backprop(
     const Tensor &prevActivations,
-    double learningRate,
-    const Tensor &outputGradients,
+    float learningRate,
+    Tensor &outputGradients,
     bool isFirstLayer
 ) {
     // Add error checking

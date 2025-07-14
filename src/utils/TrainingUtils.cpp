@@ -3,10 +3,10 @@
 #include "core/Matrix.h"
 #include <cmath>
 
-const double TrainingUtils::GRADIENT_THRESHOLD = 1.0;
+const float TrainingUtils::GRADIENT_THRESHOLD = 1.0;
 
-double TrainingUtils::getAccuracy(const vector<double> &labels, const vector<double> &predictions) {
-    double correct = 0;
+float TrainingUtils::getAccuracy(const vector<float> &labels, const vector<float> &predictions) {
+    float correct = 0;
     size_t size = labels.size();
 
     for (size_t i = 0; i < size; i++) {
@@ -17,24 +17,24 @@ double TrainingUtils::getAccuracy(const vector<double> &labels, const vector<dou
     return correct/predictions.size();
 }
 
-double TrainingUtils::clipDerivative(double gradient) {
-    double clip = 0.0;
+float TrainingUtils::clipDerivative(float gradient) {
+    float clip = 0.0;
     if (!isnan(gradient)) {
         clip = max(-GRADIENT_THRESHOLD, min(GRADIENT_THRESHOLD, gradient));
     }
     return clip;
 }
 
-double TrainingUtils::getPrediction(
-    const vector<double> &probsFlat,
+float TrainingUtils::getPrediction(
+    const vector<float> &probsFlat,
     size_t row,
     size_t numCols
 ) {
-    double prediction = -1.0;
-    double maxProb = -1;
+    float prediction = -1.0;
+    float maxProb = -1;
 
     for (size_t j = 0; j < numCols; j++) {
-        double prob = probsFlat[row * numCols + j];
+        float prob = probsFlat[row * numCols + j];
         if (prob > maxProb) {
             prediction = j;
             maxProb = prob;
@@ -44,12 +44,12 @@ double TrainingUtils::getPrediction(
     return prediction;
 }
 
-vector<double> TrainingUtils::getPredictions(const Tensor &probs) {
+vector<float> TrainingUtils::getPredictions(const Tensor &probs) {
     Matrix probsMat = probs.M();
     size_t numRows = probsMat.getNumRows();
     size_t numCols = probsMat.getNumCols();
-    vector<double> predictions(numRows);
-    const vector<double> &probsFlat = probs.getFlat();
+    vector<float> predictions(numRows);
+    const vector<float> &probsFlat = probs.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < numRows; i++) {
@@ -60,17 +60,17 @@ vector<double> TrainingUtils::getPredictions(const Tensor &probs) {
 }
 
 
-double TrainingUtils::getRMSE(
+float TrainingUtils::getRMSE(
     const Tensor &predicted,
-    const vector<double> &actual
+    const vector<float> &actual
 ) {
-    const vector<double> &predictedFlat = predicted.getFlat();
+    const vector<float> &predictedFlat = predicted.getFlat();
     size_t size = predictedFlat.size();
     // check size
 
-    double total = 0.0;
+    float total = 0.0;
     for (size_t i = 0; i < size; i++) {
-        double diff = (predictedFlat[i] - actual[i]);
+        float diff = (predictedFlat[i] - actual[i]);
         total += (diff * diff);
     }
 

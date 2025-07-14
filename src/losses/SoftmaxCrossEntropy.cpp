@@ -4,18 +4,18 @@
 #include "utils/ConsoleUtils.h"
 #include <cmath>
 
-const double SoftmaxCrossEntropy::CROSS_ENTROPY_EPSILON = 1e-10;
+const float SoftmaxCrossEntropy::CROSS_ENTROPY_EPSILON = 1e-10;
 
-double SoftmaxCrossEntropy::calculateTotalLoss(
-    const vector<double> &labels,
+float SoftmaxCrossEntropy::calculateTotalLoss(
+    const vector<float> &labels,
     const Tensor &probs
 ) const {
     Matrix probsMat = probs.M();
     size_t numRows = probsMat.getNumRows();
     size_t numCols = probsMat.getNumCols();
 
-    double totalLoss = 0.0;
-    const vector<double> &probsFlat = probs.getFlat();
+    float totalLoss = 0.0;
+    const vector<float> &probsFlat = probs.getFlat();
 
     #pragma omp parallel for reduction(+:totalLoss)
     for (size_t i = 0; i < numRows; i++) {
@@ -25,12 +25,12 @@ double SoftmaxCrossEntropy::calculateTotalLoss(
     return totalLoss;
 }
 
-double SoftmaxCrossEntropy::calculateDerivative(
-    double prob,
+float SoftmaxCrossEntropy::calculateDerivative(
+    float prob,
     size_t col,
     size_t labelIdx
 ) const {
-    double value;
+    float value;
     if (col == labelIdx) {
         value = TrainingUtils::clipDerivative(prob - 1);
     } else {
@@ -41,7 +41,7 @@ double SoftmaxCrossEntropy::calculateDerivative(
 }
 
 Tensor SoftmaxCrossEntropy::calculateGradient(
-    const vector<double> &labels, 
+    const vector<float> &labels, 
     const Tensor &activations
 ) const {
     Matrix actMat = activations.M();
@@ -49,8 +49,8 @@ Tensor SoftmaxCrossEntropy::calculateGradient(
     size_t numCols = actMat.getNumCols();
 
     Tensor gradients({numRows, numCols});
-    vector<double> &gradientsFlat = gradients.getFlat();
-    const vector<double> &activationsFlat = activations.getFlat();
+    vector<float> &gradientsFlat = gradients.getFlat();
+    const vector<float> &activationsFlat = activations.getFlat();
 
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {

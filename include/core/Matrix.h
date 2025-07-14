@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <core/Tensor.h>
+#include "core/GpuEngine.h"
 
 class MatrixT;
 
@@ -19,16 +20,37 @@ class Matrix {
         // Methods
         size_t getNumCols() const;
         size_t getNumRows() const;
-        Tensor operator *(const Matrix&) const;
-        Tensor operator *(const MatrixT&) const;
+        void mm(const Matrix&, Tensor&) const;
+        void mmT(const MatrixT&, Tensor&) const;
+        void colSums(Tensor&) const;
+        void addToRows(const Tensor&);
         MatrixT T() const;
-        vector<double> operator *(const vector<double>&) const;
-        vector<double> colSums() const;
-        void addToRows(const vector<double>&);
-        const vector<double>& getFlat() const;
+
+        const vector<float>& getFlat() const;
 
         // Static Methods
         static void checkSizeMatch(size_t, size_t);
         static void checkSameShape(size_t, size_t, size_t, size_t, const string&);
-        
+
+
+        // GPU
+        #ifdef __OBJC__
+            // Static Methods
+            static void matMatEngine(
+                id<MTLBuffer>,
+                id<MTLBuffer>,
+                id<MTLBuffer>,
+                size_t,
+                size_t,
+                size_t,
+                id<MTLComputePipelineState>
+            );
+
+            // Instance Methods
+            void mmGpu(const Matrix&, Tensor&) const;
+            void mmTGpu(const MatrixT&, Tensor&) const;
+            void colSumsGpu(Tensor&) const;
+            void addToRowsGpu(const Tensor&);
+            id<MTLBuffer> getGpuData() const;
+        #endif
 };

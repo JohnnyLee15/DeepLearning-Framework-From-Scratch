@@ -10,8 +10,8 @@ class Data {
     public:
         virtual const Tensor& getTrainFeatures() const = 0;
         virtual const Tensor& getTestFeatures() const = 0;
-        virtual const vector<double>& getTrainTargets() const = 0;
-        virtual const vector<double>& getTestTargets() const = 0;
+        virtual const vector<float>& getTrainTargets() const = 0;
+        virtual const vector<float>& getTestTargets() const = 0;
         virtual size_t getNumTrainSamples() const = 0;
         virtual void writeBin(ofstream&) const;
         virtual void loadFromBin(ifstream&) = 0;

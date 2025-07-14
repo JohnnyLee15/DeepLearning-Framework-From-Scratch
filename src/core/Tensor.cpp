@@ -1,8 +1,8 @@
 #include "core/Tensor.h"
 #include "utils/ConsoleUtils.h"
 #include "core/Matrix.h"
-#include "utils/VectorUtils.h"
 #include "utils/CsvUtils.h"
+#include <limits>
 
 const string Tensor::PADDING_NONE = "none";
 const string Tensor::PADDING_SAME = "same";
@@ -15,11 +15,12 @@ Tensor::Tensor(const vector<size_t> &shape) : shape(shape) {
             size *= shape[i];
         }
 
-        data = vector<double>(size, 0.0);
+        data = vector<float>(size, 0.0);
+        initGpuTensor();
     }
 }
 
-Tensor::Tensor(const vector<vector<double> > &mat) {
+Tensor::Tensor(const vector<vector<float> > &mat) {
     size_t numRows = mat.size();
     size_t numCols = 0;
     if (numRows > 0) {
@@ -27,19 +28,49 @@ Tensor::Tensor(const vector<vector<double> > &mat) {
     }
 
     shape = {numRows, numCols};
-    data = vector<double>(numRows * numCols, 0.0);
+    data = vector<float>(numRows * numCols, 0.0);
     #pragma omp parallel for collapse(2)
     for (size_t i = 0; i < numRows; i++) {
         for (size_t j = 0; j < numCols; j++) {
             data[i * numCols + j] = mat[i][j];
         }
     }
+
+    initGpuTensor();
 }
 
-Tensor::Tensor(const vector<double> &data, const vector<size_t> &shape) :
-    shape(shape), data(data) {}
+Tensor::Tensor(const vector<float> &data, const vector<size_t> &shape) :
+    shape(shape), data(data) {
+    initGpuTensor();
+}
 
 Tensor::Tensor() {}
+
+void Tensor::initGpuTensor() {
+    if (GpuEngine::usingGpu) {
+        #ifdef __OBJC__
+            initGpuTensorMm();
+        #endif
+    }
+}
+
+void Tensor::uploadToGpu() {
+    if (GpuEngine::usingGpu) {
+        #ifdef __OBJC__
+            uploadToGpuMm();
+        #endif
+    }
+}
+
+
+void Tensor::downloadFromGpu() {
+    if (GpuEngine::usingGpu) {
+        #ifdef __OBJC__
+            downloadFromGpuMm();
+        #endif
+    }
+}
+
 
 Tensor Tensor::reShape(const vector<size_t> &newShape) const {
     Tensor reshaped = *this;
@@ -47,11 +78,15 @@ Tensor Tensor::reShape(const vector<size_t> &newShape) const {
     return reshaped;
 }
 
-const vector<double>& Tensor::getFlat() const {
+void Tensor::reshape(const vector<size_t> &newShape) {
+    shape = newShape;
+}
+
+const vector<float>& Tensor::getFlat() const {
     return data;
 }
 
-vector<double>& Tensor::getFlat() {
+vector<float>& Tensor::getFlat() {
     return data;
 }
 
@@ -161,7 +196,7 @@ Tensor Tensor::padWindowInput(
     size_t newCols = inCols + win.padCols;
 
     Tensor padded({numSamples, newRows, newCols, depth});
-    vector<double> &padFlat = padded.data;
+    vector<float> &padFlat = padded.data;
 
     #pragma omp parallel for collapse(4)
     for (size_t n = 0; n < numSamples; n++) {
@@ -193,7 +228,7 @@ Tensor Tensor::conv2dForward(
     const Tensor &kernals,
     const WindowDims &win,
     size_t stride,
-    const vector<double> &biases
+    const Tensor &biases
 ) const {
     // Add error checking
 
@@ -208,9 +243,10 @@ Tensor Tensor::conv2dForward(
     size_t inDepth = shape[3];
 
     Tensor output = Tensor({numSamples, win.outRows, win.outCols, outDepth});
-    vector<double> &outFlat = output.data;
-    const vector<double> &inFlat = data;
-    const vector<double> &kernalsFlat = kernals.data;
+    vector<float> &outFlat = output.data;
+    const vector<float> biasFlat = biases.data;
+    const vector<float> &inFlat = data;
+    const vector<float> &kernalsFlat = kernals.data;
 
     #pragma omp parallel for collapse(4)
     for (size_t n = 0; n < numSamples; n++) {
@@ -218,7 +254,7 @@ Tensor Tensor::conv2dForward(
             for (size_t c = 0; c < win.outCols; c++) {
                 for (size_t o = 0; o < outDepth; o++) {
 
-                    double value = 0.0;
+                    float value = 0.0;
                     for (size_t i = 0; i < kRows; i++) {
                         size_t inRow = r*stride + i;
 
@@ -234,7 +270,7 @@ Tensor Tensor::conv2dForward(
                     }
 
                     size_t outIdx = (((n * win.outRows + r) * win.outCols + c) * outDepth) + o;
-                    outFlat[outIdx] = value + (biases.empty() ? 0.0 : biases[o]);
+                    outFlat[outIdx] = value + (biasFlat.empty() ? 0.0 : biasFlat[o]);
                 }
             }
         }
@@ -260,8 +296,8 @@ Tensor Tensor::maxPool2d(
     vector<size_t> outShape = {batchSize, win.outRows, win.outCols, inDepth};
     Tensor pooled= Tensor(outShape);
     maxIndices.assign(pooled.getSize(), SIZE_MAX);
-    const vector<double> &inFlat = data;
-    vector<double> &outFlat = pooled.data;
+    const vector<float> &inFlat = data;
+    vector<float> &outFlat = pooled.data;
 
     #pragma omp parallel for collapse(4)
     for (size_t b = 0; b < batchSize; b++) {
@@ -269,7 +305,7 @@ Tensor Tensor::maxPool2d(
             for (size_t c = 0; c < win.outCols; c++) {
                 for (size_t d = 0; d < inDepth; d++) {
 
-                    double maxVal = -VectorUtils::INF;
+                    float maxVal = -numeric_limits<float>::infinity();
                     size_t maxIdx = SIZE_MAX;
                     size_t maxInRow = SIZE_MAX;
                     size_t maxInCol = SIZE_MAX;
@@ -329,8 +365,8 @@ Tensor Tensor::conv2dWeights(
 
     Tensor dW = Tensor({numKernals, kRows, kCols, inDepth});
 
-    const vector<double> &gradFlat = grad.data;
-    vector<double> &dwFlat = dW.data;
+    const vector<float> &gradFlat = grad.data;
+    vector<float> &dwFlat = dW.data;
 
     #pragma omp parallel for collapse(4)
     for (size_t k = 0; k < numKernals; k++) {
@@ -338,7 +374,7 @@ Tensor Tensor::conv2dWeights(
             for (size_t j = 0; j < kCols; j++) {
                 for (size_t d = 0; d < inDepth; d++) {
 
-                    double value = 0.0;
+                    float value = 0.0;
                     for (size_t n = 0; n < batchSize; n++) {
                         for (size_t r = 0; r < gradRows; r++) {
                             size_t inRow = r * stride + i;
@@ -363,17 +399,17 @@ Tensor Tensor::conv2dWeights(
     return dW;
 }
 
-vector<double> Tensor::reduceSumBias() const {
+void Tensor::reduceSumBias(Tensor &dB) const {
     size_t batchSize = shape[0];
     size_t gradRows = shape[1];
     size_t gradCols = shape[2];
     size_t numKernals = shape[3];
 
-    vector<double> dB(numKernals);
-
+    vector<float> &dbFlat = dB.getFlat();
+    fill(dbFlat.begin(), dbFlat.end(), 0.0f);
     #pragma omp parallel
     {
-        vector<double> localDB(numKernals);
+        vector<float> localDB(numKernals);
 
         #pragma omp for collapse(4)
         for (size_t k = 0; k < numKernals; k++) {
@@ -390,12 +426,10 @@ vector<double> Tensor::reduceSumBias() const {
         #pragma omp critical
         {
             for (size_t k = 0; k < numKernals; k++) {
-                dB[k] += localDB[k];
+                dbFlat[k] += localDB[k];
             }
         }
     }
-
-    return dB;
 }
 
 Tensor Tensor::gradUpsample(size_t stride) const{ 
@@ -408,7 +442,7 @@ Tensor Tensor::gradUpsample(size_t stride) const{
     size_t upCols = stride * (gradCols - 1) + 1;
 
     Tensor up({batchSize, upRows, upCols, numKernals});
-    vector<double> &upFlat = up.data;
+    vector<float> &upFlat = up.data;
 
     #pragma omp parallel for collapse(2)
     for (size_t n = 0; n < batchSize; n++) {
@@ -448,9 +482,9 @@ Tensor Tensor::conv2dInput(
 
     Tensor dX = Tensor({numSamples, dxRows, dxCols, inDepth});
 
-    const vector<double> &gradFlat = data;
-    const vector<double> &kFlat = kernals.data;
-    vector<double> &dxFlat = dX.data;
+    const vector<float> &gradFlat = data;
+    const vector<float> &kFlat = kernals.data;
+    vector<float> &dxFlat = dX.data;
 
     #pragma omp parallel for collapse(4)
     for (size_t n = 0; n < numSamples; n++) {
@@ -458,7 +492,7 @@ Tensor Tensor::conv2dInput(
             for (size_t c = 0; c < dxCols; c++) {
                 for (size_t d = 0; d < inDepth; d++) {
 
-                    double value = 0.0;
+                    float value = 0.0;
                     for (size_t i = 0; i < kRows; i++) {
                         size_t gradRow = r + i;
                         size_t flipI = kRows - 1 - i;
@@ -491,8 +525,8 @@ Tensor Tensor::maxPool2dGrad(
     const vector<size_t> &maxIndices
 ) const {
     Tensor dZ = Tensor(shape);
-    vector<double> &dzFlat = dZ.data;
-    const vector<double> &gradFlat = grad.getFlat();
+    vector<float> &dzFlat = dZ.data;
+    const vector<float> &gradFlat = grad.getFlat();
     
     size_t gradSize = grad.getSize();
     
@@ -508,43 +542,54 @@ Tensor Tensor::maxPool2dGrad(
     return dZ;
 }
 
-Tensor& Tensor::operator *=(const Tensor &ten2) {
+void Tensor::hadamard(const Tensor &ten2) {
     // Add error checking
-    size_t size = getSize();
-    
-    const vector<double> &ten2Flat = ten2.data;
-    
-    #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        data[i] *= ten2Flat[i];
+    if (GpuEngine::usingGpu) {
+        #ifdef __OBJC__
+            hadamardGpu(ten2);
+        #endif
+    } else {
+        size_t size = getSize();
+        
+        const vector<float> &ten2Flat = ten2.data;
+        
+        #pragma omp parallel for
+        for (size_t i = 0; i < size; i++) {
+            data[i] *= ten2Flat[i];
+        }
     }
-
-    return *this;
 }
 
-Tensor& Tensor::operator *=(double scaleFactor){
-    size_t size = getSize();
+void Tensor::scale(float scaleFactor){
+    if (GpuEngine::usingGpu) {
+        #ifdef __OBJC__
+            scaleGpu(scaleFactor);
+        #endif
+    } else {
+        size_t size = getSize();
 
-    #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        data[i] *= scaleFactor;
+        #pragma omp parallel for
+        for (size_t i = 0; i < size; i++) {
+            data[i] *= scaleFactor;
+        }
     }
-
-    return *this;
 }
 
-Tensor& Tensor::operator +=(const Tensor &ten2) {
+void Tensor::add(const Tensor &ten2) {
     // Add error checking
+    if (GpuEngine::usingGpu) {
+        #ifdef __OBJC__
+            addGpu(scaleFactor);
+        #endif
+    } else {
+        size_t size = getSize();
+        const vector<float> &ten2Flat = ten2.data;
 
-    size_t size = getSize();
-    const vector<double> &ten2Flat = ten2.data;
-
-    #pragma omp parallel for
-    for (size_t i = 0; i < size; i++) {
-        data[i] += ten2Flat[i];
+        #pragma omp parallel for
+        for (size_t i = 0; i < size; i++) {
+            data[i] += ten2Flat[i];
+        }
     }
-
-    return *this;
 }
 
 

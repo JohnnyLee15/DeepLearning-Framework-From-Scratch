@@ -15,7 +15,7 @@ class Flatten : public Layer {
 
     public:
         void forward(const Tensor&) override;
-        void backprop(const Tensor&, double, const Tensor&, bool) override;
+        void backprop(const Tensor&, float, Tensor&, bool) override;
         const Tensor& getOutput() const override;
         Tensor getOutputGradient() const override;
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;

@@ -5,14 +5,14 @@
 class SoftmaxCrossEntropy : public Loss {
     private:
         // Constants
-        static const double CROSS_ENTROPY_EPSILON;
+        static const float CROSS_ENTROPY_EPSILON;
         // Methods
-        double calculateDerivative(double, size_t, size_t) const;
+        float calculateDerivative(float, size_t, size_t) const;
 
     public:
         // Methods
-        Tensor calculateGradient(const vector<double>&, const Tensor&) const override;
-        double calculateTotalLoss(const vector<double>&, const Tensor&) const override;
+        Tensor calculateGradient(const vector<float>&, const Tensor&) const override;
+        float calculateTotalLoss(const vector<float>&, const Tensor&) const override;
         uint32_t getEncoding() const override;
 
         // Static Methods

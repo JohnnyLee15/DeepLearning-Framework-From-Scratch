@@ -9,9 +9,9 @@ using namespace std;
 class Activation {
     public:
         // Methods
-        virtual Tensor activate(const Tensor&) const = 0;
-        virtual Tensor calculateGradient(const Tensor&) const = 0;
-        virtual vector<double> initBias(size_t) const = 0;
+        virtual void activate(const Tensor&, Tensor&) const = 0;
+        virtual void calculateGradient(const Tensor&, Tensor&) const = 0;
+        virtual Tensor initBias(size_t) const = 0;
         virtual ~Activation() = default;
         virtual bool isFused() const;
         virtual uint32_t getEncoding() const = 0;

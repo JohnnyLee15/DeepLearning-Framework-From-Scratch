@@ -21,15 +21,15 @@ void Flatten::forward(const Tensor &input) {
 
 void Flatten::backprop(
     const Tensor &prevActivations,
-    double learningRate,
-    const Tensor &outputGradients,
+    float learningRate,
+    Tensor &grad,
     bool isFirstLayer
 ) {
     // Add error checking
     (void)prevActivations;
     (void)learningRate;
     (void)isFirstLayer;
-    dZ = outputGradients.reShape(inShape);
+    dZ = grad.reShape(inShape);
 }
 
 const Tensor& Flatten::getOutput() const {

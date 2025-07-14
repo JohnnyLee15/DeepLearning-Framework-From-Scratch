@@ -2,27 +2,36 @@
 #include <algorithm>
 #include "core/Tensor.h"
 
-const double Linear::LINEAR_BIAS = 0.01;
+const float Linear::LINEAR_BIAS = 0.01;
 
-Tensor Linear::activate(const Tensor& z) const{
-    return z;
+void Linear::activate(const Tensor& z, Tensor &a) const {
+    memcpy(a.getFlat().data(), z.getFlat().data(), z.getSize() * sizeof(float));
 }
 
-vector<double> Linear::initBias(size_t numBiases) const {
-    return vector<double>(numBiases, LINEAR_BIAS);
+
+Tensor Linear::initBias(size_t numBiases) const {
+    Tensor biases({numBiases});
+    vector<float> &biasFlat = biases.getFlat();
+
+    #pragma omp parallel for
+    for (size_t i = 0; i < numBiases; i++) {
+        biasFlat[i] = LINEAR_BIAS;
+    }
+
+    biases.uploadToGpu();
+    return biases;
 }
 
-Tensor Linear::calculateGradient(const Tensor &preActivations) const {
-    size_t size = preActivations.getSize();
 
-    Tensor gradients(preActivations.getShape());
-    vector<double> &gradientsFlat = gradients.getFlat();
+void Linear::calculateGradient(const Tensor &z, Tensor &dZ) const {
+    size_t size = z.getSize();
+
+    vector<float> &dzFlat = dZ.getFlat();
     
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
-        gradientsFlat[i] = 1;
+        dzFlat[i] = 1;
     }
-    return gradients;
 }
 
 uint32_t Linear::getEncoding() const {

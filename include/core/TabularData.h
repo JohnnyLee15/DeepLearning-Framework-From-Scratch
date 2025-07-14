@@ -20,11 +20,11 @@ class TabularData : public Data {
 
         Tensor trainFeatures;
         Tensor testFeatures;
-        vector<double> trainTargets;
-        vector<double> testTargets;
+        vector<float> trainTargets;
+        vector<float> testTargets;
 
         vector<bool> isCategorical;
-        vector<unordered_map<string, double> > featureEncodings;
+        vector<unordered_map<string, float> > featureEncodings;
 
         unordered_map<string, int> labelMap;
 
@@ -36,7 +36,7 @@ class TabularData : public Data {
 
         // Methods
         void readCsv(const string&, bool, size_t, const string&, bool);
-        void setData(const Tensor&, vector<double>&, bool);
+        void setData(const Tensor&, vector<float>&, bool);
         void head(size_t, const Tensor&) const;
         void checkTrainLoaded() const;
         void checkTestLoaded() const;
@@ -44,7 +44,7 @@ class TabularData : public Data {
         size_t getColIdx(const string&) const;
         vector<string> validateAndLoadCsv(const string&, bool);
         Tensor readFeatures(const vector<vector<string> >&);
-        vector<double> readTargets(const vector<string>&);
+        vector<float> readTargets(const vector<string>&);
         
     public:
         // Constructors
@@ -59,8 +59,8 @@ class TabularData : public Data {
         // void readAllData(string, int, float);
         const Tensor& getTrainFeatures() const override;
         const Tensor& getTestFeatures() const override;
-        const vector<double>& getTrainTargets() const override;
-        const vector<double>& getTestTargets() const override;
+        const vector<float>& getTrainTargets() const override;
+        const vector<float>& getTestTargets() const override;
         size_t getNumTrainSamples() const override;
         void headTrain(size_t numRows = 6) const;
         void headTest(size_t numRows = 6) const;

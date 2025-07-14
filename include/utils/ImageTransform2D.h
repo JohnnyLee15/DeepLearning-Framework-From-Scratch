@@ -11,12 +11,12 @@ class ImageTransform2D {
         int width;
         int channels;
 
-        static const double MAX_COLOUR_VALUE;
+        static const float MAX_COLOUR_VALUE;
 
     public:
         ImageTransform2D(int, int, int);
         ImageTransform2D();
-        vector<double> transform(const unsigned char*, int, int, int) const;
+        vector<float> transform(const unsigned char*, int, int, int) const;
         int getHeight() const;
         int getWidth() const;
         int getChannels() const;

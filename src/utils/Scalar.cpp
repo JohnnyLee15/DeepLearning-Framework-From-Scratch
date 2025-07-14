@@ -5,7 +5,7 @@ void Scalar::fit(const Tensor &data) {
     fitted = true;
 }
 
-void Scalar::fit(const vector<double> &data) {
+void Scalar::fit(const vector<float> &data) {
     fitted = true;
 }
 

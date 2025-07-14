@@ -86,12 +86,12 @@ const Tensor& TabularData::getTestFeatures() const {
     return testFeatures;
 }
 
-const vector<double>& TabularData::getTrainTargets() const {
+const vector<float>& TabularData::getTrainTargets() const {
     checkTrainLoaded();
     return trainTargets;
 }
 
-const vector<double>& TabularData::getTestTargets() const {
+const vector<float>& TabularData::getTestTargets() const {
     checkTestLoaded();
     return testTargets;
 }
@@ -111,7 +111,7 @@ void TabularData::headTest(size_t numRows) const {
     head(numRows, testFeatures);
 }
 
-void TabularData::setData(const Tensor &features, vector<double> &target, bool isTrainData) {
+void TabularData::setData(const Tensor &features, vector<float> &target, bool isTrainData) {
     if (isTrainData) {
         trainFeatures = features;
         trainTargets = target;
@@ -144,7 +144,7 @@ void TabularData::head(
     const Tensor &mat
 ) const {
     Matrix newMat = mat.M();
-    const vector<double> &matFlat = mat.getFlat();
+    const vector<float> &matFlat = mat.getFlat();
     size_t matRows = newMat.getNumRows();
     size_t matCols = newMat.getNumCols();
     size_t displayCols = min(matCols, MAX_DISPLAY_COLS);
@@ -214,13 +214,13 @@ void TabularData::readCsv(
     parseRawData(featuresRaw, targetsRaw, lines, targetIdx);
 
     Tensor features = readFeatures(featuresRaw);
-    vector<double> target = readTargets(targetsRaw);
+    vector<float> target = readTargets(targetsRaw);
 
     setData(features, target, isTrainData);
     ConsoleUtils::printSepLine();
 }
 
-vector<double> TabularData::readTargets(const vector<string> &targetsRaw) {
+vector<float> TabularData::readTargets(const vector<string> &targetsRaw) {
     ConsoleUtils::loadMessage("Extracting Targets.");
     if (task == REGRESSION_TASK) {
         return TargetEncoder::getRegressionTarget(targetsRaw);
@@ -230,7 +230,7 @@ vector<double> TabularData::readTargets(const vector<string> &targetsRaw) {
         labelMap = TargetEncoder::createLabelMap(targetsRaw);
     }
 
-    vector<double> targets = TargetEncoder::getClassificationTarget(targetsRaw, labelMap);
+    vector<float> targets = TargetEncoder::getClassificationTarget(targetsRaw, labelMap);
     ConsoleUtils::completeMessage();
     return targets;
 }
@@ -280,11 +280,11 @@ void TabularData::writeBin(ofstream &modelBin) const {
     for (uint32_t i = 0; i < numCatCols; i++) {
         uint32_t mapSize = featureEncodings[i].size();
         modelBin.write((char*) &mapSize, sizeof(uint32_t));
-        for (const pair<const string, double> &pair : featureEncodings[i]) {
+        for (const pair<const string, float> &pair : featureEncodings[i]) {
             uint32_t keyLen = pair.first.size();
             modelBin.write((char*) &keyLen, sizeof(uint32_t));
             modelBin.write(pair.first.c_str(), keyLen);
-            modelBin.write((char*) &pair.second, sizeof(double));
+            modelBin.write((char*) &pair.second, sizeof(float));
         }
     }
 
@@ -333,7 +333,7 @@ void TabularData::loadFromBin(ifstream &modelBin) {
     uint32_t numCatCols;
     modelBin.read((char*) &numCatCols, sizeof(uint32_t));
     for (uint32_t i = 0; i < numCatCols; i++) {
-        featureEncodings.push_back(unordered_map<string, double>());
+        featureEncodings.push_back(unordered_map<string, float>());
         uint32_t mapSize;
         modelBin.read((char*) &mapSize, sizeof(uint32_t));
 
@@ -344,8 +344,8 @@ void TabularData::loadFromBin(ifstream &modelBin) {
             string key(keyLen, '\0');
             modelBin.read(key.data(), keyLen);
 
-            double value;
-            modelBin.read((char*) &value, sizeof(double));
+            float value;
+            modelBin.read((char*) &value, sizeof(float));
 
             featureEncodings[i][key] = value;
         }

@@ -31,20 +31,20 @@ const Loss* NeuralNet::getLoss() const {
 
 void NeuralNet::fit(
     const Tensor &features,
-    const vector<double> &targets,
-    double learningRate,
-    double learningDecay,
+    const vector<float> &targets,
+    float learningRate,
+    float learningDecay,
     size_t numEpochs,
     size_t batchSize,
     ProgressMetric &metric
 ) {
-    build(features);
-    double initialLR = learningRate;
+    build(batchSize, features);
+    float initialLR = learningRate;
     avgLosses.resize(numEpochs);
     for (size_t k = 0; k < numEpochs; k++) {
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
 
-        double avgLoss = runEpoch(features, targets, learningRate, batchSize, metric);
+        float avgLoss = runEpoch(features, targets, learningRate, batchSize, metric);
 
         avgLosses[k] = avgLoss;
         learningRate = initialLR/(1 + learningDecay*k);
@@ -52,20 +52,23 @@ void NeuralNet::fit(
     ConsoleUtils::printSepLine();
 }
 
-void NeuralNet::build(const Tensor &features) {
+void NeuralNet::build(size_t batchSize, const Tensor &features) {
     size_t numLayers = layers.size();
 
+    maxBatchSize = batchSize;
     vector<size_t> inShape = features.getShape();
+    inShape[0] = maxBatchSize;
+
     for (size_t i = 0; i < numLayers; i++) {
         layers[i]->build(inShape);
         inShape = layers[i]->getBuildOutShape(inShape);
     }
 }
 
-double NeuralNet::runEpoch(
+float NeuralNet::runEpoch(
     const Tensor &features,
-    const vector<double> &targets,
-    double learningRate,
+    const vector<float> &targets,
+    float learningRate,
     size_t batchSize,
     ProgressMetric &metric
 ) {
@@ -79,7 +82,7 @@ double NeuralNet::runEpoch(
         Batch batch = makeBatch(start, end, features, targets, shuffledIndices);
 
         forwardPass(batch);
-        double batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getOutput());
+        float batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getOutput());
         backprop(batch, learningRate);
         metric.update(batch, loss, layers.back()->getOutput(), batchTotalLoss);
         ConsoleUtils::printProgressBar(metric);
@@ -92,7 +95,7 @@ Batch NeuralNet::makeBatch(
     size_t start,
     size_t end,
     const Tensor &features,
-    const vector<double> &targets,
+    const vector<float> &targets,
     const vector<size_t> &shuffledIndices
 ) const {
     size_t batchSize = end - start;
@@ -113,7 +116,7 @@ void NeuralNet::forwardPass(Batch &batch) {
     }
 }
 
-void NeuralNet::backprop(Batch &batch, double learningRate) {
+void NeuralNet::backprop(Batch &batch, float learningRate) {
     Tensor outputGradients = loss->calculateGradient(batch.getTargets(),layers.back()->getOutput());
     size_t numLayers = (int) layers.size();
     

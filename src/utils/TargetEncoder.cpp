@@ -1,11 +1,11 @@
 #include "utils/TargetEncoder.h"
 #include "utils/ConsoleUtils.h"
 
-vector<double> TargetEncoder::getRegressionTarget(
+vector<float> TargetEncoder::getRegressionTarget(
     const vector<string> &targetRaw
 ) {
     size_t numSamples = targetRaw.size();
-    vector<double> target(numSamples);
+    vector<float> target(numSamples);
 
     #pragma omp parallel for
     for (size_t i = 0; i < numSamples; i++) {
@@ -38,12 +38,12 @@ unordered_map<string, int> TargetEncoder::createLabelMap(
     return labelMap;
 }
 
-vector<double> TargetEncoder::getClassificationTarget(
+vector<float> TargetEncoder::getClassificationTarget(
     const vector<string> &targetRaw,
     const unordered_map<string, int> &labelMap
 ) {
     size_t numSamples = targetRaw.size();
-    vector<double> target(numSamples);
+    vector<float> target(numSamples);
 
     #pragma omp parallel for
     for (size_t i = 0; i < numSamples; i++) {

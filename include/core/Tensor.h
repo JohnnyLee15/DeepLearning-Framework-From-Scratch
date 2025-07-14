@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <vector>
+#include "core/GpuEngine.h"
 
 class Matrix;
 
@@ -19,7 +20,16 @@ class Tensor {
     private:
         // Instance Variables
         vector<size_t> shape;
-        vector<double> data;
+        vector<float> data;
+        
+        // GPU Instance Variables
+        #ifdef __OBJC__
+            id<MTLBuffer> dataGpu;
+        #endif
+
+
+        // GPU Methods
+        void initGpuTensor();
 
     public:
         // Enums
@@ -34,16 +44,16 @@ class Tensor {
 
         // Constructors
         Tensor(const vector<size_t>&);
-        Tensor(const vector<vector<double> >&);
-        Tensor(const vector<double>&, const vector<size_t>&);
+        Tensor(const vector<vector<float> >&);
+        Tensor(const vector<float>&, const vector<size_t>&);
         Tensor();
 
         // Methods
         const vector<size_t>& getShape() const;
-        const vector<double>& getFlat() const;
+        const vector<float>& getFlat() const;
 
-        vector<double>& getFlat();
-        vector<double> reduceSumBias() const;
+        vector<float>& getFlat();
+        void reduceSumBias(Tensor&) const;
 
         size_t getSize() const;
         size_t getRank() const;
@@ -53,7 +63,7 @@ class Tensor {
         WindowDims computeGradWindow(size_t, size_t, size_t, size_t, size_t, const WindowDims&) const;
 
         Tensor padIfNeeded(const WindowDims&, Tensor::Paddings) const;
-        Tensor conv2dForward(const Tensor&, const WindowDims&, size_t, const vector<double>& biases = {}) const;
+        Tensor conv2dForward(const Tensor&, const WindowDims&, size_t, const Tensor& biases = Tensor()) const;
         Tensor conv2dWeights(const Tensor&, size_t, size_t, size_t, size_t) const;
         Tensor conv2dInput(const Tensor&) const;
         Tensor reShape(const vector<size_t>&) const;
@@ -62,9 +72,28 @@ class Tensor {
         Tensor maxPool2d(const WindowDims&, vector<size_t>&, size_t, size_t, size_t, Tensor::Paddings) const;
         Tensor maxPool2dGrad(const Tensor&, const vector<size_t>&) const;
 
-        Tensor& operator *= (const Tensor&);
-        Tensor& operator *= (double);
-        Tensor& operator += (const Tensor&);
+        void hadamard(const Tensor&);
+        void scale(float);
+        void add(const Tensor&);
+
+        void uploadToGpu();
+        void downloadFromGpu();
+
+        void reshape(const vector<size_t>&);
+
         // Static methods
         static Paddings decodePadding(const string&);
+
+        // Gpu Methods
+        #ifdef __OBJC__
+            id<MTLBuffer> getGpuData() const;
+
+            void initGpuTensorMm();
+            void uploadToGpuMm();
+            void downloadFromGpuMm();
+
+            void hadamardGpu(const Tensor&);
+            void scaleGpu(float);
+            void addGpu(const Tensor&);
+        #endif
 };

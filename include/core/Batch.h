@@ -13,7 +13,7 @@ class Batch {
         // Instance Variables
         size_t batchSize;
         vector<size_t> indices;
-        vector<double> targets;
+        vector<float> targets;
         Tensor data;
 
     public:
@@ -21,10 +21,10 @@ class Batch {
         Batch(size_t, size_t);
 
         // Methods
-        void setBatch(const Tensor&, const vector<double> &);
+        void setBatch(const Tensor&, const vector<float> &);
         void setBatchIndices(size_t, size_t, const vector<size_t>&);
         const Tensor& getData() const;
-        const vector<double>& getTargets() const;
+        const vector<float>& getTargets() const;
         size_t getSize() const;
         const vector<size_t>& getIndices() const;
 };

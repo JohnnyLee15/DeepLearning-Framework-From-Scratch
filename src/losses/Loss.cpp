@@ -1,5 +1,5 @@
 #include "losses/Loss.h"
 
-double Loss::formatLoss(double avgLoss) const {
+float Loss::formatLoss(float avgLoss) const {
     return avgLoss;
 }

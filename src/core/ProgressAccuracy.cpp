@@ -22,21 +22,21 @@ void ProgressAccuracy::update(
     const Batch &batch,
     const Loss *loss,
     const Tensor &outputActivations,
-    double batchTotalLoss
+    float batchTotalLoss
 ) {
     ProgressMetric::update(batch, loss, outputActivations, batchTotalLoss);
 
     size_t batchSize = batch.getSize();
     Matrix probsMat = outputActivations.M();
     size_t numCols = probsMat.getNumCols();
-    const vector<double> &probsFlat = outputActivations.getFlat();
+    const vector<float> &probsFlat = outputActivations.getFlat();
     const vector<size_t> &indices = batch.getIndices();
-    const vector<double> &batchTargets = batch.getTargets();
+    const vector<float> &batchTargets = batch.getTargets();
     size_t localCorrect = 0;
 
     #pragma omp parallel for reduction(+:localCorrect)
     for (size_t i = 0; i < batchSize; i++) {
-        double prediction = TrainingUtils::getPrediction(probsFlat, i, numCols);
+        float prediction = TrainingUtils::getPrediction(probsFlat, i, numCols);
         predictions[indices[i]] = prediction;
 
         if (prediction == batchTargets[i]) {
@@ -47,10 +47,10 @@ void ProgressAccuracy::update(
     correctPredictions += localCorrect;
 }
 
-double ProgressAccuracy::calculate() const {
+float ProgressAccuracy::calculate() const {
     if (getSamplesProcessed() == 0) {
         return 0.0;
     }
 
-    return 100 * (double) correctPredictions/getSamplesProcessed();
+    return 100 * (float) correctPredictions/getSamplesProcessed();
 }

@@ -3,7 +3,6 @@
 #include <random>
 #include <omp.h>
 #include "utils/ConsoleUtils.h"
-#include "utils/VectorUtils.h"
 
 Conv2D::Conv2D(
     size_t numKernals, 
@@ -28,10 +27,28 @@ void Conv2D::checkBuildSize(const vector<size_t> &inShape) const {
 
 void Conv2D::build(const vector<size_t> &inShape) {
     checkBuildSize(inShape);
-    size_t depth = inShape[3];
-    kernals = Tensor({numKernals, kRows, kCols, depth});
+
+    size_t batchSize = inShape[0];
+    size_t inRows = inShape[1];
+    size_t inCols = inShape[2];
+    size_t inDepth = inShape[3];
+
+    vector<size_t> outShape = getBuildOutShape(inShape);
+    size_t outRows = outShape[1];
+    size_t outCols = outShape[2];
+
+    kernals = Tensor({numKernals, kRows, kCols, inDepth});
     initKernals();
+
     biases = activation->initBias(numKernals);
+
+    preActivations = Tensor({batchSize, outRows, outCols, numKernals});
+    activations = Tensor({batchSize, outRows, outCols, numKernals});
+
+    dB = Tensor({numKernals});
+    dW = Tensor({numKernals, kRows, kCols, inDepth});
+    dA = Tensor({batchSize, outRows, outCols, numKernals});
+    dX = Tensor({batchSize, inRows, inCols, inDepth});
 }
 
 vector<uint32_t> Conv2D::generateThreadSeeds() const {
@@ -48,15 +65,15 @@ vector<uint32_t> Conv2D::generateThreadSeeds() const {
 void Conv2D::initKernals() {
     const vector<size_t> &kernalsShape = kernals.getShape();
     size_t size = kernals.getSize();
-    double std = sqrt(2.0/(kernalsShape[1] * kernalsShape[2] * kernalsShape[3]));
-    vector<double> &kernalsFlat = kernals.getFlat();
+    float std = sqrt(2.0/(kernalsShape[1] * kernalsShape[2] * kernalsShape[3]));
+    vector<float> &kernalsFlat = kernals.getFlat();
     vector<uint32_t> seeds = generateThreadSeeds();
 
     #pragma omp parallel
     {
         int thread = omp_get_thread_num();
         mt19937 generator(seeds[thread]);
-        normal_distribution<double> distribution(0, std);
+        normal_distribution<float> distribution(0, std);
 
         #pragma omp for
         for (size_t i = 0; i < size; i++) {
@@ -86,40 +103,42 @@ void Conv2D::forward(const Tensor &input) {
     Tensor inputFwd = input.padIfNeeded(win, padding);
 
     preActivations = inputFwd.conv2dForward(kernals, win, stride, biases);
-    activations = activation->activate(preActivations);
+    activation->activate(preActivations, activations);
 }
 
 void Conv2D::backprop(
     const Tensor &prevActivations,
-    double learningRate,
-    const Tensor &outputGradients,
+    float learningRate,
+    Tensor &grad,
     bool isFirstLayer
 ) {
     (void) isFirstLayer;
 
-    double scaleFactor = -learningRate / prevActivations.getShape()[0];
+    float scaleFactor = -learningRate / prevActivations.getShape()[0];
     WindowDims winInput = prevActivations.computeInputWindow(kRows, kCols, padding, stride);
 
-    dZ = outputGradients;
-    dZ *= activation->calculateGradient(preActivations);
+    activation->calculateGradient(preActivations, dA);
+    grad.hadamard(dA);
 
     Tensor prevActProcessed = prevActivations.padIfNeeded(winInput, padding);
-    Tensor dW = prevActProcessed.conv2dWeights(dZ, numKernals, kRows, kCols, stride);
-    kernals += (dW *= scaleFactor);
+    Tensor dW = prevActProcessed.conv2dWeights(grad, numKernals, kRows, kCols, stride);
+    grad.reduceSumBias(dB);
 
-    vector<double> dB = dZ.reduceSumBias();
-    VectorUtils::scaleVecInplace(dB, scaleFactor);
-    VectorUtils::addVecInplace(biases, dB);
+    dW.scale(scaleFactor);
+    dB.scale(scaleFactor);
+
+    kernals.add(dW);
+    biases.add(dB);
 
     if (stride > 1) {
-        dZ = dZ.gradUpsample(stride);
+        grad = grad.gradUpsample(stride);
     }
-    WindowDims winGrad = dZ.computeGradWindow(
+    WindowDims winGrad = grad.computeGradWindow(
         kRows, kCols, prevActProcessed.getShape()[1], 
         prevActProcessed.getShape()[2], stride, winInput
     );
-    dZ = dZ.padWindowInput(winGrad);
-    dZ = dZ.conv2dInput(kernals);
+    grad = grad.padWindowInput(winGrad);
+    dX = grad.conv2dInput(kernals);
 }
 
 
@@ -129,7 +148,7 @@ const Tensor& Conv2D::getOutput() const {
 }
 
 Tensor Conv2D::getOutputGradient() const {
-    return dZ;
+    return dX;
 }
 
 void Conv2D::writeBin(ofstream &modelBin) const {}

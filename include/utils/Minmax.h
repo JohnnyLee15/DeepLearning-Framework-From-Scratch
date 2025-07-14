@@ -4,8 +4,8 @@
 class Minmax : public Scalar {
     private:
         // Instance Variables
-        vector<double> minVals;
-        vector<double> maxVals;
+        vector<float> minVals;
+        vector<float> maxVals;
 
         // Methods
         void checkRank(const Tensor&) const;
@@ -17,9 +17,9 @@ class Minmax : public Scalar {
         Tensor transform(const Tensor&) const override;
         Tensor reverseTransform(const Tensor&) const override;
 
-        void fit(const vector<double>&) override;
-        vector<double> transform(const vector<double>&) const override;
-        vector<double> reverseTransform(const vector<double>&) const override;
+        void fit(const vector<float>&) override;
+        vector<float> transform(const vector<float>&) const override;
+        vector<float> reverseTransform(const vector<float>&) const override;
 
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;

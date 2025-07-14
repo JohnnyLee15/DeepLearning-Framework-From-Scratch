@@ -18,9 +18,9 @@ class Scalar {
         virtual Tensor transform(const Tensor&) const = 0;
         virtual Tensor reverseTransform(const Tensor&) const = 0;
 
-        virtual void fit(const vector<double>&);
-        virtual vector<double> transform(const vector<double>&) const = 0;
-        virtual vector<double> reverseTransform(const vector<double>&) const = 0;
+        virtual void fit(const vector<float>&);
+        virtual vector<float> transform(const vector<float>&) const = 0;
+        virtual vector<float> reverseTransform(const vector<float>&) const = 0;
 
         virtual void reset();
 

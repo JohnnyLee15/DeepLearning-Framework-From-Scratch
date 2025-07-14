@@ -3,19 +3,19 @@
 #include <cassert>
 #include <cmath>
 
-double MSE::calculateTotalLoss(
-    const vector<double>& targets, 
+float MSE::calculateTotalLoss(
+    const vector<float>& targets, 
     const Tensor& activations
 ) const {
-    const vector<double> &actFlat = activations.getFlat();
+    const vector<float> &actFlat = activations.getFlat();
     assert(actFlat.size() == targets.size());
 
     size_t size = actFlat.size();
-    double totalLoss = 0.0;
+    float totalLoss = 0.0;
 
     #pragma omp parallel for reduction(+:totalLoss)
     for (size_t i = 0; i < size; i++) {
-        double diff = targets[i] - actFlat[i];
+        float diff = targets[i] - actFlat[i];
         totalLoss += (diff * diff);
     }
 
@@ -23,17 +23,17 @@ double MSE::calculateTotalLoss(
 }
 
 Tensor MSE::calculateGradient(
-    const vector<double> &targets, 
+    const vector<float> &targets, 
     const Tensor &activations
 ) const {
-    const vector<double> &actFlat = activations.getFlat();
+    const vector<float> &actFlat = activations.getFlat();
     assert(actFlat.size() == targets.size());
 
     size_t size = actFlat.size();
     Tensor gradients({size, 1});
 
-    vector<double> &gradientsFlat = gradients.getFlat();
-    const vector<double> &activationsFlat = activations.getFlat();
+    vector<float> &gradientsFlat = gradients.getFlat();
+    const vector<float> &activationsFlat = activations.getFlat();
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
@@ -43,7 +43,7 @@ Tensor MSE::calculateGradient(
     return gradients;
 }
 
-double MSE::formatLoss(double avgLoss) const {
+float MSE::formatLoss(float avgLoss) const {
     return sqrt(avgLoss);
 }
 

@@ -11,9 +11,9 @@ using namespace std;
 
 class ProgressMetric {
     private:
-        double totalLoss;
-        double avgLoss;
-        double timeElapsed;
+        float totalLoss;
+        float avgLoss;
+        float timeElapsed;
         size_t numSamples;
         std::chrono::steady_clock::time_point startTime;
         string progressMetricName;
@@ -24,13 +24,13 @@ class ProgressMetric {
 
         virtual string getName() const = 0;
         virtual void init();
-        virtual void update(const Batch&, const Loss*, const Tensor&, double);
-        virtual double calculate() const = 0;
+        virtual void update(const Batch&, const Loss*, const Tensor&, float);
+        virtual float calculate() const = 0;
         size_t getSamplesProcessed() const;
-        double getTotalLoss() const;
+        float getTotalLoss() const;
         size_t getNumSamples() const;
-        double getTimeElapsed() const;
-        double getAvgLoss() const;
+        float getTimeElapsed() const;
+        float getAvgLoss() const;
 
         virtual ~ProgressMetric() = default;
 };

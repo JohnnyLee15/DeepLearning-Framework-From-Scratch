@@ -5,4 +5,10 @@ void Layer::writeBin(ofstream &modelBin) const {
     modelBin.write((char*) &layerEncoding, sizeof(uint32_t));
 }
 
-void Layer::build(const vector<size_t> &inShape) {}
+void Layer::build(const vector<size_t> &inShape) {
+    maxBatchSize = inShape[0];
+}
+
+size_t Layer::getMaxBatchSize() const {
+    return maxBatchSize;
+}

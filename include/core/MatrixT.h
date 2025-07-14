@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "core/GpuEngine.h"
 
 class Matrix;
 class Tensor;
@@ -21,8 +22,15 @@ class MatrixT {
         // Methods
         size_t getNumRows() const;
         size_t getNumCols() const;
-        const vector<double>& getFlat() const;
-        Tensor operator *(const Matrix&) const;
-        Tensor operator *(const MatrixT&) const;
+        const vector<float>& getFlat() const;
+        void mTm(const Matrix&, Tensor&) const;
+        void mTmT(const MatrixT&, Tensor&) const;
+
+        // GPU methods
+        #ifdef __OBJC__
+            void mTmGpu(const Matrix&, Tensor&) const;
+            void mTmTGpu(const MatrixT&, Tensor&) const;
+            id<MTLBuffer> getGpuData() const;
+        #endif
 
 };

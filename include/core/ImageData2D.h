@@ -9,10 +9,10 @@
 class ImageData2D : public Data {
     private:
         Tensor trainFeatures;
-        vector<double> trainTargets;
+        vector<float> trainTargets;
 
         Tensor testFeatures;
-        vector<double> testTargets;
+        vector<float> testTargets;
 
         unordered_map<string, int> labelMap;
 
@@ -24,8 +24,8 @@ class ImageData2D : public Data {
 
         const Tensor& getTrainFeatures() const override;
         const Tensor& getTestFeatures() const override;;
-        const vector<double>& getTrainTargets() const override;;
-        const vector<double>& getTestTargets() const override;;
+        const vector<float>& getTrainTargets() const override;;
+        const vector<float>& getTestTargets() const override;;
 
         size_t getNumTrainSamples() const override;
         uint32_t getEncoding() const override;

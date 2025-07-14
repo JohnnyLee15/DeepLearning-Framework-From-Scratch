@@ -33,11 +33,11 @@ const Tensor& ImageData2D::getTestFeatures() const {
     return testFeatures;
 }
 
-const vector<double>& ImageData2D::getTrainTargets() const {
+const vector<float>& ImageData2D::getTrainTargets() const {
     return trainTargets;
 }
 
-const vector<double>& ImageData2D::getTestTargets() const {
+const vector<float>& ImageData2D::getTestTargets() const {
     return testTargets;
 }
 

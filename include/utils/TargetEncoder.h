@@ -7,7 +7,7 @@ using namespace std;
 
 class TargetEncoder {
     public:
-        static vector<double> getClassificationTarget(const vector<string>&, const unordered_map<string, int>&);
-        static vector<double> getRegressionTarget(const vector<string>&);
+        static vector<float> getClassificationTarget(const vector<string>&, const unordered_map<string, int>&);
+        static vector<float> getRegressionTarget(const vector<string>&);
         static unordered_map<string, int> createLabelMap(const vector<string>&);
 };
