@@ -54,7 +54,7 @@ int main() {
     vector<Layer*> layers = {
         new DenseLayer(64, new ReLU()),
         new DenseLayer(32, new ReLU()),
-        new DenseLayer(10, new ReLU())
+        new DenseLayer(10, new Softmax())
     };
 
     NeuralNet *nn = new NeuralNet(layers, loss);

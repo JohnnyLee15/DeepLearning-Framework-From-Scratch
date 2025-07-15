@@ -78,6 +78,8 @@ void DenseLayer::initWeights() {
             weightsFlat[i] = distribution(generator);
         }
     }
+
+    weights.uploadToGpu();
 }
 
 vector<size_t> DenseLayer::getBuildOutShape(const vector<size_t> &inShape) const {
@@ -161,12 +163,19 @@ void DenseLayer::forward(const Tensor &prevActivations) {
     if (prevActivations.getShape()[0] < getMaxBatchSize()) {
         reShapeBatch(prevActivations.getShape()[0]);
     }
-    prevActivations.M().mmT(weights.M().T(), preActivations);
-    preActivations.M().addToRows(biases);
-    activation->activate(preActivations, activations); 
+
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __OBJC__
+            forwardGpu(prevActivations);
+        #endif 
+    } else {
+        prevActivations.M().mmT(weights.M().T(), preActivations);
+        preActivations.M().addToRows(biases);
+        activation->activate(preActivations, activations); 
+    }
 }
 
-const Tensor& DenseLayer::getOutput() const {
+Tensor& DenseLayer::getOutput() {
     return activations;
 }
 
@@ -201,7 +210,7 @@ void DenseLayer::backprop(
 }
 
 
-Tensor DenseLayer::getOutputGradient() const {
+Tensor& DenseLayer::getOutputGradient() {
     return dX;
 }
 

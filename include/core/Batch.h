@@ -23,7 +23,7 @@ class Batch {
         // Methods
         void setBatch(const Tensor&, const vector<float> &);
         void setBatchIndices(size_t, size_t, const vector<size_t>&);
-        const Tensor& getData() const;
+        Tensor& getData();
         const Tensor& getTargets() const;
         size_t getSize() const;
         const vector<size_t>& getIndices() const;

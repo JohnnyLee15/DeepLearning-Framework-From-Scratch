@@ -52,11 +52,11 @@ void MaxPooling2D::backprop(
     dZ = prevActivations.maxPool2dGrad(outputGradients, maxIndices);
 }
 
-const Tensor& MaxPooling2D::getOutput() const {
+Tensor& MaxPooling2D::getOutput() {
     return pooledOutput;
 }
 
-Tensor MaxPooling2D::getOutputGradient() const {
+Tensor& MaxPooling2D::getOutputGradient() {
     return dZ;
 }
 

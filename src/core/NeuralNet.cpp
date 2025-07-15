@@ -87,6 +87,7 @@ float NeuralNet::runEpoch(
         Batch batch = makeBatch(start, end, features, targets, shuffledIndices);
 
         forwardPass(batch);
+        layers.back()->downloadOutputFromGpu();
         float batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getOutput());
         backprop(batch, learningRate);
 
@@ -114,12 +115,12 @@ Batch NeuralNet::makeBatch(
 }
 
 void NeuralNet::forwardPass(Batch &batch) {
-    Tensor prevActivations = batch.getData();
+    Tensor *prevActivations = &batch.getData();
     size_t numLayers = layers.size();
 
     for (size_t j = 0; j < numLayers; j++) {
-        layers[j]->forward(prevActivations);
-        prevActivations = layers[j]->getOutput();
+        layers[j]->forward(*prevActivations);
+        prevActivations = &layers[j]->getOutput();
     }
 }
 

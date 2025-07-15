@@ -23,7 +23,7 @@ void Tensor::uploadToGpuMm() {
 void Tensor::downloadFromGpuMm() {
     id<MTLCommandBuffer> lastBuf = GpuEngine::getLastCmdBuf();
     if (lastBuf) {
-        [lastCmd waitUntilCompleted];
+        [lastBuf waitUntilCompleted];
     }
     memcpy(data.data(), [dataGpu contents], sizeof(float) * data.size());
 }

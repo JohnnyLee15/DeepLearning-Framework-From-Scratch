@@ -19,7 +19,7 @@ kernel void calculateSoftmaxCrossEntropyGrad(
     device const float *a [[ buffer(1) ]],
     device float *dL [[ buffer(2) ]],
     constant uint &numRows [[ buffer(3) ]],
-    constant uint &numCols [[ buffer(4) ]]
+    constant uint &numCols [[ buffer(4) ]],
     uint gid [[thread_position_in_grid]]
 ) {
     if (gid >= numRows * numCols)

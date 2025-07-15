@@ -37,7 +37,7 @@ void Batch::setBatch(
     }
 
     vector<float> &batchFlat = data.getFlat();
-    vector<float> targetsFlat = targets.getFlat();
+    vector<float> &targetsFlat = targets.getFlat();
     const vector<float> &trainFlat = train.getFlat();
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
@@ -50,7 +50,7 @@ void Batch::setBatch(
     }
 }
 
-const Tensor& Batch::getData() const {
+Tensor& Batch::getData() {
     return data;
 }
 

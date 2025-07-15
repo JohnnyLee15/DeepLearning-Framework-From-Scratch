@@ -1,5 +1,6 @@
 #include "utils/ConsoleUtils.h"
 #include "core/GpuEngine.h"
+ #include <iostream>
 
 // Static vars
 id<MTLDevice> GpuEngine::gpuDevice = nil;
@@ -20,7 +21,7 @@ id<MTLComputePipelineState> GpuEngine::applyGradPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateLinearGradPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateReluGradPipeline  = nil;
 
-id<MTLComputePipelineState> GpuEngine::calculateMSEGradPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::calculateMSEGradPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateSoftmaxCrossEntropyGradPipeline  = nil;
 id<MTLCommandBuffer> GpuEngine::lastCmdBuf = nil;
 
@@ -31,13 +32,12 @@ bool GpuEngine::isUsingGpu() {
 }
 
 void GpuEngine::init() {
-    if (usingGpu) return;
-
     gpuDevice = MTLCreateSystemDefaultDevice();
     cmdQueue = [gpuDevice newCommandQueue];
     initLib();
     initAllPipes();
     usingGpu = true;
+    cout << "IN gpu init" << endl;
 }
 
 void GpuEngine::initLib() {
@@ -131,12 +131,8 @@ id<MTLComputePipelineState> GpuEngine::getHadamardPipe() {
     return hadamardPipeline; 
 }
 
-id<MTLComputePipelineState> GpuEngine::getScalePipe() { 
-    return scalePipeline; 
-}
-
-id<MTLComputePipelineState> GpuEngine::getAddPipe() { 
-    return addPipeline; 
+id<MTLComputePipelineState> GpuEngine::getApplyGradPipe() {
+    return applyGradPipeline;
 }
 
 
@@ -160,4 +156,8 @@ id<MTLComputePipelineState> GpuEngine::getCalculateSoftmaxCrossEntropyGradPipe()
 
 void GpuEngine::setLastCmdBuf(id<MTLCommandBuffer> lastBuf) {
     lastCmdBuf = lastBuf;
+}
+
+id<MTLCommandBuffer> GpuEngine::getLastCmdBuf() {
+    return lastCmdBuf;
 }

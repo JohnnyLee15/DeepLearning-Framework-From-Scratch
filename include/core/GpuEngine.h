@@ -30,7 +30,7 @@ class GpuEngine {
             static id<MTLComputePipelineState> calculateReluGradPipeline;
 
             static id<MTLComputePipelineState> calculateMSEGradPipeline;
-            static id<MTLComputePipelineState> calculateSoftmaxCrossEntropyPipeline;
+            static id<MTLComputePipelineState> calculateSoftmaxCrossEntropyGradPipeline;
 
             static id<MTLCommandBuffer> lastCmdBuf;
 
@@ -38,7 +38,6 @@ class GpuEngine {
             static void initLib();
             static void initPipe(const char*, id<MTLComputePipelineState>&);
             static void initAllPipes();
-            static void setLastCmdBuf(id<MTLCommandBuffer>);
         #endif
 
     public:
@@ -63,12 +62,13 @@ class GpuEngine {
             static id<MTLComputePipelineState> getHadamardPipe();
             static id<MTLComputePipelineState> getApplyGradPipe();
 
-            static id<MTLComputePipelineState> getCalculateLinearGradPipie();
+            static id<MTLComputePipelineState> getCalculateLinearGradPipe();
             static id<MTLComputePipelineState> getCalculateReluGradPipe();
 
-            static id<MTLComputePipelineState> getCalculateMSEGradPipie();
+            static id<MTLComputePipelineState> getCalculateMSEGradPipe();
             static id<MTLComputePipelineState> getCalculateSoftmaxCrossEntropyGradPipe();
 
+            static void setLastCmdBuf(id<MTLCommandBuffer>);
             static id<MTLCommandBuffer> getLastCmdBuf();
         #endif
 };

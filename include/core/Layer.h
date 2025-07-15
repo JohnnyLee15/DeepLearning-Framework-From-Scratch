@@ -17,8 +17,8 @@ class Layer {
 
         // Methods
         virtual void forward(const Tensor&) = 0;
-        virtual const Tensor& getOutput() const = 0;
-        virtual Tensor getOutputGradient() const = 0;
+        virtual Tensor& getOutput() = 0;
+        virtual Tensor& getOutputGradient() = 0;
         virtual void backprop(const Tensor&, float, Tensor&, bool) = 0;
         virtual ~Layer() = default;
         virtual void writeBin(ofstream&) const;
@@ -38,4 +38,8 @@ class Layer {
             Flatten,
             None
         };
+
+        #ifdef __OBJC__
+            virtual void forwardGpu(const Tensor&) = 0;
+        #endif
 };

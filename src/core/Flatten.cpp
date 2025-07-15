@@ -32,11 +32,11 @@ void Flatten::backprop(
     dZ = grad.reShape(inShape);
 }
 
-const Tensor& Flatten::getOutput() const {
+Tensor& Flatten::getOutput() {
     return output;
 }
 
-Tensor Flatten::getOutputGradient() const {
+Tensor& Flatten::getOutputGradient() {
     return dZ;
 }
 

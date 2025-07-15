@@ -3,11 +3,11 @@
 #include "core/Layer.h"
 #include <fstream>
 #include <random>
+#include "core/Tensor.h"
 
 class Loss;
 class Activation;
 class Batch;
-class Tensor;
 class ProgressMetric;
 
 using namespace std;

@@ -3,6 +3,7 @@
 #include "core/Matrix.h"
 #include "utils/CsvUtils.h"
 #include <limits>
+#include <iostream>
 
 const string Tensor::PADDING_NONE = "none";
 const string Tensor::PADDING_SAME = "same";
@@ -68,6 +69,26 @@ void Tensor::downloadFromGpu() {
         #ifdef __OBJC__
             downloadFromGpuMm();
         #endif
+    }
+}
+
+void Tensor::print(const string &name) const {
+    cout << name << ": shape=[";
+    for (size_t i = 0; i < shape.size(); ++i) {
+        cout << shape[i];
+        if (i < shape.size() - 1) cout << ", ";
+    }
+    cout << "]\n";
+
+    size_t numRows = shape[0];
+    size_t numCols = (shape.size() > 1) ? shape[1] : 1;
+
+    for (size_t i = 0; i < numRows; ++i) {
+        cout << "[ ";
+        for (size_t j = 0; j < numCols; ++j) {
+            cout << data[i * numCols + j] << " ";
+        }
+        cout << "]\n";
     }
 }
 

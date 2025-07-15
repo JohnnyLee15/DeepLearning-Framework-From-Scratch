@@ -22,8 +22,8 @@ class MaxPooling2D : public Layer {
         MaxPooling2D(size_t, size_t, size_t, const string&);
         void forward(const Tensor&) override;
         void backprop(const Tensor&, float, Tensor&, bool) override;
-        const Tensor& getOutput() const override;
-        Tensor getOutputGradient() const override;
+        Tensor& getOutput() override;
+        Tensor& getOutputGradient() override;
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;

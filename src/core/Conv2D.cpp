@@ -142,11 +142,11 @@ void Conv2D::backprop(
 
 
 
-const Tensor& Conv2D::getOutput() const {
+Tensor& Conv2D::getOutput() {
     return activations;
 }
 
-Tensor Conv2D::getOutputGradient() const {
+Tensor& Conv2D::getOutputGradient() {
     return dX;
 }
 

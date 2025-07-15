@@ -28,7 +28,7 @@ ifeq ($(UNAME_S), Darwin)
 
 	# Add .mm files too
 	MM_SRC := $(shell find src -name '*.mm')
-	MM_OBJ := $(MM_SRC:.mm=.o)
+	MM_OBJ := $(MM_SRC:.mm=_gpu.o)
 
 	OBJ := $(CPP_OBJ) $(MM_OBJ)
 else
@@ -49,12 +49,8 @@ $(TARGET): $(OBJ)
 	$(CXX) $(OBJ) -o $(TARGET) $(LDFLAGS)
 endif
 
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-
 ifeq ($(UNAME_S), Darwin)
-%.o: %.mm
+%_gpu.o: %.mm
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.air: %.metal
@@ -63,6 +59,9 @@ ifeq ($(UNAME_S), Darwin)
 $(METAL_LIB): $(METAL_AIR)
 	xcrun -sdk macosx metallib $^ -o $@
 endif
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Clean
 clean:

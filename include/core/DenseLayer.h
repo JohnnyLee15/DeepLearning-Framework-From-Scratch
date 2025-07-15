@@ -40,8 +40,8 @@ class DenseLayer : public Layer {
 
         // Methods
         void forward(const Tensor&) override;
-        const Tensor& getOutput() const override;
-        Tensor getOutputGradient() const override;
+        Tensor& getOutput() override;
+        Tensor& getOutputGradient() override;
         void backprop(const Tensor&, float, Tensor&, bool) override;
         ~DenseLayer();
         void writeBin(ofstream&) const override;
@@ -52,4 +52,8 @@ class DenseLayer : public Layer {
         void reShapeBatch(size_t);
         void revertBatchReShape();
         void downloadOutputFromGpu() override;
+
+        #ifdef __OBJC__
+            void forwardGpu(const Tensor&) = 0;
+        #endif
 };

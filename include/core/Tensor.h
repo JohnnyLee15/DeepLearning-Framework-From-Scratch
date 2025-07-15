@@ -80,6 +80,8 @@ class Tensor {
 
         void reshape(const vector<size_t>&);
 
+        void print(const string&) const;
+
         // Static methods
         static Paddings decodePadding(const string&);
 
