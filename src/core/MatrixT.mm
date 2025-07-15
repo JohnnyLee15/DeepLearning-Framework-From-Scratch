@@ -8,7 +8,8 @@ id<MTLBuffer> MatrixT::getGpuData() const {
 
 void MatrixT::mTmGpu(
     const Matrix &mat2,
-    Tensor &prod
+    Tensor &prod,
+    id<MTLCommandBuffer> cmdBuf
 ) const {
     Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
     Matrix::matMatEngine(
@@ -18,13 +19,15 @@ void MatrixT::mTmGpu(
         getNumRows(),
         getNumCols(),
         mat2.getNumCols(),
-        GpuEngine::getMatTMatPipe()
+        GpuEngine::getMatTMatPipe(),
+        cmdBuf
     );
 }
 
 void MatrixT::mTmTGpu(
     const MatrixT &mat2,
-    Tensor &prod
+    Tensor &prod,
+    id<MTLCommandBuffer> cmdBuf
 ) const {
     Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
     Matrix::matMatEngine(
@@ -34,6 +37,7 @@ void MatrixT::mTmTGpu(
         getNumRows(),
         getNumCols(),
         mat2.getNumCols(),
-        GpuEngine::getMatTMatTPipe()
+        GpuEngine::getMatTMatTPipe(),
+        cmdBuf
     );
 }

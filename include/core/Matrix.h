@@ -43,14 +43,15 @@ class Matrix {
                 size_t,
                 size_t,
                 size_t,
-                id<MTLComputePipelineState>
+                id<MTLComputePipelineState>, 
+                id<MTLCommandBuffer>
             );
 
             // Instance Methods
-            void mmGpu(const Matrix&, Tensor&) const;
-            void mmTGpu(const MatrixT&, Tensor&) const;
-            void colSumsGpu(Tensor&) const;
-            void addToRowsGpu(const Tensor&);
+            void mmGpu(const Matrix&, Tensor&, id<MTLCommandBuffer>) const;
+            void mmTGpu(const MatrixT&, Tensor&, id<MTLCommandBuffer>) const;
+            void colSumsGpu(Tensor&, id<MTLCommandBuffer>) const;
+            void addToRowsGpu(const Tensor&, id<MTLCommandBuffer>);
             id<MTLBuffer> getGpuData() const;
         #endif
 };

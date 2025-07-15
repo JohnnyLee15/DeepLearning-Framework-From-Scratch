@@ -28,8 +28,8 @@ class MatrixT {
 
         // GPU methods
         #ifdef __OBJC__
-            void mTmGpu(const Matrix&, Tensor&) const;
-            void mTmTGpu(const MatrixT&, Tensor&) const;
+            void mTmGpu(const Matrix&, Tensor&, id<MTLCommandBuffer>) const;
+            void mTmTGpu(const MatrixT&, Tensor&, id<MTLCommandBuffer>) const;
             id<MTLBuffer> getGpuData() const;
         #endif
 

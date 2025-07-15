@@ -1,4 +1,4 @@
-#include "core/DenseLayer.h"
+#include "core/Dense.h"
 #include <cmath>
 #include <omp.h>
 #include "utils/TrainingUtils.h"
@@ -12,23 +12,32 @@
 #include "activations/Softmax.h"
 #include "utils/ConsoleUtils.h"
 
-const float DenseLayer::HE_INT_GAIN = 2.0;
+const float Dense::HE_INT_GAIN = 2.0;
 
-DenseLayer::DenseLayer(size_t numNeurons,  Activation *activation) :
+Dense::Dense(size_t numNeurons,  Activation *activation) :
     numNeurons(numNeurons), activation(activation) {}
 
-DenseLayer::DenseLayer() : activation(nullptr) {}
+Dense::Dense() : activation(nullptr) {}
 
-void DenseLayer::checkBuildSize(const vector<size_t> &inShape) const {
+void Dense::ensureGpu() {
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            weights.uploadToGpu();
+            biases.uploadToGpu();
+        #endif
+    }
+}
+
+void Dense::checkBuildSize(const vector<size_t> &inShape) const {
     if (inShape.size() != 2) {
         ConsoleUtils::fatalError(
-            "DenseLayer build error: Expected 2D input (batch_size, features), "
+            "Dense build error: Expected 2D input (batch_size, features), "
             "but got tensor with " + to_string(inShape.size()) + " dimensions."
         );
     }
 }
 
-void DenseLayer::build(const vector<size_t> &inShape) {
+void Dense::build(const vector<size_t> &inShape) {
     checkBuildSize(inShape);
 
     Layer::build(inShape);
@@ -45,9 +54,11 @@ void DenseLayer::build(const vector<size_t> &inShape) {
     dX = Tensor({batchSize, weightsPerNeuron});
     dA = Tensor({batchSize, numNeurons});
     biases = activation->initBias(numNeurons);
+
+    ensureGpu();
 }
 
-vector<uint32_t> DenseLayer::generateThreadSeeds() const {
+vector<uint32_t> Dense::generateThreadSeeds() const {
     size_t numSeeds = omp_get_max_threads();
     vector<uint32_t> seeds(numSeeds);
     random_device rd;
@@ -58,7 +69,7 @@ vector<uint32_t> DenseLayer::generateThreadSeeds() const {
     return seeds;
 }
 
-void DenseLayer::initWeights() {
+void Dense::initWeights() {
     size_t numRows = weights.M().getNumRows();
     size_t numCols = weights.M().getNumCols();
 
@@ -78,16 +89,14 @@ void DenseLayer::initWeights() {
             weightsFlat[i] = distribution(generator);
         }
     }
-
-    weights.uploadToGpu();
 }
 
-vector<size_t> DenseLayer::getBuildOutShape(const vector<size_t> &inShape) const {
+vector<size_t> Dense::getBuildOutShape(const vector<size_t> &inShape) const {
     checkBuildSize(inShape);
     return {getMaxBatchSize(), numNeurons};
 }
 
-void DenseLayer::writeBin(ofstream& modelBin) const {
+void Dense::writeBin(ofstream& modelBin) const {
     Layer::writeBin(modelBin);
 
     uint32_t activationEncoding = activation->getEncoding();
@@ -105,7 +114,7 @@ void DenseLayer::writeBin(ofstream& modelBin) const {
     modelBin.write((char*) biases.getFlat().data(), biases.getSize() * sizeof(float));
 }
 
-void DenseLayer::loadActivation(ifstream &modelBin) {
+void Dense::loadActivation(ifstream &modelBin) {
     uint32_t activationEncoding;
     modelBin.read((char*) &activationEncoding, sizeof(uint32_t));
 
@@ -122,7 +131,7 @@ void DenseLayer::loadActivation(ifstream &modelBin) {
     }
 }
 
-void DenseLayer::loadFromBin(ifstream &modelBin) {
+void Dense::loadFromBin(ifstream &modelBin) {
     loadActivation(modelBin);
 
     uint32_t numNeuronsRead;
@@ -141,7 +150,7 @@ void DenseLayer::loadFromBin(ifstream &modelBin) {
     modelBin.read((char*) biases.getFlat().data(), biases.getSize() * sizeof(float));
 }
 
-void DenseLayer::reShapeBatch(size_t currBatchSize) {
+void Dense::reShapeBatch(size_t currBatchSize) {
     size_t weightsPerNeuron = weights.getShape()[1];
 
     preActivations.reShapeInPlace({currBatchSize, numNeurons});
@@ -150,27 +159,21 @@ void DenseLayer::reShapeBatch(size_t currBatchSize) {
     dA.reShapeInPlace({currBatchSize, numNeurons});
 }
 
-void DenseLayer::forward(const Tensor &prevActivations) {
+void Dense::forward(const Tensor &prevActivations) {
     if (prevActivations.getShape()[0] != activations.getShape()[0]) {
         reShapeBatch(prevActivations.getShape()[0]);
     }
 
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            forwardGpu(prevActivations);
-        #endif 
-    } else {
-        prevActivations.M().mmT(weights.M().T(), preActivations);
-        preActivations.M().addToRows(biases);
-        activation->activate(preActivations, activations); 
-    }
+    prevActivations.M().mmT(weights.M().T(), preActivations);
+    preActivations.M().addToRows(biases);
+    activation->activate(preActivations, activations); 
 }
 
-Tensor& DenseLayer::getOutput() {
+Tensor& Dense::getOutput() {
     return activations;
 }
 
-void DenseLayer::backprop(
+void Dense::backprop(
     const Tensor &prevActivations,
     float learningRate,
     Tensor &grad,
@@ -197,18 +200,15 @@ void DenseLayer::backprop(
 }
 
 
-Tensor& DenseLayer::getOutputGradient() {
+Tensor& Dense::getOutputGradient() {
     return dX;
 }
 
-DenseLayer::~DenseLayer() {
+Dense::~Dense() {
     delete activation;
 }
 
-uint32_t DenseLayer::getEncoding() const {
-    return Layer::Encodings::DenseLayer;
+uint32_t Dense::getEncoding() const {
+    return Layer::Encodings::Dense;
 }
 
-void DenseLayer::downloadOutputFromGpu() {
-    activations.downloadFromGpu();
-}

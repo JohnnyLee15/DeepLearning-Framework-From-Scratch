@@ -27,10 +27,6 @@ class Tensor {
             id<MTLBuffer> dataGpu;
         #endif
 
-
-        // GPU Methods
-        void initGpuTensor();
-
     public:
         // Enums
         enum Paddings : uint32_t {
@@ -46,11 +42,16 @@ class Tensor {
         Tensor(const vector<size_t>&);
         Tensor(const vector<vector<float> >&);
         Tensor(const vector<float>&, const vector<size_t>&);
+        Tensor(const Tensor&);
         Tensor();
+
+        Tensor& operator =(const Tensor&);
 
         // Methods
         const vector<size_t>& getShape() const;
         const vector<float>& getFlat() const;
+
+        void ensureGpu();
 
         vector<float>& getFlat();
         void reduceSumBias(Tensor&) const;
@@ -75,9 +76,6 @@ class Tensor {
         void hadamard(const Tensor&);
         void applyGrad(const Tensor&, float);
 
-        void uploadToGpu();
-        void downloadFromGpu();
-
         void reShapeInPlace(const vector<size_t>&);
 
         void print(const string&) const;
@@ -86,14 +84,19 @@ class Tensor {
         static Paddings decodePadding(const string&);
 
         // Gpu Methods
+
+        #ifdef __APPLE__
+            void initGpuTensor();
+            void uploadToGpu();
+        #endif
+
         #ifdef __OBJC__
-            id<MTLBuffer> getGpuData() const;
+            id<MTLBuffer> getGpuData();
+            const id<MTLBuffer> getGpuData() const;
 
-            void initGpuTensorMm();
-            void uploadToGpuMm();
-            void downloadFromGpuMm();
+            void downloadFromGpu();
 
-            void hadamardGpu(const Tensor&);
-            void applyGradGpu(const Tensor&, float);
+            void hadamardGpu(const Tensor&, id<MTLCommandBuffer>);
+            void applyGradGpu(const Tensor&, float, id<MTLCommandBuffer>);
         #endif
 };

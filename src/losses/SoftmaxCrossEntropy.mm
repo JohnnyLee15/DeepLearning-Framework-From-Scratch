@@ -6,7 +6,8 @@
 void SoftmaxCrossEntropy::calculateGradientGpu(  
     const Tensor &targets, 
     const Tensor &a,
-    Tensor &dL
+    Tensor &dL,
+    id<MTLCommandBuffer> cmdBuf
 ) const {
     id<MTLBuffer> targetsBuf = targets.getGpuData();
     id<MTLBuffer> aBuf = a.getGpuData();
@@ -16,7 +17,6 @@ void SoftmaxCrossEntropy::calculateGradientGpu(
     uint32_t numCols = (uint32_t) a.M().getNumCols();
     uint32_t size = numRows * numCols;
 
-    id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue() commandBuffer];
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
 
     [encoder setComputePipelineState:GpuEngine::getCalculateSoftmaxCrossEntropyGradPipe()];
@@ -32,9 +32,5 @@ void SoftmaxCrossEntropy::calculateGradientGpu(
     MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
-
     [encoder endEncoding];
-    [cmdBuf commit];
-
-    GpuEngine::setLastCmdBuf(cmdBuf);
 }

@@ -29,10 +29,12 @@ class GpuEngine {
             static id<MTLComputePipelineState> calculateLinearGradPipeline;
             static id<MTLComputePipelineState> calculateReluGradPipeline;
 
+            static id<MTLComputePipelineState> activateLinearPipeline;
+            static id<MTLComputePipelineState> activateReLUPipeline;
+            static id<MTLComputePipelineState> activateSoftmaxPipeline;
+
             static id<MTLComputePipelineState> calculateMSEGradPipeline;
             static id<MTLComputePipelineState> calculateSoftmaxCrossEntropyGradPipeline;
-
-            static id<MTLCommandBuffer> lastCmdBuf;
 
             // Static Methods
             static void initLib();
@@ -43,10 +45,10 @@ class GpuEngine {
     public:
 
         static bool isUsingGpu();
+        static void init();
 
         #ifdef __OBJC__
             // Static Methods
-            static void init();
             static id<MTLDevice> getGpuDevice();
             static id<MTLCommandQueue> getCmdQueue();
             static id<MTLLibrary> getLib();
@@ -65,11 +67,12 @@ class GpuEngine {
             static id<MTLComputePipelineState> getCalculateLinearGradPipe();
             static id<MTLComputePipelineState> getCalculateReluGradPipe();
 
+            static id<MTLComputePipelineState> getActivateLinearPipe();
+            static id<MTLComputePipelineState> getActivateReLUPipe();
+            static id<MTLComputePipelineState> getActivateSoftmaxPipe();
+
             static id<MTLComputePipelineState> getCalculateMSEGradPipe();
             static id<MTLComputePipelineState> getCalculateSoftmaxCrossEntropyGradPipe();
-
-            static void setLastCmdBuf(id<MTLCommandBuffer>);
-            static id<MTLCommandBuffer> getLastCmdBuf();
         #endif
 };
 

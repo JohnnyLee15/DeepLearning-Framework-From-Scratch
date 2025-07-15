@@ -2,8 +2,8 @@
 #include <cstdint>
 #include <vector>
 #include "core/GpuEngine.h"
+#include "core/GpuEngine.h"
 
-class Tensor;
 class Tensor;
 
 using namespace std;
@@ -24,6 +24,6 @@ class Loss {
 
         // Gpu
         #ifdef __OBJC__
-             virtual void calculateGradientGpu(const Tensor&, const Tensor&, Tensor&) const = 0;
+             virtual void calculateGradientGpu(const Tensor&, const Tensor&, Tensor&, id<MTLCommandBuffer>) const = 0;
         #endif
 };

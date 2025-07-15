@@ -1,16 +1,45 @@
 #include "activations/Linear.h"
 #include "core/Tensor.h"
 
-void Linear::calculateGradientGpu(const Tensor &z, Tensor &dZ) const {
+void Linear::activateGpu(
+    const Tensor &z,
+    Tensor &a,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> zBuf = z.getGpuData();
+    id<MTLBuffer> aBuf = a.getGpuData();
+
+    uint32_t size = (uint32_t) z.getSize();
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getActivateLinearPipe()];
+
+    [encoder setBuffer:zBuf offset:0 atIndex:0];
+    [encoder setBuffer:aBuf offset:0 atIndex:1];
+    [encoder setBytes:&size length:sizeof(uint32_t) atIndex:2];
+
+    MTLSize gridSize = MTLSizeMake(size, 1, 1);
+
+    NSUInteger tgSize = MIN(size, 256);
+    MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
+    [encoder endEncoding];
+}
+
+
+void Linear::calculateGradientGpu(
+    const Tensor &z, 
+    Tensor &dZ,
+    id<MTLCommandBuffer> cmdBuf
+) const {
     (void) z;
     id<MTLBuffer> dzBuf = dZ.getGpuData();
-
     uint32_t size = dZ.getSize();
 
-    id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue() commandBuffer];
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
-
     [encoder setComputePipelineState:GpuEngine::getCalculateLinearGradPipe()];
+
     [encoder setBuffer:dzBuf offset:0 atIndex:0];
     [encoder setBytes:&size length:sizeof(uint32_t) atIndex:1];
 
@@ -20,7 +49,5 @@ void Linear::calculateGradientGpu(const Tensor &z, Tensor &dZ) const {
     MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
-
     [encoder endEncoding];
-    [cmdBuf commit];
 }

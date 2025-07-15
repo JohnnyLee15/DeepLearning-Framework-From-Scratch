@@ -11,7 +11,7 @@
 #include "core/ProgressMetric.h"
 #include "losses/MSE.h"
 #include "losses/SoftmaxCrossEntropy.h"
-#include "core/DenseLayer.h"
+#include "core/Dense.h"
 
 random_device NeuralNet::rd;
 mt19937 NeuralNet::generator(NeuralNet::rd());
@@ -54,9 +54,7 @@ void NeuralNet::fit(
 
 void NeuralNet::build(size_t batchSize, const Tensor &features) {
     size_t numLayers = layers.size();
-
     maxBatchSize = batchSize;
-
     vector<size_t> inShape = features.getShape();
     inShape[0] = maxBatchSize;
 
@@ -85,18 +83,26 @@ float NeuralNet::runEpoch(
         size_t start = b * batchSize;
         size_t end = min((b + 1) * batchSize, targets.size());
         Batch batch = makeBatch(start, end, features, targets, shuffledIndices);
-
-        forwardPass(batch);
-        layers.back()->downloadOutputFromGpu();
+        
+        fitBatch(batch, learningRate);
         float batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getOutput());
-        backprop(batch, learningRate);
-
-        layers.back()->downloadOutputFromGpu();
+        
         metric.update(batch, loss, layers.back()->getOutput(), batchTotalLoss);
         ConsoleUtils::printProgressBar(metric);
     }
 
     return metric.getTotalLoss()/targets.size();
+}
+
+void NeuralNet::fitBatch(Batch &batch, float learningRate) {
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE
+            fitBatchGpu(batch, learningRate);
+        #endif
+    } else {
+        forwardPass(batch);
+        backprop(batch, learningRate);
+    }
 }
 
 Batch NeuralNet::makeBatch(
@@ -222,8 +228,8 @@ void NeuralNet::loadLayer(ifstream &modelBin) {
     modelBin.read((char*) &layerEncoding, sizeof(uint32_t));
 
     Layer *layer = nullptr;
-    if (layerEncoding == Layer::Encodings::DenseLayer) {
-        layer = new DenseLayer();
+    if (layerEncoding == Layer::Encodings::Dense) {
+        layer = new Dense();
     } else{
         ConsoleUtils::fatalError(
             "Unsupported layer encoding \"" + to_string(layerEncoding) + "\"."

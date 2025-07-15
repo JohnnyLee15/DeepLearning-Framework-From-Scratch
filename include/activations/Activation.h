@@ -26,6 +26,7 @@ class Activation {
 
         // Gpu
         #ifdef __OBJC__
-            virtual void calculateGradientGpu(const Tensor&, Tensor&) const = 0;
+            virtual void activateGpu(const Tensor&, Tensor&, id<MTLCommandBuffer>) const = 0;
+            virtual void calculateGradientGpu(const Tensor&, Tensor&, id<MTLCommandBuffer>) const = 0;
         #endif
 };

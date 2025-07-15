@@ -20,6 +20,6 @@ class SoftmaxCrossEntropy : public Loss {
 
         // Gpu
         #ifdef __OBJC__
-            void calculateGradientGpu(const Tensor&, const Tensor&, Tensor&) const override;
+            void calculateGradientGpu(const Tensor&, const Tensor&, Tensor&, id<MTLCommandBuffer>) const override;
         #endif
 };

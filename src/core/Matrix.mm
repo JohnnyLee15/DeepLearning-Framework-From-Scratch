@@ -8,7 +8,8 @@ id<MTLBuffer> Matrix::getGpuData() const {
 
 void Matrix::mmGpu(
     const Matrix &mat2,
-    Tensor &prod
+    Tensor &prod,
+    id<MTLCommandBuffer> cmdBuf
 ) const {
     Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
     matMatEngine(
@@ -18,13 +19,15 @@ void Matrix::mmGpu(
         getNumRows(),
         getNumCols(),
         mat2.getNumCols(),
-        GpuEngine::getMatMatPipe()
+        GpuEngine::getMatMatPipe(),
+        cmdBuf
     );
 }
 
 void Matrix::mmTGpu(
     const MatrixT &mat2,
-    Tensor &prod
+    Tensor &prod,
+    id<MTLCommandBuffer> cmdBuf
 ) const {
     Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
     matMatEngine(
@@ -34,9 +37,10 @@ void Matrix::mmTGpu(
         getNumRows(),
         getNumCols(),
         mat2.getNumCols(),
-        GpuEngine::getMatMatTPipe()
+        GpuEngine::getMatMatTPipe(),
+        cmdBuf
     );
-}
+} 
 
 void Matrix::matMatEngine(
     id<MTLBuffer> mat1Buf,
@@ -45,14 +49,14 @@ void Matrix::matMatEngine(
     size_t mat1Rows,
     size_t mat1Cols,
     size_t mat2Cols,
-    id<MTLComputePipelineState> pipeline
+    id<MTLComputePipelineState> pipeline,
+    id<MTLCommandBuffer> cmdBuf
 ) {
     uint32_t mat1RowsU = (uint32_t) mat1Rows;
     uint32_t mat1ColsU = (uint32_t) mat1Cols;
     uint32_t mat2ColsU = (uint32_t) mat2Cols;
     uint32_t dims[3] = {mat1RowsU, mat1ColsU, mat2ColsU};
 
-    id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue() commandBuffer];
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
 
     [encoder setComputePipelineState:pipeline];
@@ -69,14 +73,10 @@ void Matrix::matMatEngine(
     MTLSize numThreadGroups = MTLSizeMake(numTgCols, numTgRows, 1);
 
     [encoder dispatchThreadgroups:numThreadGroups threadsPerThreadgroup:threadGroupSize];
-    
     [encoder endEncoding];
-    [cmdBuf commit];
-
-    GpuEngine::setLastCmdBuf(cmdBuf);
 }
 
-void Matrix::colSumsGpu(Tensor &vec) const {
+void Matrix::colSumsGpu(Tensor &vec, id<MTLCommandBuffer> cmdBuf) const {
     id<MTLBuffer> matBuf = getGpuData();
     id<MTLBuffer> vecBuf = vec.getGpuData();
 
@@ -84,10 +84,9 @@ void Matrix::colSumsGpu(Tensor &vec) const {
     uint32_t numCols = (uint32_t) getNumCols();
     uint32_t dims[2] = {numRows, numCols};
 
-    id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue()commandBuffer];
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
-
     [encoder setComputePipelineState:GpuEngine::getColSumsPipe()];
+
     [encoder setBuffer:matBuf offset:0 atIndex:0];
     [encoder setBuffer:vecBuf offset:0 atIndex:1];
     [encoder setBytes:&dims length:sizeof(dims) atIndex:2];
@@ -100,12 +99,9 @@ void Matrix::colSumsGpu(Tensor &vec) const {
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
     
     [encoder endEncoding];
-    [cmdBuf commit];
-
-    GpuEngine::setLastCmdBuf(cmdBuf);
 }
 
-void Matrix::addToRowsGpu(const Tensor &vec) {
+void Matrix::addToRowsGpu(const Tensor &vec, id<MTLCommandBuffer> cmdBuf) {
     id<MTLBuffer> matBuf = getGpuData();
     id<MTLBuffer> vecBuf = vec.getGpuData();
 
@@ -113,10 +109,9 @@ void Matrix::addToRowsGpu(const Tensor &vec) {
     uint32_t numCols = (uint32_t) getNumCols();
     uint32_t dims[2] = {numRows, numCols};
 
-    id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue() commandBuffer];
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
-
     [encoder setComputePipelineState:GpuEngine::getAddToRowsPipe()];
+
     [encoder setBuffer:matBuf offset:0 atIndex:0];
     [encoder setBuffer:vecBuf offset:0 atIndex:1];
     [encoder setBytes:&dims length:sizeof(dims) atIndex:2];
@@ -131,7 +126,4 @@ void Matrix::addToRowsGpu(const Tensor &vec) {
     [encoder dispatchThreadgroups:numThreadGroups threadsPerThreadgroup:threadGroupSize];
     
     [encoder endEncoding];
-    [cmdBuf commit];
-
-    GpuEngine::setLastCmdBuf(cmdBuf);
 }

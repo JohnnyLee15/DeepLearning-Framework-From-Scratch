@@ -43,125 +43,105 @@ void Matrix::checkSameShape(
 }
 
 void Matrix::mm(const Matrix &mat2, Tensor &prod) const {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            mmGpu(mat2, prod);
-        #endif
-    } else{
-        size_t numRows = getNumRows();
-        size_t numCols = getNumCols();
-        size_t mat2Rows = mat2.getNumRows();
-        size_t mat2Cols = mat2.getNumCols();
-        checkSizeMatch(numCols, mat2Rows);
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
+    size_t mat2Rows = mat2.getNumRows();
+    size_t mat2Cols = mat2.getNumCols();
+    checkSizeMatch(numCols, mat2Rows);
 
-        vector<float> &prodFlat = prod.getFlat();
-        const vector<float> &matFlat = tensor.getFlat();
-        const vector<float> &mat2Flat = mat2.tensor.getFlat();
+    vector<float> &prodFlat = prod.getFlat();
+    const vector<float> &matFlat = tensor.getFlat();
+    const vector<float> &mat2Flat = mat2.tensor.getFlat();
 
-        #pragma omp parallel for collapse(2)
-        for (size_t i = 0; i < numRows; i++) {
-            for (size_t j = 0; j < mat2Cols; j++) {
-                size_t offsetThis = i * numCols;
-                size_t offsetProd = i * mat2Cols;
-                float value = 0.0;
-                for (size_t k = 0; k < mat2Rows; k++) {
-                    value += matFlat[offsetThis + k]* mat2Flat[k * mat2Cols + j];
-                }
-                prodFlat[offsetProd + j] = value;
+    #pragma omp parallel for collapse(2)
+    for (size_t i = 0; i < numRows; i++) {
+        for (size_t j = 0; j < mat2Cols; j++) {
+            size_t offsetThis = i * numCols;
+            size_t offsetProd = i * mat2Cols;
+            float value = 0.0;
+            for (size_t k = 0; k < mat2Rows; k++) {
+                value += matFlat[offsetThis + k]* mat2Flat[k * mat2Cols + j];
             }
+            prodFlat[offsetProd + j] = value;
         }
     }
+    
 }
 
 void Matrix::mmT(const MatrixT &mat2, Tensor &prod) const {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            mmTGpu(mat2, prod);
-        #endif
-    } else{
-        size_t numRows = getNumRows();
-        size_t numCols = getNumCols();
-        size_t mat2Rows = mat2.getNumRows();
-        size_t mat2Cols = mat2.getNumCols();
-        checkSizeMatch(numCols,mat2Rows);
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
+    size_t mat2Rows = mat2.getNumRows();
+    size_t mat2Cols = mat2.getNumCols();
+    checkSizeMatch(numCols,mat2Rows);
 
-        vector<float> &prodFlat = prod.getFlat();
-        const vector<float> &matFlat = tensor.getFlat();
-        const vector<float> &mat2Flat = mat2.getFlat();
+    vector<float> &prodFlat = prod.getFlat();
+    const vector<float> &matFlat = tensor.getFlat();
+    const vector<float> &mat2Flat = mat2.getFlat();
 
-        #pragma omp parallel for collapse(2)
-        for (size_t i = 0; i < numRows; i++) {
-            for (size_t j = 0; j < mat2Cols; j++) {
-                float value = 0.0;
-                size_t offsetThis = i * numCols;
-                size_t offsetProd = i * mat2Cols;
-                for (size_t k = 0; k < mat2Rows; k++) {
-                    value += matFlat[offsetThis + k] * mat2Flat[j * mat2Rows+ k];
-                }
-                prodFlat[offsetProd + j] = value;
+    #pragma omp parallel for collapse(2)
+    for (size_t i = 0; i < numRows; i++) {
+        for (size_t j = 0; j < mat2Cols; j++) {
+            float value = 0.0;
+            size_t offsetThis = i * numCols;
+            size_t offsetProd = i * mat2Cols;
+            for (size_t k = 0; k < mat2Rows; k++) {
+                value += matFlat[offsetThis + k] * mat2Flat[j * mat2Rows+ k];
             }
+            prodFlat[offsetProd + j] = value;
         }
     }
+    
 }
 
 void Matrix::colSums(Tensor &vec) const {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            colSumsGpu(vec);
-        #endif
-    } else {
-        size_t numRows = getNumRows();
-        size_t numCols = getNumCols();
-        vector<float> &vecFlat = vec.getFlat();
-        fill(vecFlat.begin(), vecFlat.end(), 0.0f);
-        const vector<float> &matFlat = tensor.getFlat();
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
+    vector<float> &vecFlat = vec.getFlat();
+    fill(vecFlat.begin(), vecFlat.end(), 0.0f);
+    const vector<float> &matFlat = tensor.getFlat();
 
-        #pragma omp parallel 
-        {
-            vector<float> threadColSums(numCols, 0.0);
+    #pragma omp parallel 
+    {
+        vector<float> threadColSums(numCols, 0.0);
 
-            #pragma omp for
-            for (size_t i = 0; i < numRows; i++) {
-                for (size_t j = 0; j < numCols; j++) {
-                    threadColSums[j] += matFlat[i * numCols + j];
-                }
+        #pragma omp for
+        for (size_t i = 0; i < numRows; i++) {
+            for (size_t j = 0; j < numCols; j++) {
+                threadColSums[j] += matFlat[i * numCols + j];
             }
-            
-            #pragma omp critical 
-            {
-                for (size_t j = 0; j < numCols; j++) {
-                    vecFlat[j] += threadColSums[j];
-                }
+        }
+        
+        #pragma omp critical 
+        {
+            for (size_t j = 0; j < numCols; j++) {
+                vecFlat[j] += threadColSums[j];
             }
         }
     }
+    
 }
 
 void Matrix::addToRows(const Tensor &vec) {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            addToRowsGpu(vec);
-        #endif
-    } else {
-        size_t numRows = getNumRows();
-        size_t numCols = getNumCols();
-        const vector<float> &vecFlat = vec.getFlat();
-        if (vec.getSize() != numCols) {
-            ConsoleUtils::fatalError(
-                string("Cannot broadcast vector to matrix rows.\n") +
-                "Vector size: " + to_string(vec.getSize()) +
-                ", Matrix columns: " + to_string(numCols) + "."
-            );
-        }
+    size_t numRows = getNumRows();
+    size_t numCols = getNumCols();
+    const vector<float> &vecFlat = vec.getFlat();
+    if (vec.getSize() != numCols) {
+        ConsoleUtils::fatalError(
+            string("Cannot broadcast vector to matrix rows.\n") +
+            "Vector size: " + to_string(vec.getSize()) +
+            ", Matrix columns: " + to_string(numCols) + "."
+        );
+    }
 
-        vector<float> &matFlat = tensor.getFlat();
-        #pragma omp parallel for collapse(2)
-        for (size_t i = 0; i < numRows; i++) {
-            for (size_t j = 0; j < numCols; j++) {
-                matFlat[i * numCols + j] += vecFlat[j];
-            }
+    vector<float> &matFlat = tensor.getFlat();
+    #pragma omp parallel for collapse(2)
+    for (size_t i = 0; i < numRows; i++) {
+        for (size_t j = 0; j < numCols; j++) {
+            matFlat[i * numCols + j] += vecFlat[j];
         }
     }
+    
 }
 
 MatrixT Matrix::T() const {

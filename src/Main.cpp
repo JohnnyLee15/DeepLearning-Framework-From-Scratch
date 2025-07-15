@@ -20,7 +20,7 @@
 #include "utils/Minmax.h"
 #include "utils/TrainingUtils.h"
 #include "core/Layer.h"
-#include "core/DenseLayer.h"
+#include "core/Dense.h"
 #include "core/Matrix.h"
 #include "core/ProgressAccuracy.h"
 #include "core/ProgressMAPE.h"
@@ -30,126 +30,49 @@
 #include "core/MaxPooling2D.h"
 #include "core/Flatten.h"
 #include "core/ImageData2D.h"
+#include "core/GpuEngine.h"
 
 using namespace std;
 namespace fs = filesystem;
 
 int main() {
+
     // Welcome Message
     ConsoleUtils::printTitle();
 
+    #ifdef __APPLE__
+        GpuEngine::init();
+    #endif
+
     // Data Reading
-    ImageTransform2D *transformer = new ImageTransform2D(64,64,1);
+    TabularData *data = new TabularData("classification");
+    data->readTrain("DataFiles/MNIST/mnist_train.csv", "label");
 
-    string trainPath = "DataFiles/chest_xray/train";
-    vector<float> trainFeaturesRaw;
-    vector<string> trainTargetsRaw;
-    size_t numTrainSamples = 0;
-
-    size_t pneumoniaKeepCount = 0;
-    size_t pneumoniaKeepLimit = 2375;
-
-    for (const auto &labelDir : fs::directory_iterator(trainPath)) {
-        string label = labelDir.path().filename().string();
-        for (const auto &image : fs::directory_iterator(labelDir.path())) {
-  
-            if (label == "PNEUMONIA") {
-                if (pneumoniaKeepCount >= pneumoniaKeepLimit) {
-                    continue;  
-                }
-                pneumoniaKeepCount++;
-            }
-
-            string imgPath = image.path().string();
-
-            int w, h, c;
-            unsigned char *input = stbi_load(
-                imgPath.c_str(),
-                &w, &h, &c,
-                1
-            );
-
-            if (!input) {
-                ConsoleUtils::fatalError("Could not load image: " + imgPath);
-            }
-
-            vector<float> processed = transformer->transform(input, h, w, c);
-            trainFeaturesRaw.insert(trainFeaturesRaw.end(), processed.begin(), processed.end());
-            trainTargetsRaw.push_back(label);
-            numTrainSamples++;
-            stbi_image_free(input);
-        }
-    }
-
-    cout << "DONE TRAIN" << endl;
-
-    string testPath = "DataFiles/chest_xray/test";
-    vector<float> testFeaturesRaw;
-    vector<string> testTargetsRaw;
-    size_t numTestSamples = 0;
-    for (const auto &labelDir : fs::directory_iterator(testPath)) {
-        string label = labelDir.path().filename().string();
-        for (const auto &image : fs::directory_iterator(labelDir.path())) {
-            string imgPath = image.path().string();
-
-            int w, h, c;
-            unsigned char *input = stbi_load(
-                imgPath.c_str(),
-                &w, &h, &c,
-                1
-            );
-
-            if (!input) {
-                ConsoleUtils::fatalError("Could not load image: " + imgPath);
-            }
-
-            vector<float> processed = transformer->transform(input, h, w, c);
-            testFeaturesRaw.insert(testFeaturesRaw.end(), processed.begin(), processed.end());
-            testTargetsRaw.push_back(label);
-            numTestSamples++;
-            stbi_image_free(input);
-        }
-    }
-
-    cout << "DONE TEST" << endl;
-
-    Tensor xTrain = Tensor(trainFeaturesRaw, {numTrainSamples, 64, 64, 1});
-    Tensor xTest = Tensor(testFeaturesRaw, {numTestSamples, 64, 64, 1});
-    ImageData2D data;
-
-    data.setTrainFeatures(xTrain);
-    data.setTestFeatures(xTest);
-    data.setTrainTargets(trainTargetsRaw);
-    data.setTestTargets(testTargetsRaw);
-
-    const vector<float> &yTrain = data.getTrainTargets();
-    const vector<float> &yTest = data.getTestTargets();
+    Scalar *scalar = new Greyscale();
+    scalar->fit(data->getTrainFeatures());
+    
+    Tensor xTrain = scalar->transform(data->getTrainFeatures());
+    const vector<float> &yTrain = data->getTrainTargets();
 
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
-        new Conv2D(16, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(16, 3, 3, 1, "same", new ReLU()),
-        new MaxPooling2D(2, 2, 2, "none"),
-        new Flatten(),
-        new DenseLayer(32, new ReLU()),
-        new DenseLayer(2, new Softmax())
+        new Dense(64, new ReLU()),
+        new Dense(32, new ReLU()),
+        new Dense(10, new Softmax())
     };
 
+
+
     NeuralNet nn(layers, loss);
-    ProgressMetric *metric = new ProgressAccuracy(data.getNumTrainSamples());
+    ProgressMetric *metric = new ProgressAccuracy(data->getNumTrainSamples());
 
     nn.fit(
         xTrain,
         yTrain,
-        0.001,
-        0.00001,
+        0.01,
+        0.01,
         5,
         32,
         *metric
     );
-
-    Tensor output = nn.predict(xTest);
-    vector<float> preds = TrainingUtils::getPredictions(output);
-    float accuracy = TrainingUtils::getAccuracy(yTest, preds);
-    cout << "Accuracy: " << accuracy << endl;
 }

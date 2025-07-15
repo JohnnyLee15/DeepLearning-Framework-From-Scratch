@@ -17,7 +17,7 @@ Tensor::Tensor(const vector<size_t> &shape) : shape(shape) {
         }
 
         data = vector<float>(size, 0.0);
-        initGpuTensor();
+        ensureGpu();
     }
 }
 
@@ -36,39 +36,37 @@ Tensor::Tensor(const vector<vector<float> > &mat) {
             data[i * numCols + j] = mat[i][j];
         }
     }
-
-    initGpuTensor();
+    ensureGpu();
 }
 
 Tensor::Tensor(const vector<float> &data, const vector<size_t> &shape) :
     shape(shape), data(data) {
-    initGpuTensor();
+    ensureGpu();
+}
+
+Tensor::Tensor(const Tensor &other) {
+    shape = other.shape;
+    data = other.data;
+    ensureGpu();
 }
 
 Tensor::Tensor() {}
 
-void Tensor::initGpuTensor() {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            initGpuTensorMm();
-        #endif
+Tensor& Tensor::operator =(const Tensor &other) {
+    if (this != &other) { 
+        shape = other.shape;
+        data = other.data;
+        ensureGpu();
     }
+
+    return *this;
 }
 
-void Tensor::uploadToGpu() {
+void Tensor::ensureGpu() {
     if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            uploadToGpuMm();
-        #endif
-    }
-}
-
-
-void Tensor::downloadFromGpu() {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            downloadFromGpuMm();
-        #endif
+        #ifdef __APPLE__
+            initGpuTensor();
+        #endif 
     }
 }
 
@@ -565,34 +563,23 @@ Tensor Tensor::maxPool2dGrad(
 
 void Tensor::hadamard(const Tensor &ten2) {
     // Add error checking
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            hadamardGpu(ten2);
-        #endif
-    } else {
-        size_t size = getSize();
-        
-        const vector<float> &ten2Flat = ten2.data;
-        
-        #pragma omp parallel for
-        for (size_t i = 0; i < size; i++) {
-            data[i] *= ten2Flat[i];
-        }
+    size_t size = getSize();
+    
+    const vector<float> &ten2Flat = ten2.data;
+    
+    #pragma omp parallel for
+    for (size_t i = 0; i < size; i++) {
+        data[i] *= ten2Flat[i];
     }
 }
 
 void Tensor::applyGrad(const Tensor &grad, float scaleFactor){
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            applyGradGpu(grad, scaleFactor);
-        #endif
-    } else {
-        size_t size = getSize();
-        const vector<float> &gradFlat = grad.getFlat();
+    size_t size = getSize();
+    const vector<float> &gradFlat = grad.getFlat();
 
-        #pragma omp parallel for
-        for (size_t i = 0; i < size; i++) {
-            data[i] += (scaleFactor * gradFlat[i]);
-        }
+    #pragma omp parallel for
+    for (size_t i = 0; i < size; i++) {
+        data[i] += (scaleFactor * gradFlat[i]);
     }
+    
 }

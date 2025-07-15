@@ -1,6 +1,7 @@
 #pragma once
 #include <fstream>
 #include <cstdint>
+#include "core/GpuEngine.h"
 
 class Tensor;
 
@@ -26,13 +27,12 @@ class Layer {
         virtual uint32_t getEncoding() const = 0;
         virtual void build(const vector<size_t>&);
         virtual vector<size_t> getBuildOutShape(const vector<size_t>&) const = 0;
-        virtual void downloadOutputFromGpu();
 
         size_t getMaxBatchSize() const;
 
         // Enums
         enum Encodings : uint32_t {
-            DenseLayer,
+            Dense,
             Conv2D,
             MaxPooling2D,
             Flatten,
@@ -40,6 +40,8 @@ class Layer {
         };
 
         #ifdef __OBJC__
-            virtual void forwardGpu(const Tensor&) = 0;
+            virtual void forwardGpu(const Tensor&, id<MTLCommandBuffer>);
+            virtual void backpropGpu(const Tensor&, float, Tensor&, bool, id<MTLCommandBuffer>);
+            virtual void downloadOutputFromGpu();
         #endif
 };

@@ -4,7 +4,6 @@
 #include "core/Tensor.h"
 
 class Loss;
-class DenseLayer;
 
 using namespace std;
 

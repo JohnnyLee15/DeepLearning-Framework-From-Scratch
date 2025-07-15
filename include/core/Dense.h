@@ -8,7 +8,7 @@ class Activation;
 
 using namespace std;
 
-class DenseLayer : public Layer {
+class Dense : public Layer {
     private:
 
         // Constants
@@ -35,24 +35,26 @@ class DenseLayer : public Layer {
 
     public:
         // Constructors
-        DenseLayer(size_t, Activation*);
-        DenseLayer();
+        Dense(size_t, Activation*);
+        Dense();
 
         // Methods
         void forward(const Tensor&) override;
         Tensor& getOutput() override;
         Tensor& getOutputGradient() override;
         void backprop(const Tensor&, float, Tensor&, bool) override;
-        ~DenseLayer();
+        ~Dense();
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
         uint32_t getEncoding() const override;
         void build(const vector<size_t>&) override;
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
         void reShapeBatch(size_t);
-        void downloadOutputFromGpu() override;
+        void ensureGpu();
 
         #ifdef __OBJC__
-            void forwardGpu(const Tensor&) = 0;
+            void forwardGpu(const Tensor&, id<MTLCommandBuffer>) override;
+            void backpropGpu(const Tensor&, float, Tensor&, bool, id<MTLCommandBuffer>) override;
+            void downloadOutputFromGpu() override;
         #endif
 };

@@ -4,6 +4,11 @@
 #include <fstream>
 #include <random>
 #include "core/Tensor.h"
+#include "core/GpuEngine.h"
+
+#ifdef __APPLE__
+    #define GPU_ENABLED
+#endif
 
 class Loss;
 class Activation;
@@ -31,11 +36,21 @@ class NeuralNet {
         void forwardPassInference(const Tensor&);
         void build(size_t, const Tensor&);
         float runEpoch(const Tensor&, const vector<float>&, float, size_t, ProgressMetric&);
+        void fitBatch(Batch&, float);
         Batch makeBatch(size_t, size_t, const Tensor&, const vector<float>&, const vector<size_t>&) const;
         void loadLoss(ifstream&);
         void loadLayer(ifstream&);
         vector<size_t> generateShuffledIndices(const Tensor&) const;
         void reShapeDL(size_t);
+
+        // Gpu
+        #ifdef __APPLE__
+            void fitBatchGpu(Batch&, float);
+            #ifdef __OBJC__
+                void forwardPassGpu(Batch&, id<MTLCommandBuffer>);
+                void backpropGpu(Batch&, float, id<MTLCommandBuffer>);
+            #endif
+        #endif
 
     public:
         // Constructors
@@ -50,6 +65,4 @@ class NeuralNet {
         void writeBin(ofstream&) const;
         void loadFromBin(ifstream&);
         ~NeuralNet();
-
-        
 };

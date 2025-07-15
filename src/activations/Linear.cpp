@@ -17,26 +17,19 @@ Tensor Linear::initBias(size_t numBiases) const {
     for (size_t i = 0; i < numBiases; i++) {
         biasFlat[i] = LINEAR_BIAS;
     }
-
-    biases.uploadToGpu();
+    
     return biases;
 }
 
 
 void Linear::calculateGradient(const Tensor &z, Tensor &dZ) const {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            calculateGradientGpu(z, dZ);
-        #endif
-    } else {
-        size_t size = z.getSize();
+    size_t size = z.getSize();
 
-        vector<float> &dzFlat = dZ.getFlat();
-        
-        #pragma omp parallel for
-        for (size_t i = 0; i < size; i++) {
-            dzFlat[i] = 1;
-        }
+    vector<float> &dzFlat = dZ.getFlat();
+    
+    #pragma omp parallel for
+    for (size_t i = 0; i < size; i++) {
+        dzFlat[i] = 1;
     }
 }
 

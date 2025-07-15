@@ -4,15 +4,14 @@
 void MSE::calculateGradientGpu(  
     const Tensor &targets, 
     const Tensor &a,
-    Tensor &dL
+    Tensor &dL,
+    id<MTLCommandBuffer> cmdBuf
 ) const {
     id<MTLBuffer> targetsBuf = targets.getGpuData();
     id<MTLBuffer> aBuf = a.getGpuData();
     id<MTLBuffer> dlBuf = dL.getGpuData();
-
     uint32_t size = (uint32_t) a.getSize();
 
-    id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue() commandBuffer];
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
 
     [encoder setComputePipelineState:GpuEngine::getCalculateMSEGradPipe()];
@@ -27,10 +26,6 @@ void MSE::calculateGradientGpu(
     MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
-
     [encoder endEncoding];
-    [cmdBuf commit];
-
-    GpuEngine::setLastCmdBuf(cmdBuf);
 }
 

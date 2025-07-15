@@ -16,6 +16,7 @@ class Linear : public Activation {
 
         // Gpu
         #ifdef __OBJC__
-            void calculateGradientGpu(const Tensor&, Tensor&) const override;
+            void activateGpu(const Tensor&, Tensor&, id<MTLCommandBuffer>) const override;
+            void calculateGradientGpu(const Tensor&, Tensor&, id<MTLCommandBuffer>) const override;
         #endif
 };

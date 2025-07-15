@@ -1,6 +1,5 @@
 #include "core/Batch.h"
 #include <omp.h>
-#include "core/DenseLayer.h"
 #include "utils/TrainingUtils.h"
 #include "activations/Activation.h"
 #include "core/Matrix.h"

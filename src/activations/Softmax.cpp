@@ -69,20 +69,12 @@ Tensor Softmax::initBias(size_t numBiases) const {
         biasFlat[i] = SOFTMAX_BIAS;
     }
 
-    biases.uploadToGpu();
-
     return biases;
 }
 
 
 void Softmax::calculateGradient(const Tensor &z, Tensor &dZ) const {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __OBJC__
-            calculateGradientGpu(z, dZ);
-        #endif
-    } else {
-        SoftmaxCrossEntropy::checkInvalidGradientCall();
-    }   
+    SoftmaxCrossEntropy::checkInvalidGradientCall();
 }
 
 bool Softmax::isFused() const {
