@@ -80,16 +80,16 @@ void Tensor::print(const string &name) const {
     }
     cout << "]\n";
 
-    size_t numRows = shape[0];
-    size_t numCols = (shape.size() > 1) ? shape[1] : 1;
+    // size_t numRows = shape[0];
+    // size_t numCols = (shape.size() > 1) ? shape[1] : 1;
 
-    for (size_t i = 0; i < numRows; ++i) {
-        cout << "[ ";
-        for (size_t j = 0; j < numCols; ++j) {
-            cout << data[i * numCols + j] << " ";
-        }
-        cout << "]\n";
-    }
+    // for (size_t i = 0; i < numRows; ++i) {
+    //     cout << "[ ";
+    //     for (size_t j = 0; j < numCols; ++j) {
+    //         cout << data[i * numCols + j] << " ";
+    //     }
+    //     cout << "]\n";
+    // }
 }
 
 
@@ -99,7 +99,7 @@ Tensor Tensor::reShape(const vector<size_t> &newShape) const {
     return reshaped;
 }
 
-void Tensor::reshape(const vector<size_t> &newShape) {
+void Tensor::reShapeInPlace(const vector<size_t> &newShape) {
     shape = newShape;
 }
 

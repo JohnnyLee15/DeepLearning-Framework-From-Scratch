@@ -50,7 +50,6 @@ class DenseLayer : public Layer {
         void build(const vector<size_t>&) override;
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
         void reShapeBatch(size_t);
-        void revertBatchReShape();
         void downloadOutputFromGpu() override;
 
         #ifdef __OBJC__

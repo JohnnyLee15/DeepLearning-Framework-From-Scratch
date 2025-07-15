@@ -36,7 +36,6 @@ class NeuralNet {
         void loadLayer(ifstream&);
         vector<size_t> generateShuffledIndices(const Tensor&) const;
         void reShapeDL(size_t);
-        void revertReShapeDL();
 
     public:
         // Constructors

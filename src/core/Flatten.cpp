@@ -43,7 +43,7 @@ Tensor& Flatten::getOutputGradient() {
 void Flatten::build(const vector<size_t> &givenShape) {
     checkInputSize(givenShape);
 
-    Layer::build(inShape);
+    Layer::build(givenShape);
 
     inShape = givenShape;
     outShape = getBuildOutShape(givenShape);

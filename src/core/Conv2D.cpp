@@ -100,7 +100,28 @@ vector<size_t> Conv2D::getBuildOutShape(const vector<size_t> &inShape) const {
     return {getMaxBatchSize(), win.outRows, win.outCols, numKernals};
 }
 
+void Conv2D::reShapeBatch(size_t currBatchSize) {
+    vector<size_t> outShape = activations.getShape();
+    vector<size_t> inShape = dX.getShape();
+
+    size_t outRows = outShape[1];
+    size_t outCols = outShape[2];
+
+    size_t inRows = inShape[1];
+    size_t inCols = inShape[2];
+    size_t inDepth = inShape[3];
+
+    preActivations.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
+    activations.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
+    dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});
+    dA.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
+}
+
 void Conv2D::forward(const Tensor &input) {
+    if (input.getShape()[0] != activations.getShape()[0]) {
+        reShapeBatch(input.getShape()[0]);
+    }
+
     WindowDims win = input.computeInputWindow(kRows, kCols, padding, stride);
     Tensor inputFwd = input.padIfNeeded(win, padding);
 
@@ -139,7 +160,6 @@ void Conv2D::backprop(
     grad = grad.padWindowInput(winGrad);
     dX = grad.conv2dInput(kernals);
 }
-
 
 
 Tensor& Conv2D::getOutput() {

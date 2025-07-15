@@ -47,4 +47,6 @@ class Conv2D : public Layer {
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
         uint32_t getEncoding() const override;
+
+        void reShapeBatch(size_t);
 };

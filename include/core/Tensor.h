@@ -78,7 +78,7 @@ class Tensor {
         void uploadToGpu();
         void downloadFromGpu();
 
-        void reshape(const vector<size_t>&);
+        void reShapeInPlace(const vector<size_t>&);
 
         void print(const string&) const;
 

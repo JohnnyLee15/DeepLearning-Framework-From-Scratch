@@ -127,17 +127,11 @@ void NeuralNet::forwardPass(Batch &batch) {
 void NeuralNet::reShapeDL(size_t currBatchSize) {
     vector<size_t> lossShape = layers.back()->getOutput().getShape();
     lossShape[0] = currBatchSize;
-    dL.reShape(lossShape);
-}
-
-void NeuralNet::revertReShapeDL() {
-    vector<size_t> lossShape = layers.back()->getOutput().getShape();
-    lossShape[0] = maxBatchSize;
-    dL.reShape(lossShape);
+    dL.reShapeInPlace(lossShape);
 }
 
 void NeuralNet::backprop(Batch &batch, float learningRate) {
-    if (batch.getSize() < maxBatchSize) {
+    if (batch.getSize() != dL.getShape()[0]) {
         reShapeDL(batch.getSize());
     }
 
@@ -154,10 +148,6 @@ void NeuralNet::backprop(Batch &batch, float learningRate) {
         layers[i]->backprop(prevActivations, learningRate, *grad, isFirstLayer);
 
         grad = &layers[i]->getOutputGradient();
-    }
-
-    if (batch.getSize() < maxBatchSize) {
-        revertReShapeDL();
     }
 }
 

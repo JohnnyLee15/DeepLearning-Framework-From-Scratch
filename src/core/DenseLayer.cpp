@@ -144,23 +144,14 @@ void DenseLayer::loadFromBin(ifstream &modelBin) {
 void DenseLayer::reShapeBatch(size_t currBatchSize) {
     size_t weightsPerNeuron = weights.getShape()[1];
 
-    preActivations.reShape({currBatchSize, numNeurons});
-    activations.reShape({currBatchSize, numNeurons});
-    dX.reShape({currBatchSize, weightsPerNeuron});
-    dA.reShape({currBatchSize, numNeurons});
-}
-
-void DenseLayer::revertBatchReShape() {
-    size_t weightsPerNeuron = weights.getShape()[1];
-
-    preActivations.reShape({getMaxBatchSize(), numNeurons});
-    activations.reShape({getMaxBatchSize(), numNeurons});
-    dX.reShape({getMaxBatchSize(), weightsPerNeuron});
-    dA.reShape({getMaxBatchSize(), numNeurons});
+    preActivations.reShapeInPlace({currBatchSize, numNeurons});
+    activations.reShapeInPlace({currBatchSize, numNeurons});
+    dX.reShapeInPlace({currBatchSize, weightsPerNeuron});
+    dA.reShapeInPlace({currBatchSize, numNeurons});
 }
 
 void DenseLayer::forward(const Tensor &prevActivations) {
-    if (prevActivations.getShape()[0] < getMaxBatchSize()) {
+    if (prevActivations.getShape()[0] != activations.getShape()[0]) {
         reShapeBatch(prevActivations.getShape()[0]);
     }
 
@@ -202,10 +193,6 @@ void DenseLayer::backprop(
 
     if (!isFirstLayer) {
         gradMat.mm(weights, dX);
-    }
-    
-    if (grad.getShape()[0] < getMaxBatchSize()) {
-        revertBatchReShape();
     }
 }
 
