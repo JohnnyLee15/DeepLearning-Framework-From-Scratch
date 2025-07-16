@@ -2,6 +2,7 @@
 #include <fstream>
 #include <cstdint>
 #include "core/GpuEngine.h"
+#include "core/GpuTypes.h"
 
 class Tensor;
 
@@ -39,9 +40,9 @@ class Layer {
             None
         };
 
-        #ifdef __OBJC__
-            virtual void forwardGpu(const Tensor&, id<MTLCommandBuffer>);
-            virtual void backpropGpu(const Tensor&, float, Tensor&, bool, id<MTLCommandBuffer>);
+        #ifdef __APPLE__
+            virtual void forwardGpu(const Tensor&, GpuCommandBuffer);
+            virtual void backpropGpu(const Tensor&, float, Tensor&, bool, GpuCommandBuffer);
             virtual void downloadOutputFromGpu();
         #endif
 };

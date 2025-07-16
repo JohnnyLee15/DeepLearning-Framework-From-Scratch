@@ -96,7 +96,7 @@ float NeuralNet::runEpoch(
 
 void NeuralNet::fitBatch(Batch &batch, float learningRate) {
     if (GpuEngine::isUsingGpu()) {
-        #ifdef __APPLE
+        #ifdef __APPLE__
             fitBatchGpu(batch, learningRate);
         #endif
     } else {

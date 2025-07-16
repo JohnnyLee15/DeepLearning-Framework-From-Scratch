@@ -5,6 +5,7 @@
 #include <random>
 #include "core/Tensor.h"
 #include "core/GpuEngine.h"
+#include "core/GpuTypes.h"
 
 #ifdef __APPLE__
     #define GPU_ENABLED
@@ -46,10 +47,8 @@ class NeuralNet {
         // Gpu
         #ifdef __APPLE__
             void fitBatchGpu(Batch&, float);
-            #ifdef __OBJC__
-                void forwardPassGpu(Batch&, id<MTLCommandBuffer>);
-                void backpropGpu(Batch&, float, id<MTLCommandBuffer>);
-            #endif
+            void forwardPassGpu(Batch&, GpuCommandBuffer);
+            void backpropGpu(Batch&, float, GpuCommandBuffer);
         #endif
 
     public:

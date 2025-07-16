@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <vector>
 #include "core/GpuEngine.h"
+#include "core/MetalBuffer.h"
 
 class Matrix;
 
@@ -23,8 +24,8 @@ class Tensor {
         vector<float> data;
         
         // GPU Instance Variables
-        #ifdef __OBJC__
-            id<MTLBuffer> dataGpu;
+        #ifdef __APPLE__
+            MetalBuffer dataGpu;
         #endif
 
     public:

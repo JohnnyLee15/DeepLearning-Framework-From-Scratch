@@ -4,16 +4,14 @@
 #include "core/MatrixT.h"
 #include "activations/Activation.h"
 
-void Dense::forwardGpu(const Tensor &prevActivations, id<MTLCommandBuffer> cmdBuf) {
+void Dense::forwardGpu(const Tensor &prevActivations, GpuCommandBuffer cmdBufVoid) {
+    id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>)cmdBufVoid;
     if (prevActivations.getShape()[0] != activations.getShape()[0]) {
         reShapeBatch(prevActivations.getShape()[0]);
     }
 
-    MatrixT weightsT = weights.M().T();
-    Matrix prevActMat = prevActivations.M();
-
-    prevActMat.mmTGpu(weightsT, preActivations, cmdBuf);
-    prevActMat.addToRowsGpu(biases, cmdBuf);
+    prevActivations.M().mmTGpu(weights.M().T(), preActivations, cmdBuf);
+    preActivations.M().addToRowsGpu(biases, cmdBuf);
     activation->activateGpu(preActivations, activations, cmdBuf); 
 }
 
@@ -22,8 +20,9 @@ void Dense::backpropGpu(
     float learningRate,
     Tensor &grad,
     bool isFirstLayer,
-    id<MTLCommandBuffer> cmdBuf
+    GpuCommandBuffer cmdBufVoid
 ) {
+    id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>)cmdBufVoid;
     if (!activation->isFused()) {
         activation->calculateGradientGpu(preActivations, dA, cmdBuf);
         grad.hadamardGpu(dA, cmdBuf);
@@ -42,4 +41,8 @@ void Dense::backpropGpu(
     if (!isFirstLayer) {
         gradMat.mmGpu(weights, dX, cmdBuf);
     }
+}
+
+void Dense::downloadOutputFromGpu() {
+    activations.downloadFromGpu();
 }

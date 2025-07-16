@@ -4,15 +4,15 @@
 
 void NeuralNet::fitBatchGpu(Batch &batch, float learningRate) {
     id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue() commandBuffer];
-    forwardPassGpu(batch, cmdBuf);
-    backpropGpu(batch, learningRate, cmdBuf);
+    forwardPassGpu(batch, (GpuCommandBuffer) cmdBuf);
+    backpropGpu(batch, learningRate, (GpuCommandBuffer) cmdBuf);
     [cmdBuf commit];
     [cmdBuf waitUntilCompleted];
 
     layers.back()->getOutput().downloadFromGpu();
 }
 
-void NeuralNet::forwardPassGpu(Batch &batch, id<MTLCommandBuffer> cmdBuf) {
+void NeuralNet::forwardPassGpu(Batch &batch, GpuCommandBuffer cmdBuf) {
     Tensor *prevActivations = &batch.getData();
     size_t numLayers = layers.size();
 
@@ -22,12 +22,12 @@ void NeuralNet::forwardPassGpu(Batch &batch, id<MTLCommandBuffer> cmdBuf) {
     }
 }
 
-void NeuralNet::backpropGpu(Batch &batch, float learningRate, id<MTLCommandBuffer> cmdBuf) {
+void NeuralNet::backpropGpu(Batch &batch, float learningRate, GpuCommandBuffer cmdBuf) {
     if (batch.getSize() != dL.getShape()[0]) {
         reShapeDL(batch.getSize());
     }
 
-    loss->calculateGradientGpu(batch.getTargets(),layers.back()->getOutput(), dL, cmdBuf);
+    loss->calculateGradientGpu(batch.getTargets(),layers.back()->getOutput(), dL, (id<MTLCommandBuffer>)cmdBuf);
     size_t numLayers = (int) layers.size();
     
     Tensor *grad = &dL;

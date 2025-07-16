@@ -47,6 +47,11 @@ void Batch::setBatch(
 
         targetsFlat[i] = trainLabels[rdIdx];
     }
+
+    #ifdef __APPLE__
+        data.uploadToGpu();
+        targets.uploadToGpu();
+    #endif
 }
 
 Tensor& Batch::getData() {

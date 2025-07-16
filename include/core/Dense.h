@@ -52,9 +52,9 @@ class Dense : public Layer {
         void reShapeBatch(size_t);
         void ensureGpu();
 
-        #ifdef __OBJC__
-            void forwardGpu(const Tensor&, id<MTLCommandBuffer>) override;
-            void backpropGpu(const Tensor&, float, Tensor&, bool, id<MTLCommandBuffer>) override;
+        #ifdef __APPLE__
+            void forwardGpu(const Tensor&, GpuCommandBuffer) override;
+            void backpropGpu(const Tensor&, float, Tensor&, bool, GpuCommandBuffer) override;
             void downloadOutputFromGpu() override;
         #endif
 };
