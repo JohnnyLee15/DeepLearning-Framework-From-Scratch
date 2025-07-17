@@ -1,6 +1,8 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#define TILE_SIZE 16
+
 kernel void mm(
     device const float *mat1 [[ buffer(0) ]],
     device const float *mat2 [[ buffer(1) ]],
@@ -19,15 +21,10 @@ kernel void mm(
     uint mat1Cols = dims[1];
     uint mat2Cols = dims[2];
 
-    const uint TILE_SIZE = 16;
-
     threadgroup float mat1Tile[TILE_SIZE][TILE_SIZE];
     threadgroup float mat2Tile[TILE_SIZE][TILE_SIZE];
 
     uint numTiles = (mat1Cols + TILE_SIZE - 1)/TILE_SIZE;
-
-    if (i >= mat1Rows || j >= mat2Cols) 
-        return;
 
     float val = 0.0;
     for (uint t = 0; t < numTiles; t++) {
@@ -77,16 +74,11 @@ kernel void mmT(
     uint mat1Rows = dims[0];
     uint mat1Cols = dims[1];
     uint mat2Cols = dims[2];
-
-    const uint TILE_SIZE = 16;
-
+    
     threadgroup float mat1Tile[TILE_SIZE][TILE_SIZE];
     threadgroup float mat2Tile[TILE_SIZE][TILE_SIZE];
 
     uint numTiles = (mat1Cols + TILE_SIZE - 1)/TILE_SIZE;
-
-    if (i >= mat1Rows || j >= mat2Cols)
-        return;
 
     float val = 0.0;
 
@@ -138,15 +130,10 @@ kernel void mTm(
     uint mat1Cols = dims[1];
     uint mat2Cols = dims[2];
 
-    const uint TILE_SIZE = 16;
-
     threadgroup float mat1Tile[TILE_SIZE][TILE_SIZE];
     threadgroup float mat2Tile[TILE_SIZE][TILE_SIZE];
 
     uint numTiles = (mat1Cols + TILE_SIZE - 1)/TILE_SIZE;
-
-    if (i >= mat1Rows || j >= mat2Cols)
-        return;
 
     float val = 0.0;
 
@@ -198,15 +185,10 @@ kernel void mTmT(
     uint mat1Cols = dims[1];
     uint mat2Cols = dims[2];
 
-    const uint TILE_SIZE = 16;
-
     threadgroup float mat1Tile[TILE_SIZE][TILE_SIZE];
     threadgroup float mat2Tile[TILE_SIZE][TILE_SIZE];
 
     uint numTiles = (mat1Cols + TILE_SIZE - 1)/TILE_SIZE;
-
-    if (i >= mat1Rows || j >= mat2Cols)
-        return;
 
     float val = 0.0;
 

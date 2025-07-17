@@ -1,6 +1,6 @@
 #include "utils/Minmax.h"
-#include "core/Matrix.h"
-#include "core/Tensor.h"
+#include "core/tensor/Matrix.h"
+#include "core/tensor/Tensor.h"
 #include <omp.h>
 #include "utils/ConsoleUtils.h"
 #include <limits>

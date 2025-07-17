@@ -1,7 +1,7 @@
 #include "utils/ConsoleUtils.h"
 #include <iostream>
 #include <iomanip>
-#include "core/ProgressMetric.h"
+#include "core/metrics/ProgressMetric.h"
 
 const int ConsoleUtils::PROGRESS_BAR_LENGTH = 50;
 const string ConsoleUtils::GREEN = "\033[32m";

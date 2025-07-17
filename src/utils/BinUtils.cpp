@@ -6,7 +6,7 @@
 #include "utils/ConsoleUtils.h"
 #include <cerrno>
 #include <cstring>
-#include "core/Pipeline.h"
+#include "core/model/Pipeline.h"
 
 const char BinUtils::CANCEL = 'q';
 const char BinUtils::OVERRIDE = 'o';

@@ -1,5 +1,5 @@
 #include "utils/Greyscale.h"
-#include "core/Tensor.h"
+#include "core/tensor/Tensor.h"
 #include <iostream>
 #include "utils/ConsoleUtils.h"
 #include <omp.h>
