@@ -16,6 +16,7 @@ class Dense : public Layer {
 
         // Instance Variables
         size_t numNeurons;
+
         Tensor activations;
         Tensor preActivations;
         Tensor weights;
@@ -24,42 +25,50 @@ class Dense : public Layer {
         Tensor dX;
         Tensor dA;
         Tensor biases;
+
         Activation *activation;
         bool isLoadedDense;
         
-
         // Methods
         void initWeights();
         void initParams(size_t);
+        void checkBuildSize(const vector<size_t>&) const;
         
         void ensureGpu();
         void ensureCpu();
 
         vector<uint32_t> generateThreadSeeds() const;
         void loadActivation(ifstream&);
-        void checkBuildSize(const vector<size_t>&) const;
 
+        void reShapeBatch(size_t);
+        
     public:
         // Constructors
         Dense(size_t, Activation*);
         Dense();
 
-        // Methods
-        void forward(const Tensor&) override;
-        Tensor& getOutput() override;
-        Tensor& getOutputGradient() override;
-        void backprop(const Tensor&, float, Tensor&, bool) override;
+        // Destructor
         ~Dense();
+
+        // Methods
+        void build(const vector<size_t>&) override;
+
+        void forward(const Tensor&) override;
+        void backprop(const Tensor&, float, Tensor&, bool) override;
+
+        const Tensor& getOutput() const override;
+        Tensor& getOutputGradient() override;
+        
+        Layer::Encodings getEncoding() const override;
+        vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
+
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
-        uint32_t getEncoding() const override;
-        void build(const vector<size_t>&) override;
-        vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
-        void reShapeBatch(size_t);
 
+        // GPU Interface
         #ifdef __APPLE__
             void forwardGpu(const Tensor&, GpuCommandBuffer) override;
             void backpropGpu(const Tensor&, float, Tensor&, bool, GpuCommandBuffer) override;
-            void writeToBinGpu();
+            void downloadOutputFromGpu() override;
         #endif
 };

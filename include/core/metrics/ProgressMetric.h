@@ -1,4 +1,5 @@
 #pragma once
+
 #include <string>
 #include <chrono>
 
@@ -11,6 +12,8 @@ using namespace std;
 
 class ProgressMetric {
     private:
+
+        // Instance Variables
         float totalLoss;
         float avgLoss;
         float timeElapsed;
@@ -20,17 +23,23 @@ class ProgressMetric {
         size_t samplesProcessed;
 
     public:
+        
+        // Constructor
         ProgressMetric(size_t);
 
-        virtual string getName() const = 0;
+        // Virtual Destructor
+        virtual ~ProgressMetric() = default;
+
+        // Methods
         virtual void init();
-        virtual void update(const Batch&, const Loss*, const Tensor&, float);
-        virtual float calculate() const = 0;
+        
+        virtual string getName() const = 0;
         size_t getSamplesProcessed() const;
         float getTotalLoss() const;
         size_t getNumSamples() const;
         float getTimeElapsed() const;
         float getAvgLoss() const;
 
-        virtual ~ProgressMetric() = default;
+        virtual void update(const Batch&, const Loss*, const Tensor&, float);
+        virtual float calculate() const = 0;
 };

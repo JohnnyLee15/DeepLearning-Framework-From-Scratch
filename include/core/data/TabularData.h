@@ -25,7 +25,6 @@ class TabularData : public Data {
 
         vector<bool> isCategorical;
         vector<unordered_map<string, float> > featureEncodings;
-
         unordered_map<string, int> labelMap;
 
         bool isTrainLoaded;
@@ -35,17 +34,21 @@ class TabularData : public Data {
         string task;
 
         // Methods
-        void readCsv(const string&, bool, size_t, const string&, bool);
-        void setData(const Tensor&, vector<float>&, bool);
-        void head(size_t, const Tensor&) const;
-        void checkTrainLoaded() const;
-        void checkTestLoaded() const;
-        void parseRawData(vector<vector<string> >&, vector<string>&, const vector<string>&, size_t);
-        size_t getColIdx(const string&) const;
         vector<string> validateAndLoadCsv(const string&, bool);
+        size_t getColIdx(const string&) const;
+        void parseRawData(vector<vector<string> >&, vector<string>&, const vector<string>&, size_t);
+        
         Tensor readFeatures(const vector<vector<string> >&);
         vector<float> readTargets(const vector<string>&);
+        void readCsv(const string&, bool, size_t, const string&, bool);
+
+        void setData(const Tensor&, vector<float>&, bool);
         
+        void head(size_t, const Tensor&) const;
+
+        void checkTrainLoaded() const;
+        void checkTestLoaded() const;
+
     public:
         // Constructors
         TabularData(const string&);
@@ -56,15 +59,18 @@ class TabularData : public Data {
         void readTest(const string&, size_t, bool header = false);
         void readTrain(const string&, const string&);
         void readTest(const string&, const string&);
-        // void readAllData(string, int, float);
+
         const Tensor& getTrainFeatures() const override;
         const Tensor& getTestFeatures() const override;
         const vector<float>& getTrainTargets() const override;
         const vector<float>& getTestTargets() const override;
+
         size_t getNumTrainSamples() const override;
+        Data::Encodings getEncoding() const override;
+        
         void headTrain(size_t numRows = 6) const;
         void headTest(size_t numRows = 6) const;
+
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
-        uint32_t getEncoding() const override;
 };

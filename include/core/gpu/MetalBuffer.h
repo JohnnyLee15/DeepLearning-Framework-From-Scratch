@@ -6,19 +6,27 @@
 
 class MetalBuffer { 
     private:
+        // Instance Variable
         #ifdef __OBJC__
-            id<MTLBuffer> buf;
+            id<MTLBuffer> buffer;
         #endif
 
     public:
+        // Constructors
         MetalBuffer();
-        MetalBuffer(const MetalBuffer&);
-        MetalBuffer& operator=(const MetalBuffer&);
+        MetalBuffer(const void*, size_t);
+
+        // Destructor
         ~MetalBuffer();
+    
+        // Methods
+        MetalBuffer& operator=(const MetalBuffer&);
+
+        void downloadToHost(void*, size_t) const;
+        void uploadFromHost(const void*, size_t);
 
         #ifdef __OBJC__
-            MetalBuffer(id<MTLBuffer>);
-            id<MTLBuffer> getBuf();
-            const id<MTLBuffer> getBuf() const;
+            id<MTLBuffer> getBuffer();
+            const id<MTLBuffer> getBuffer() const;
         #endif
 };

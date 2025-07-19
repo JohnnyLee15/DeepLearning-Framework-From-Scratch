@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cstdint>
 #include <vector>
 #include "core/gpu/GpuTypes.h"
@@ -9,13 +10,6 @@ using namespace std;
 
 class Activation {
     public:
-        // Methods
-        virtual void activate(const Tensor&, Tensor&) const = 0;
-        virtual void calculateGradient(const Tensor&, Tensor&) const = 0;
-        virtual Tensor initBias(size_t) const = 0;
-        virtual ~Activation() = default;
-        virtual bool isFused() const;
-        virtual uint32_t getEncoding() const = 0;
 
         // Enums
         enum Encodings : uint32_t {
@@ -24,7 +18,19 @@ class Activation {
             Softmax
         };
 
-        // Gpu
+        // Virtual Destructor
+        virtual ~Activation() = default;
+
+        // Methods
+        virtual Tensor initBias(size_t) const = 0;
+
+        virtual void activate(const Tensor&, Tensor&) const = 0;
+        virtual void calculateGradient(const Tensor&, Tensor&) const = 0;
+
+        virtual bool isFused() const;
+        virtual Encodings getEncoding() const = 0;
+        
+        // GPU Interface
         #ifdef __APPLE__
             virtual void activateGpu(const Tensor&, Tensor&, GpuCommandBuffer) const = 0;
             virtual void calculateGradientGpu(const Tensor&, Tensor&, GpuCommandBuffer) const = 0;

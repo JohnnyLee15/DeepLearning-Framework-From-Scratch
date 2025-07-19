@@ -60,7 +60,7 @@ void Batch::setBatch(
     ensureGpu();
 }
 
-Tensor& Batch::getData() {
+const Tensor& Batch::getData() const {
     return data;
 }
 

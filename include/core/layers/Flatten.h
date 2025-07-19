@@ -6,21 +6,30 @@
 
 class Flatten : public Layer {
     private:
+
+        // Instance Variables
         vector<size_t> inShape;
         vector<size_t> outShape;
+
         Tensor output;
         Tensor dZ;
 
+        // Methods
         void checkInputSize(const vector<size_t>&) const;
 
     public:
+        // Methods
+        void build(const vector<size_t>&) override;
+
         void forward(const Tensor&) override;
         void backprop(const Tensor&, float, Tensor&, bool) override;
-        Tensor& getOutput() override;
+
+        const Tensor& getOutput() const override;
         Tensor& getOutputGradient() override;
+
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
-        void build(const vector<size_t>&) override;
+        Layer::Encodings getEncoding() const override;
+
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
-        uint32_t getEncoding() const override;
 };

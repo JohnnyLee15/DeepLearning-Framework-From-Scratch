@@ -44,7 +44,7 @@ int main() {
     #endif
 
     // Data Reading
-    TabularData *data = new TabularData("regression");
+    TabularData *data = new TabularData("classification");
     data->readTrain("DataFiles/MNIST/mnist_train.csv", "label");
     data->readTest("DataFiles/MNIST/mnist_test.csv", "label");
 
@@ -81,8 +81,8 @@ int main() {
 
     pipe.saveToBin("model");
 
-    // Tensor xTest = scalar->transform(data->getTestFeatures());
-    // const vector<float> &yTest = data->getTrainTargets();
+    Tensor xTest = scalar->transform(data->getTestFeatures());
+    const vector<float> &yTest = data->getTrainTargets();
 
     // Tensor output = nn->predict(xTest);
     // vector<float> predictions = TrainingUtils::getPredictions(output);

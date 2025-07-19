@@ -45,7 +45,7 @@ size_t ImageData2D::getNumTrainSamples() const {
     return trainFeatures.getShape()[0];
 }
 
-uint32_t ImageData2D::getEncoding() const {
+Data::Encodings ImageData2D::getEncoding() const {
     return Data::Encodings::Image2D;
 }
 

@@ -1,14 +1,11 @@
 #pragma once
+
 #include <vector>
 #include "core/layers/Layer.h"
 #include <fstream>
 #include <random>
 #include "core/tensor/Tensor.h"
 #include "core/gpu/GpuTypes.h"
-
-#ifdef __APPLE__
-    #define GPU_ENABLED
-#endif
 
 class Loss;
 class Activation;
@@ -19,6 +16,7 @@ using namespace std;
 
 class NeuralNet {
     private:
+
         // Instance Variables
         vector<Layer*> layers;
         vector<float> avgLosses;
@@ -31,19 +29,24 @@ class NeuralNet {
         static mt19937 generator;
 
         // Methods
-        void backprop(Batch&, float);
+        void build(size_t, const Tensor&);
+
+        float runEpoch(const Tensor&, const vector<float>&, float, size_t, ProgressMetric&);
         void forwardPass(Batch&);
         void forwardPassInference(const Tensor&);
-        void build(size_t, const Tensor&);
-        float runEpoch(const Tensor&, const vector<float>&, float, size_t, ProgressMetric&);
+        void backprop(Batch&, float);
+        
         void fitBatch(Batch&, float);
         Batch makeBatch(size_t, size_t, const Tensor&, const vector<float>&, const vector<size_t>&) const;
+
         void loadLoss(ifstream&);
         void loadLayer(ifstream&);
+
         vector<size_t> generateShuffledIndices(const Tensor&) const;
+
         void reShapeDL(size_t);
 
-        // Gpu
+        // GPU Interface
         #ifdef __APPLE__
             void fitBatchGpu(Batch&, float);
             void forwardPassGpu(Batch&, GpuCommandBuffer);
@@ -55,12 +58,13 @@ class NeuralNet {
         NeuralNet(vector<Layer*>, Loss*);
         NeuralNet();
 
+        // Destructor
+         ~NeuralNet();
+
         //Methods
         void fit(const Tensor&, const vector<float>&, float, float, size_t, size_t, ProgressMetric&);
-        const vector<Layer*>& getLayers() const;
-        const Loss* getLoss() const;
         Tensor predict(const Tensor&);
+
         void writeBin(ofstream&) const;
         void loadFromBin(ifstream&);
-        ~NeuralNet();
 };

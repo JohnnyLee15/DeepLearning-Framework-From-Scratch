@@ -192,7 +192,7 @@ void Dense::forward(const Tensor &prevActivations) {
     activation->activate(preActivations, activations); 
 }
 
-Tensor& Dense::getOutput() {
+const Tensor& Dense::getOutput() const {
     return activations;
 }
 
@@ -222,7 +222,6 @@ void Dense::backprop(
     }
 }
 
-
 Tensor& Dense::getOutputGradient() {
     return dX;
 }
@@ -231,7 +230,6 @@ Dense::~Dense() {
     delete activation;
 }
 
-uint32_t Dense::getEncoding() const {
+Layer::Encodings Dense::getEncoding() const {
     return Layer::Encodings::Dense;
 }
-

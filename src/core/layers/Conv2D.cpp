@@ -162,7 +162,7 @@ void Conv2D::backprop(
 }
 
 
-Tensor& Conv2D::getOutput() {
+const Tensor& Conv2D::getOutput() const {
     return activations;
 }
 
@@ -172,6 +172,6 @@ Tensor& Conv2D::getOutputGradient() {
 
 void Conv2D::writeBin(ofstream &modelBin) const {}
 void Conv2D::loadFromBin(ifstream &modelBin) {}
-uint32_t Conv2D::getEncoding() const {
+Layer::Encodings Conv2D::getEncoding() const {
     return Layer::Encodings::Conv2D;
 }

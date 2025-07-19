@@ -10,11 +10,11 @@ void NeuralNet::fitBatchGpu(Batch &batch, float learningRate) {
     [cmdBuf commit];
     [cmdBuf waitUntilCompleted];
 
-    layers.back()->getOutput().downloadFromGpu();
+    layers.back()->downloadOutputFromGpu();
 }
 
 void NeuralNet::forwardPassGpu(Batch &batch, GpuCommandBuffer cmdBuf) {
-    Tensor *prevActivations = &batch.getData();
+    const Tensor *prevActivations = &batch.getData();
     size_t numLayers = layers.size();
 
     for (size_t j = 0; j < numLayers; j++) {

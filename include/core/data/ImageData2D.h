@@ -8,6 +8,7 @@
 
 class ImageData2D : public Data {
     private:
+        // Instance Variables
         Tensor trainFeatures;
         vector<float> trainTargets;
 
@@ -17,6 +18,7 @@ class ImageData2D : public Data {
         unordered_map<string, int> labelMap;
 
     public:
+        // Methods
         void setTrainFeatures(const Tensor&);
         void setTestFeatures(const Tensor&);
         void setTrainTargets(const vector<string>&);
@@ -28,7 +30,8 @@ class ImageData2D : public Data {
         const vector<float>& getTestTargets() const override;;
 
         size_t getNumTrainSamples() const override;
-        uint32_t getEncoding() const override;
+        Data::Encodings getEncoding() const override;
+
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
 };

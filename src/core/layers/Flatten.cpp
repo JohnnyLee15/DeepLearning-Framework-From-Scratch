@@ -32,7 +32,7 @@ void Flatten::backprop(
     dZ = grad.reShape(inShape);
 }
 
-Tensor& Flatten::getOutput() {
+const Tensor& Flatten::getOutput() const {
     return output;
 }
 
@@ -63,6 +63,6 @@ vector<size_t> Flatten::getBuildOutShape(const vector<size_t> &givenShape) const
 
 void Flatten::writeBin(ofstream &modelBin) const {}
 void Flatten::loadFromBin(ifstream &modelBin) {}
-uint32_t Flatten::getEncoding() const {
+Layer::Encodings Flatten::getEncoding() const {
     return Layer::Encodings::Flatten;
 }

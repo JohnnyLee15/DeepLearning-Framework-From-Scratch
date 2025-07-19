@@ -72,7 +72,6 @@ Tensor Softmax::initBias(size_t numBiases) const {
     return biases;
 }
 
-
 void Softmax::calculateGradient(const Tensor &z, Tensor &dZ) const {
     SoftmaxCrossEntropy::checkInvalidGradientCall();
 }
@@ -81,6 +80,6 @@ bool Softmax::isFused() const {
     return true;
 }
 
-uint32_t Softmax::getEncoding() const {
+Activation::Encodings Softmax::getEncoding() const {
     return Activation::Encodings::Softmax;
 }

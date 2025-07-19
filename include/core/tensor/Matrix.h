@@ -14,29 +14,32 @@ using namespace std;
 
 class Matrix {
     private:
+
+        // Instance Variables
         Tensor &tensor;
 
     public:
-        // Constructors        
+
+        // Constructor       
         Matrix(Tensor&);
 
         // Methods
         size_t getNumCols() const;
         size_t getNumRows() const;
+        const vector<float>& getFlat() const;
+
         void mm(const Matrix&, Tensor&) const;
         void mmT(const MatrixT&, Tensor&) const;
         void colSums(Tensor&) const;
         void addToRows(const Tensor&);
-        MatrixT T() const;
 
-        const vector<float>& getFlat() const;
+        MatrixT T() const;
 
         // Static Methods
         static void checkSizeMatch(size_t, size_t);
         static void checkSameShape(size_t, size_t, size_t, size_t, const string&);
 
-
-        // GPU
+        // GPU Interface
         #ifdef __OBJC__
             // Static Methods
             static void matMatEngine(
@@ -55,6 +58,7 @@ class Matrix {
             void mmTGpu(const MatrixT&, Tensor&, id<MTLCommandBuffer>) const;
             void colSumsGpu(Tensor&, id<MTLCommandBuffer>) const;
             void addToRowsGpu(const Tensor&, id<MTLCommandBuffer>);
+
             id<MTLBuffer> getGpuData() const;
         #endif
 };

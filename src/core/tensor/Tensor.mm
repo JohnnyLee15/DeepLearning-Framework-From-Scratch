@@ -2,31 +2,26 @@
 #include "core/gpu/GpuEngine.h"
 
 void Tensor::initGpuTensor() {
-    size_t dataBytes = getSize() * sizeof(float);
-
-    id<MTLBuffer> dataMtlBuf = [GpuEngine::getGpuDevice()
-        newBufferWithBytes:data.data()
-        length:dataBytes
-        options:MTLResourceStorageModeShared
-    ];
-
-    dataGpu = MetalBuffer(dataMtlBuf);
+    size_t bytes = getSize() * sizeof(float);
+    dataGpu = MetalBuffer(data.data(), bytes);
 }
 
 id<MTLBuffer> Tensor::getGpuData() {
-    return dataGpu.getBuf();
+    return dataGpu.getBuffer();
 }
 
 const id<MTLBuffer> Tensor::getGpuData() const {
-    return dataGpu.getBuf();
+    return dataGpu.getBuffer();
 }
 
 void Tensor::uploadToGpu() {
-    memcpy([dataGpu.getBuf() contents], data.data(), sizeof(float) * data.size());
+    size_t bytes = getSize() * sizeof(float);
+    dataGpu.uploadFromHost(data.data(), bytes);
 }
 
 void Tensor::downloadFromGpu() {
-    memcpy(data.data(), [dataGpu.getBuf() contents], sizeof(float) * data.size());
+    size_t bytes = getSize() * sizeof(float);
+    dataGpu.downloadToHost(data.data(), bytes);
 }
 
 void Tensor::hadamardGpu(const Tensor &ten2, id<MTLCommandBuffer> cmdBuf) {

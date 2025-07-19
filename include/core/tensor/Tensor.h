@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cstdint>
 #include <vector>
 #include "core/gpu/MetalBuffer.h"
@@ -7,6 +8,7 @@ class Matrix;
 
 using namespace std;
 
+// Structs
 struct WindowDims {
     size_t outRows;
     size_t outCols;
@@ -18,6 +20,7 @@ struct WindowDims {
 
 class Tensor {
     private:
+
         // Instance Variables
         vector<size_t> shape;
         vector<float> data;
@@ -27,7 +30,11 @@ class Tensor {
             MetalBuffer dataGpu;
         #endif
 
+        // Methods
+        void ensureGpu();
+
     public:
+
         // Enums
         enum Paddings : uint32_t {
             NONE,
@@ -45,19 +52,16 @@ class Tensor {
         Tensor(const Tensor&);
         Tensor();
 
+        // Methods
         Tensor& operator =(const Tensor&);
 
-        // Methods
         const vector<size_t>& getShape() const;
         const vector<float>& getFlat() const;
-
-        void ensureGpu();
-
         vector<float>& getFlat();
-        void reduceSumBias(Tensor&) const;
-
         size_t getSize() const;
         size_t getRank() const;
+
+        void reduceSumBias(Tensor&) const;
         Matrix M() const;
 
         WindowDims computeInputWindow(size_t, size_t, Tensor::Paddings, size_t) const;
@@ -83,8 +87,7 @@ class Tensor {
         // Static methods
         static Paddings decodePadding(const string&);
 
-        // Gpu Methods
-
+        // Gpu Interface
         #ifdef __APPLE__
             void initGpuTensor();
             void uploadToGpu();

@@ -43,12 +43,14 @@ class GpuEngine {
         #endif
 
     public:
-
+        // Static Methods
         static bool isUsingGpu();
-        static void init();
+
+        #ifdef __APPLE__
+            static void init();
+        #endif
 
         #ifdef __OBJC__
-            // Static Methods
             static id<MTLDevice> getGpuDevice();
             static id<MTLCommandQueue> getCmdQueue();
             static id<MTLLibrary> getLib();

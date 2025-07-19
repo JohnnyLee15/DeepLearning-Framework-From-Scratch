@@ -12,14 +12,19 @@ using namespace std;
 
 class Pipeline {
     private:
+
+        // Instance Variables
         Data *data;
         Scalar *featureScalar;
         Scalar *targetScalar;
         NeuralNet *model;
         ImageTransform2D *imageTransformer;
+
         bool isLoadedPipeline;
 
+        // Methods
         void checkIsLoadedPipeline(const string&) const;
+
         void loadModel(ifstream&);
         void loadData(ifstream&);
         void loadFeatureScalar(ifstream&);
@@ -27,8 +32,13 @@ class Pipeline {
         void loadImageTransformer2D(ifstream&);
 
     public:
+        // Constructor
         Pipeline();
 
+        // Destructor
+        ~Pipeline();
+
+        // Methods
         void setFeatureScalar(Scalar*);
         void setTargetScalar(Scalar*);
         void setModel(NeuralNet*);
@@ -43,8 +53,8 @@ class Pipeline {
 
         void saveToBin(const string&) const;
         void writeBin(ofstream&) const;
-        static Pipeline loadFromBin(const string&);
         void loadComponents(ifstream&);
 
-        ~Pipeline();
+        // Static Methods
+        static Pipeline loadFromBin(const string&);
 };

@@ -29,7 +29,6 @@ void Linear::activateGpu(
     [encoder endEncoding];
 }
 
-
 void Linear::calculateGradientGpu(
     const Tensor &z, 
     Tensor &dZ,

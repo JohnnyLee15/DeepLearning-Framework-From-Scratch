@@ -11,6 +11,8 @@ void Layer::build(const vector<size_t> &inShape) {
     maxBatchSize = inShape[0];
 }
 
+void Layer::downloadOutputFromGpu() {}
+
 size_t Layer::getMaxBatchSize() const {
     return maxBatchSize;
 }

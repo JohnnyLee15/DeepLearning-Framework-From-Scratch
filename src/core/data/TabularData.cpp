@@ -100,6 +100,10 @@ size_t TabularData::getNumTrainSamples() const {
     return trainFeatures.M().getNumRows();
 }
 
+Data::Encodings TabularData::getEncoding() const {
+    return Data::Encodings::Tabular;
+}
+
 void TabularData::headTrain(size_t numRows) const {
     checkTrainLoaded();
     head(numRows, trainFeatures);
@@ -108,34 +112,6 @@ void TabularData::headTrain(size_t numRows) const {
 void TabularData::headTest(size_t numRows) const {
     checkTestLoaded();
     head(numRows, testFeatures);
-}
-
-void TabularData::setData(const Tensor &features, vector<float> &target, bool isTrainData) {
-    if (isTrainData) {
-        trainFeatures = features;
-        trainTargets = target;
-    } else {
-        testFeatures = features;
-        testTargets = target;
-    }
-}
-
-size_t TabularData::getColIdx(const string &colname) const {
-    string cleanCol = CsvUtils::toLowerCase(CsvUtils::trim(colname));
-    size_t numCols = header.size();
-
-    for (size_t i = 0; i < numCols; i++) {
-        if (header[i] == cleanCol) {
-            return i;
-        }
-    }
-    
-    ConsoleUtils::fatalError(
-        "Column name \"" + colname + "\" not found in the dataset.\n"
-        "Please verify that the specified column exists in the CSV header."
-    );
-    
-    return numeric_limits<size_t>::max();
 }
 
 void TabularData::head(
@@ -168,6 +144,34 @@ void TabularData::head(
         }
         cout << endl;
     }
+}
+
+void TabularData::setData(const Tensor &features, vector<float> &target, bool isTrainData) {
+    if (isTrainData) {
+        trainFeatures = features;
+        trainTargets = target;
+    } else {
+        testFeatures = features;
+        testTargets = target;
+    }
+}
+
+size_t TabularData::getColIdx(const string &colname) const {
+    string cleanCol = CsvUtils::toLowerCase(CsvUtils::trim(colname));
+    size_t numCols = header.size();
+
+    for (size_t i = 0; i < numCols; i++) {
+        if (header[i] == cleanCol) {
+            return i;
+        }
+    }
+    
+    ConsoleUtils::fatalError(
+        "Column name \"" + colname + "\" not found in the dataset.\n"
+        "Please verify that the specified column exists in the CSV header."
+    );
+    
+    return numeric_limits<size_t>::max();
 }
 
 vector<string> TabularData::validateAndLoadCsv(const string &filename, bool hasHeader) {
@@ -369,8 +373,4 @@ void TabularData::loadFromBin(ifstream &modelBin) {
             labelMap[key] = value;
         }
     }
-}
-
-uint32_t TabularData::getEncoding() const {
-    return Data::Encodings::Tabular;
 }

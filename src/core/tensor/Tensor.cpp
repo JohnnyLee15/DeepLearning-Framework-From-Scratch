@@ -45,12 +45,10 @@ Tensor::Tensor(const vector<float> &data, const vector<size_t> &shape) :
     ensureGpu();
 }
 
-Tensor::Tensor(const Tensor &other) {
-    shape = other.shape;
-    data = other.data;
+Tensor::Tensor(const Tensor &other) :
+    shape(other.shape), data(other.data) {
     ensureGpu();
 }
-
 Tensor::Tensor() {}
 
 Tensor& Tensor::operator =(const Tensor &other) {

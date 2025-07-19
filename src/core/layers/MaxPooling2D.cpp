@@ -52,7 +52,7 @@ void MaxPooling2D::backprop(
     dZ = prevActivations.maxPool2dGrad(outputGradients, maxIndices);
 }
 
-Tensor& MaxPooling2D::getOutput() {
+const Tensor& MaxPooling2D::getOutput() const {
     return pooledOutput;
 }
 
@@ -62,6 +62,6 @@ Tensor& MaxPooling2D::getOutputGradient() {
 
 void MaxPooling2D::writeBin(ofstream &modelBin) const {}
 void MaxPooling2D::loadFromBin(ifstream &modelBin) {}
-uint32_t MaxPooling2D::getEncoding() const {
+Layer::Encodings MaxPooling2D::getEncoding() const {
     return Layer::Encodings::MaxPooling2D;
 }

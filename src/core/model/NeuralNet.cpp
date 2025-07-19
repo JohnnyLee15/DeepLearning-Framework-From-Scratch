@@ -21,14 +21,6 @@ NeuralNet::NeuralNet(vector<Layer*> layers, Loss *loss) :
 
 NeuralNet::NeuralNet() : loss(nullptr) {}
 
-const vector<Layer*>& NeuralNet::getLayers() const {
-    return layers;
-}
-
-const Loss* NeuralNet::getLoss() const {
-    return loss;
-}
-
 void NeuralNet::fit(
     const Tensor &features,
     const vector<float> &targets,
@@ -121,7 +113,7 @@ Batch NeuralNet::makeBatch(
 }
 
 void NeuralNet::forwardPass(Batch &batch) {
-    Tensor *prevActivations = &batch.getData();
+    const Tensor *prevActivations = &batch.getData();
     size_t numLayers = layers.size();
 
     for (size_t j = 0; j < numLayers; j++) {

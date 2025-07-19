@@ -1,4 +1,5 @@
 #pragma once
+
 #include "core/tensor/Tensor.h"
 #include "core/layers/Layer.h"
 #include <vector>
@@ -36,17 +37,24 @@ class Conv2D : public Layer {
 
         vector<uint32_t> generateThreadSeeds() const;
 
+        void reShapeBatch(size_t);
+
     public:
+        // Constructor
         Conv2D(size_t, size_t, size_t, size_t, const string&, Activation*);
+
+        // Methods
+        void build(const vector<size_t>&) override;
+
         void forward(const Tensor&) override;
         void backprop(const Tensor&, float, Tensor&, bool) override;
-        Tensor& getOutput() override;
+
+        const Tensor& getOutput() const override;
         Tensor& getOutputGradient() override;
-        void build(const vector<size_t>&) override;
+        
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
+        Layer::Encodings getEncoding() const override;
+
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
-        uint32_t getEncoding() const override;
-
-        void reShapeBatch(size_t);
 };

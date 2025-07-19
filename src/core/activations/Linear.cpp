@@ -8,7 +8,6 @@ void Linear::activate(const Tensor& z, Tensor &a) const {
     memcpy(a.getFlat().data(), z.getFlat().data(), z.getSize() * sizeof(float));
 }
 
-
 Tensor Linear::initBias(size_t numBiases) const {
     Tensor biases({numBiases});
     vector<float> &biasFlat = biases.getFlat();
@@ -21,7 +20,6 @@ Tensor Linear::initBias(size_t numBiases) const {
     return biases;
 }
 
-
 void Linear::calculateGradient(const Tensor &z, Tensor &dZ) const {
     size_t size = z.getSize();
 
@@ -33,6 +31,6 @@ void Linear::calculateGradient(const Tensor &z, Tensor &dZ) const {
     }
 }
 
-uint32_t Linear::getEncoding() const {
+Activation::Encodings Linear::getEncoding() const {
     return Activation::Encodings::Linear;
 }

@@ -44,7 +44,6 @@ void Dense::backpropGpu(
     }
 }
 
-void Dense::writeToBinGpu() {
-    weights.downloadFromGpu();
-    biases.downloadFromGpu();
+void Dense::downloadOutputFromGpu() {
+    activations.downloadFromGpu();
 }

@@ -11,16 +11,17 @@ class Softmax : public Activation {
         float getMaxPreActivation(const vector<float>&, size_t, size_t) const;
         void activateRow(vector<float>&, const vector<float>&, size_t, size_t) const;
 
-
     public:
         // Methods
+        Tensor initBias(size_t) const override;
+
         void activate(const Tensor&, Tensor&)  const override;
         void calculateGradient(const Tensor&, Tensor&) const override;
-        Tensor initBias(size_t) const override;
+        
         bool isFused() const override;
-        uint32_t getEncoding() const override;
+        Activation::Encodings getEncoding() const override;
 
-        // Gpu
+        // GPU Interface
         #ifdef __APPLE__
             void activateGpu(const Tensor&, Tensor&, GpuCommandBuffer) const override;
             void calculateGradientGpu(const Tensor&, Tensor&, GpuCommandBuffer) const override;

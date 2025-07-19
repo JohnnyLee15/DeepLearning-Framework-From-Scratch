@@ -13,6 +13,7 @@ using namespace std;
 
 class MatrixT {
     private:
+
         // Instance Variables
         size_t numRows;
         size_t numCols;
@@ -26,13 +27,15 @@ class MatrixT {
         size_t getNumRows() const;
         size_t getNumCols() const;
         const vector<float>& getFlat() const;
+
         void mTm(const Matrix&, Tensor&) const;
         void mTmT(const MatrixT&, Tensor&) const;
 
-        // GPU methods
+        // GPU Interface
         #ifdef __OBJC__
             void mTmGpu(const Matrix&, Tensor&, id<MTLCommandBuffer>) const;
             void mTmTGpu(const MatrixT&, Tensor&, id<MTLCommandBuffer>) const;
+            
             id<MTLBuffer> getGpuData() const;
         #endif
 

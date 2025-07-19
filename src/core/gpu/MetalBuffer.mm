@@ -1,29 +1,39 @@
 #include "core/gpu/MetalBuffer.h"
+#include "core/gpu/GpuEngine.h"
 
-MetalBuffer::MetalBuffer() : buf(nil) {}
+MetalBuffer::MetalBuffer() : buffer(nil) {}
 
-MetalBuffer::MetalBuffer(const MetalBuffer &other) :
-    buf([other.buf retain]) {}
-
-MetalBuffer::MetalBuffer(id<MTLBuffer> metalBuf) : buf([metalBuf retain]) {}
+MetalBuffer::MetalBuffer(const void *host, size_t numBytes) {
+    buffer = [GpuEngine::getGpuDevice()
+        newBufferWithBytes:host
+        length:numBytes
+        options:MTLResourceStorageModeShared];
+}
 
 MetalBuffer& MetalBuffer::operator=(const MetalBuffer &other) {
     if (this != &other) {
-        [buf release];
-        buf = [other.buf retain];
+        [buffer release];
+        buffer = [other.buffer retain];
     }
     return *this;
 }
 
+void MetalBuffer::downloadToHost(void *host, size_t numBytes) const {
+    memcpy(host, [buffer contents], numBytes);
+}
+
+void MetalBuffer::uploadFromHost(const void *host, size_t numBytes) {
+    memcpy([buffer contents], host, numBytes);
+}
 
 MetalBuffer::~MetalBuffer() {
-    [buf release];
+    [buffer release];
 }
 
-id<MTLBuffer> MetalBuffer::getBuf() {
-    return buf;
+id<MTLBuffer> MetalBuffer::getBuffer() {
+    return buffer;
 }
 
-const id<MTLBuffer> MetalBuffer::getBuf() const {
-    return buf;
+const id<MTLBuffer> MetalBuffer::getBuffer() const {
+    return buffer;
 }
