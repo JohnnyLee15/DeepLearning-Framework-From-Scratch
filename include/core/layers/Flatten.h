@@ -12,7 +12,7 @@ class Flatten : public Layer {
         vector<size_t> outShape;
 
         Tensor output;
-        Tensor dZ;
+        Tensor dX;
 
         // Methods
         void checkInputSize(const vector<size_t>&) const;

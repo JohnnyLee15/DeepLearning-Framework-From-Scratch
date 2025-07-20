@@ -17,6 +17,7 @@ class Conv2D : public Layer {
         size_t kRows;
         size_t kCols;
 
+        Tensor paddedInput;
         Tensor kernals;
         Tensor activations;
         Tensor preActivations;
@@ -24,16 +25,24 @@ class Conv2D : public Layer {
         Tensor dW;
         Tensor dA;
         Tensor dX;
+        Tensor gradBuf;
         Tensor biases;
 
+        WindowDims winIn;
+        WindowDims winGrad;
         Activation *activation;
         Tensor::Paddings padding;
         size_t stride;
+        bool isLoadedConv2D;
 
         // Methods
         void initKernals();
+        void initGradBuf();
         void initStride(size_t);
+        void initParams(size_t);
         void checkBuildSize(const vector<size_t>&) const;
+
+        void ensureGpu();
 
         vector<uint32_t> generateThreadSeeds() const;
 

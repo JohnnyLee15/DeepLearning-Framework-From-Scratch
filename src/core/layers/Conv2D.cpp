@@ -3,6 +3,7 @@
 #include <random>
 #include <omp.h>
 #include "utils/ConsoleUtils.h"
+#include "core/gpu/GpuEngine.h"
 
 Conv2D::Conv2D(
     size_t numKernals, 
@@ -11,9 +12,18 @@ Conv2D::Conv2D(
     size_t strideIn,
     const string &padIn, 
     Activation *activation
-) : numKernals(numKernals), kRows(kRows), kCols(kCols), activation(activation) {
+) : numKernals(numKernals), kRows(kRows), kCols(kCols), activation(activation), isLoadedConv2D(false) {
     initStride(strideIn);
     padding = Tensor::decodePadding(padIn);
+}
+
+void Conv2D::ensureGpu() {
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            kernals.uploadToGpu();
+            biases.uploadToGpu();
+        #endif
+    }
 }
 
 void Conv2D::checkBuildSize(const vector<size_t> &inShape) const {
@@ -23,6 +33,35 @@ void Conv2D::checkBuildSize(const vector<size_t> &inShape) const {
             "but got tensor with " + to_string(inShape.size()) + " dimensions."
         );
     }
+}
+
+void Conv2D::initGradBuf() {
+    size_t gradRows = winIn.outRows;
+    size_t gradCols = winIn.outCols;
+
+    if (stride > 1) {
+        gradRows = stride * (gradRows - 1) + 1;
+        gradCols = stride * (gradCols - 1) + 1;
+    }
+
+    winGrad = Tensor({getMaxBatchSize(), gradRows, gradCols, numKernals}).computeGradWindow(
+        kRows, kCols, paddedInput.getShape()[1], 
+        paddedInput.getShape()[2], stride, winIn
+    );
+
+    gradRows += winGrad.padRows;
+    gradCols += winGrad.padCols;
+
+    gradBuf = Tensor({getMaxBatchSize(), gradRows, gradCols, numKernals});
+}
+
+void Conv2D::initParams(size_t inDepth) {
+    if (isLoadedConv2D)
+        return;
+
+    kernals = Tensor({numKernals, kRows, kCols, inDepth});
+    initKernals();
+    biases = activation->initBias(numKernals);
 }
 
 void Conv2D::build(const vector<size_t> &inShape) {
@@ -35,22 +74,20 @@ void Conv2D::build(const vector<size_t> &inShape) {
     size_t inCols = inShape[2];
     size_t inDepth = inShape[3];
 
-    vector<size_t> outShape = getBuildOutShape(inShape);
-    size_t outRows = outShape[1];
-    size_t outCols = outShape[2];
+    winIn = Tensor({inShape}).computeInputWindow(kRows, kCols, padding, stride);
 
-    kernals = Tensor({numKernals, kRows, kCols, inDepth});
-    initKernals();
-
-    biases = activation->initBias(numKernals);
-
-    preActivations = Tensor({batchSize, outRows, outCols, numKernals});
-    activations = Tensor({batchSize, outRows, outCols, numKernals});
+    paddedInput = Tensor({batchSize, inRows + winIn.padRows, inCols + winIn.padCols, inDepth});
+    preActivations = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
+    activations = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
 
     dB = Tensor({numKernals});
     dW = Tensor({numKernals, kRows, kCols, inDepth});
-    dA = Tensor({batchSize, outRows, outCols, numKernals});
+    dA = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
     dX = Tensor({batchSize, inRows, inCols, inDepth});
+
+    initGradBuf();
+    initParams(inDepth);
+    ensureGpu();
 }
 
 vector<uint32_t> Conv2D::generateThreadSeeds() const {
@@ -95,14 +132,14 @@ void Conv2D::initStride(size_t strideIn) {
 
 vector<size_t> Conv2D::getBuildOutShape(const vector<size_t> &inShape) const {
     checkBuildSize(inShape);
-    Tensor dummy(inShape);
-    WindowDims win = dummy.computeInputWindow(kRows, kCols, padding, stride);
-    return {getMaxBatchSize(), win.outRows, win.outCols, numKernals};
+    return {getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernals};
 }
 
 void Conv2D::reShapeBatch(size_t currBatchSize) {
     vector<size_t> outShape = activations.getShape();
     vector<size_t> inShape = dX.getShape();
+    vector<size_t> inPadShape = paddedInput.getShape();
+    vector<size_t> gradShape = gradBuf.getShape();
 
     size_t outRows = outShape[1];
     size_t outCols = outShape[2];
@@ -111,55 +148,71 @@ void Conv2D::reShapeBatch(size_t currBatchSize) {
     size_t inCols = inShape[2];
     size_t inDepth = inShape[3];
 
+    size_t inPadRows = inPadShape[1];
+    size_t inPadCols = inPadShape[2];
+
+    size_t gradRows = gradShape[1];
+    size_t gradCols = gradShape[2];
+
+    paddedInput.reShapeInPlace({currBatchSize, inPadRows, inPadCols, inDepth});
     preActivations.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
     activations.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
     dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});
     dA.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
+    gradBuf.reShapeInPlace({currBatchSize, gradRows, gradCols, numKernals});
 }
 
 void Conv2D::forward(const Tensor &input) {
+    // Sanity check prints
+    input .print("Conv2D::forward  input");
+    activations.print("Conv2D::forward  activations");
+    preActivations.print("Conv2D::forward  preActivations");
+    paddedInput.print("Conv2D::forward  paddedInput");
+
     if (input.getShape()[0] != activations.getShape()[0]) {
         reShapeBatch(input.getShape()[0]);
     }
 
-    WindowDims win = input.computeInputWindow(kRows, kCols, padding, stride);
-    Tensor inputFwd = input.padIfNeeded(win, padding);
-
-    preActivations = inputFwd.conv2dForward(kernals, win, stride, biases);
+    const Tensor &inputFwd = input.padIfNeeded(paddedInput, winIn, padding);
+    inputFwd.conv2dForward(kernals, stride, preActivations, biases);
     activation->activate(preActivations, activations);
+
+    // After the work, you might also print the result
+    activations.print("Conv2D::forward  output activations");
 }
 
 void Conv2D::backprop(
-    const Tensor &prevActivations,
+    const Tensor &input,
     float learningRate,
     Tensor &grad,
     bool isFirstLayer
 ) {
-    (void) isFirstLayer;
+    // Sanity check prints
+    input .print("Conv2D::backprop input");
+    grad  .print("Conv2D::backprop grad");
+    dX    .print("Conv2D::backprop dX (before)");
+    kernals.print("Conv2D::backprop kernels");
 
-    float scaleFactor = -learningRate / prevActivations.getShape()[0];
-    WindowDims winInput = prevActivations.computeInputWindow(kRows, kCols, padding, stride);
+    (void) isFirstLayer;
+    float scaleFactor = -learningRate / input.getShape()[0];
 
     activation->calculateGradient(preActivations, dA);
     grad.hadamard(dA);
 
-    Tensor prevActProcessed = prevActivations.padIfNeeded(winInput, padding);
-    Tensor dW = prevActProcessed.conv2dWeights(grad, numKernals, kRows, kCols, stride);
+    const Tensor &inputBwd = input.padIfNeeded(paddedInput, winIn, padding);
+    inputBwd.conv2dWeights(grad, numKernals, kRows, kCols, stride, dW);
     grad.reduceSumBias(dB);
 
     kernals.applyGrad(dW, scaleFactor);
     biases.applyGrad(dB, scaleFactor);
 
-    if (stride > 1) {
-        grad = grad.gradUpsample(stride);
-    }
-    WindowDims winGrad = grad.computeGradWindow(
-        kRows, kCols, prevActProcessed.getShape()[1], 
-        prevActProcessed.getShape()[2], stride, winInput
-    );
-    grad = grad.padWindowInput(winGrad);
-    dX = grad.conv2dInput(kernals);
+    grad.padAndUpsampleGrad(gradBuf, winGrad, stride);
+    gradBuf.conv2dInput(kernals, dX);
+
+    // Print the final propagated gradient
+    dX.print("Conv2D::backprop dX (after)");
 }
+
 
 
 const Tensor& Conv2D::getOutput() const {

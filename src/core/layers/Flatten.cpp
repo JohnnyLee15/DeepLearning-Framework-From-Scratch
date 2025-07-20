@@ -13,10 +13,13 @@ void Flatten::checkInputSize(const vector<size_t> &givenShape) const {
 void Flatten::forward(const Tensor &input) {
     const vector<size_t> &shape = input.getShape();
     size_t batchSize = shape[0];
+
     checkInputSize(shape);
+
     inShape[0] = batchSize;
     outShape[0] = batchSize;
-    output = input.reShape(outShape);
+    output = input;
+    output.reShapeInPlace(outShape);
 }
 
 void Flatten::backprop(
@@ -29,7 +32,8 @@ void Flatten::backprop(
     (void)prevActivations;
     (void)learningRate;
     (void)isFirstLayer;
-    dZ = grad.reShape(inShape);
+    dX = grad;
+    dX.reShapeInPlace(inShape);
 }
 
 const Tensor& Flatten::getOutput() const {
@@ -37,28 +41,27 @@ const Tensor& Flatten::getOutput() const {
 }
 
 Tensor& Flatten::getOutputGradient() {
-    return dZ;
+    return dX;
 }
 
 void Flatten::build(const vector<size_t> &givenShape) {
     checkInputSize(givenShape);
-
     Layer::build(givenShape);
 
     inShape = givenShape;
-    outShape = getBuildOutShape(givenShape);
-}
-
-vector<size_t> Flatten::getBuildOutShape(const vector<size_t> &givenShape) const {
-    checkInputSize(givenShape);
-
     size_t inSize = givenShape.size();
+
     size_t flatSize = 1;
     for (size_t i = 1; i < inSize; i++) {
         flatSize *= givenShape[i];
     }
 
-    return {getMaxBatchSize(), flatSize};
+    outShape = {getMaxBatchSize(), flatSize};
+}
+
+vector<size_t> Flatten::getBuildOutShape(const vector<size_t> &givenShape) const {
+    checkInputSize(givenShape);
+    return outShape;
 }
 
 void Flatten::writeBin(ofstream &modelBin) const {}

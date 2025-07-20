@@ -12,20 +12,27 @@ class MaxPooling2D : public Layer {
         size_t kCols;
         size_t stride;
 
-        Tensor dZ;
+        Tensor paddedInput;
+        Tensor dX;
 
+        WindowDims winIn;
         Tensor::Paddings padding;
         Tensor pooledOutput;
         vector<size_t> maxIndices;
         
         // Methods
         void initStride(size_t);
+        void checkBuildSize(const vector<size_t>&) const;
+
+        void reShapeBatch(size_t);
 
     public:
         // Constructor
         MaxPooling2D(size_t, size_t, size_t, const string&);
 
         // Methods
+        void build(const vector<size_t>&) override;
+
         void forward(const Tensor&) override;
         void backprop(const Tensor&, float, Tensor&, bool) override;
 

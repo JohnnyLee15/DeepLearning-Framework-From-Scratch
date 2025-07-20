@@ -67,15 +67,15 @@ class Tensor {
         WindowDims computeInputWindow(size_t, size_t, Tensor::Paddings, size_t) const;
         WindowDims computeGradWindow(size_t, size_t, size_t, size_t, size_t, const WindowDims&) const;
 
-        Tensor padIfNeeded(const WindowDims&, Tensor::Paddings) const;
-        Tensor conv2dForward(const Tensor&, const WindowDims&, size_t, const Tensor& biases = Tensor()) const;
-        Tensor conv2dWeights(const Tensor&, size_t, size_t, size_t, size_t) const;
-        Tensor conv2dInput(const Tensor&) const;
-        Tensor reShape(const vector<size_t>&) const;
-        Tensor padWindowInput(const WindowDims&) const;
-        Tensor gradUpsample(size_t) const;
-        Tensor maxPool2d(const WindowDims&, vector<size_t>&, size_t, size_t, size_t, Tensor::Paddings) const;
-        Tensor maxPool2dGrad(const Tensor&, const vector<size_t>&) const;
+        const Tensor& padIfNeeded(Tensor&, const WindowDims&, Tensor::Paddings, float padVal = 0.0f) const;
+        const Tensor& prepInputGrad();
+        void conv2dForward(const Tensor&, size_t, Tensor&, const Tensor& biases = Tensor()) const;
+        void conv2dWeights(const Tensor&, size_t, size_t, size_t, size_t, Tensor&) const;
+        void conv2dInput(const Tensor&, Tensor&) const;
+        void padWindowInput(Tensor&, const WindowDims&, float padVal = 0.0f) const;
+        void padAndUpsampleGrad(Tensor&, const WindowDims&, size_t) const;
+        void maxPool2d(const WindowDims&, vector<size_t>&, size_t, size_t, size_t, Tensor::Paddings, Tensor&) const;
+        void maxPool2dGrad(const Tensor&, const vector<size_t>&, Tensor&) const;
 
         void hadamard(const Tensor&);
         void applyGrad(const Tensor&, float);

@@ -12,6 +12,7 @@ class Layer {
     private:
         // Instance Variables
         size_t maxBatchSize;
+        bool isMaxBatchSet;
 
     public:
 
@@ -30,7 +31,7 @@ class Layer {
         virtual ~Layer() = default;
 
         // Methods
-        virtual void build(const vector<size_t>&);
+        virtual void build(const vector<size_t>&) = 0;
 
         virtual void forward(const Tensor&) = 0;
         virtual void backprop(const Tensor&, float, Tensor&, bool) = 0;

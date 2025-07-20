@@ -17,7 +17,7 @@ Tensor::Tensor(const vector<size_t> &shape) : shape(shape) {
             size *= shape[i];
         }
 
-        data = vector<float>(size, 0.0);
+        data = vector<float>(size, 0.0f);
         ensureGpu();
     }
 }
@@ -76,24 +76,6 @@ void Tensor::print(const string &name) const {
         if (i < shape.size() - 1) cout << ", ";
     }
     cout << "]\n";
-
-    // size_t numRows = shape[0];
-    // size_t numCols = (shape.size() > 1) ? shape[1] : 1;
-
-    // for (size_t i = 0; i < numRows; ++i) {
-    //     cout << "[ ";
-    //     for (size_t j = 0; j < numCols; ++j) {
-    //         cout << data[i * numCols + j] << " ";
-    //     }
-    //     cout << "]\n";
-    // }
-}
-
-
-Tensor Tensor::reShape(const vector<size_t> &newShape) const {
-    Tensor reshaped = *this;
-    reshaped.shape = newShape;
-    return reshaped;
 }
 
 void Tensor::reShapeInPlace(const vector<size_t> &newShape) {
@@ -214,8 +196,10 @@ WindowDims Tensor::computeGradWindow(
     return winGrad;
 }
 
-Tensor Tensor::padWindowInput(
-    const WindowDims &win
+void Tensor::padWindowInput(
+    Tensor &toPad,
+    const WindowDims &win,
+    float padVal
 ) const {
     // Add error checking
 
@@ -224,11 +208,11 @@ Tensor Tensor::padWindowInput(
     size_t inCols = shape[2];
     size_t depth = shape[3];
 
-    size_t newRows = inRows + win.padRows;
-    size_t newCols = inCols + win.padCols;
+    size_t newRows = toPad.shape[1];
+    size_t newCols = toPad.shape[2];
 
-    Tensor padded({numSamples, newRows, newCols, depth});
-    vector<float> &padFlat = padded.data;
+    vector<float> &padFlat = toPad.data;
+    fill(padFlat.begin(), padFlat.end(), padVal);
 
     #pragma omp parallel for collapse(4)
     for (size_t n = 0; n < numSamples; n++) {
@@ -242,24 +226,26 @@ Tensor Tensor::padWindowInput(
             }
         }
     }
-
-    return padded;
 }
 
-Tensor Tensor::padIfNeeded(
+const Tensor& Tensor::padIfNeeded(
+    Tensor &toPad,
     const WindowDims &win,
-    Tensor::Paddings padding
+    Tensor::Paddings padding,
+    float padVal
 ) const {
     if (padding == Paddings::NONE) {
         return *this;
     }
-    return padWindowInput(win);
+
+    padWindowInput(toPad, win, padVal);
+    return toPad;
 }
 
-Tensor Tensor::conv2dForward(
+void Tensor::conv2dForward(
     const Tensor &kernals,
-    const WindowDims &win,
     size_t stride,
+    Tensor &output,
     const Tensor &biases
 ) const {
     // Add error checking
@@ -274,19 +260,21 @@ Tensor Tensor::conv2dForward(
     size_t inCols = shape[2];
     size_t inDepth = shape[3];
 
-    Tensor output = Tensor({numSamples, win.outRows, win.outCols, outDepth});
+    size_t outRows = output.shape[1];
+    size_t outCols = output.shape[2];
+
     vector<float> &outFlat = output.data;
-    const vector<float> biasFlat = biases.data;
+    const vector<float> &biasFlat = biases.data;
     const vector<float> &inFlat = data;
     const vector<float> &kernalsFlat = kernals.data;
 
     #pragma omp parallel for collapse(4)
     for (size_t n = 0; n < numSamples; n++) {
-        for (size_t r = 0; r < win.outRows; r++) {
-            for (size_t c = 0; c < win.outCols; c++) {
+        for (size_t r = 0; r < outRows; r++) {
+            for (size_t c = 0; c < outCols; c++) {
                 for (size_t o = 0; o < outDepth; o++) {
 
-                    float value = 0.0;
+                    float value = 0.0f;
                     for (size_t i = 0; i < kRows; i++) {
                         size_t inRow = r*stride + i;
 
@@ -301,23 +289,22 @@ Tensor Tensor::conv2dForward(
                         }
                     }
 
-                    size_t outIdx = (((n * win.outRows + r) * win.outCols + c) * outDepth) + o;
+                    size_t outIdx = (((n * outRows + r) * outCols + c) * outDepth) + o;
                     outFlat[outIdx] = value + (biasFlat.empty() ? 0.0 : biasFlat[o]);
                 }
             }
         }
     }
-
-    return output;
 }
 
-Tensor Tensor::maxPool2d(
+void Tensor::maxPool2d(
     const WindowDims &win,
     vector<size_t> &maxIndices,
     size_t kRows,
     size_t kCols,
     size_t stride,
-    Tensor::Paddings padding
+    Tensor::Paddings padding,
+    Tensor &pooledOutput
 ) const {
     // Add error checking
     size_t batchSize = shape[0];
@@ -325,11 +312,10 @@ Tensor Tensor::maxPool2d(
     size_t inCols = shape[2];
     size_t inDepth = shape[3];
 
-    vector<size_t> outShape = {batchSize, win.outRows, win.outCols, inDepth};
-    Tensor pooled= Tensor(outShape);
-    maxIndices.assign(pooled.getSize(), SIZE_MAX);
+    maxIndices.assign(pooledOutput.getSize(), SIZE_MAX);
+
     const vector<float> &inFlat = data;
-    vector<float> &outFlat = pooled.data;
+    vector<float> &outFlat = pooledOutput.data;
 
     #pragma omp parallel for collapse(4)
     for (size_t b = 0; b < batchSize; b++) {
@@ -339,53 +325,38 @@ Tensor Tensor::maxPool2d(
 
                     float maxVal = -numeric_limits<float>::max();
                     size_t maxIdx = SIZE_MAX;
-                    size_t maxInRow = SIZE_MAX;
-                    size_t maxInCol = SIZE_MAX;
                     for (size_t i = 0; i < kRows; i++) {
                         size_t inRow = r * stride + i;
                         for (size_t j = 0; j < kCols; j++) {
                             size_t inCol = c * stride + j;
                             size_t idx = (((b * inRows + inRow) * inCols + inCol) * inDepth) + d;
 
-                            if (inFlat[idx] >= maxVal) {
+                            if (inFlat[idx] > maxVal) {
                                 maxVal = inFlat[idx];
                                 maxIdx = idx;
-                                maxInRow = inRow;
-                                maxInCol = inCol;
                             }
                         }
                     }
 
                     size_t outIdx = (((b * win.outRows + r) * win.outCols + c) * inDepth) + d;
                     outFlat[outIdx] = maxVal;
-
-                    bool isValidRow = true;
-                    bool isValidCol = true;
-                    if (padding == Tensor::Paddings::SAME) {
-                        size_t origRows = inRows - win.padRows;
-                        size_t origCols = inCols - win.padCols;
-                        isValidRow = (maxInRow >= win.padTop) && (maxInRow < origRows + win.padTop);
-                        isValidCol = (maxInCol >= win.padLeft) && (maxInCol < origCols + win.padLeft);
-                    }
-
-                    if (isValidRow && isValidCol) {
-                        maxIndices[outIdx] = maxIdx;
-                    }
+                    maxIndices[outIdx] = maxIdx;
                 }
             }
         }
     }
-
-    return pooled;
 }
 
-Tensor Tensor::conv2dWeights(
+void Tensor::conv2dWeights(
     const Tensor &grad,
     size_t numKernals,
     size_t kRows,
     size_t kCols,
-    size_t stride
+    size_t stride,
+    Tensor &dW
 ) const {
+
+    // Add error checking
     const vector<size_t> &gradSize = grad.shape;
     size_t gradRows = gradSize[1];
     size_t gradCols = gradSize[2];
@@ -394,8 +365,6 @@ Tensor Tensor::conv2dWeights(
     size_t inRows = shape[1];
     size_t inCols = shape[2];
     size_t inDepth = shape[3];
-
-    Tensor dW = Tensor({numKernals, kRows, kCols, inDepth});
 
     const vector<float> &gradFlat = grad.data;
     vector<float> &dwFlat = dW.data;
@@ -427,8 +396,6 @@ Tensor Tensor::conv2dWeights(
             }
         }
     }
-
-    return dW;
 }
 
 void Tensor::reduceSumBias(Tensor &dB) const {
@@ -464,40 +431,49 @@ void Tensor::reduceSumBias(Tensor &dB) const {
     }
 }
 
-Tensor Tensor::gradUpsample(size_t stride) const{ 
+void Tensor::padAndUpsampleGrad(
+    Tensor &outGrad, 
+    const WindowDims &winGrad, 
+    size_t stride
+) const{ 
     size_t batchSize = shape[0];
     size_t gradRows = shape[1];
     size_t gradCols = shape[2];
     size_t numKernals = shape[3];
 
-    size_t upRows = stride * (gradRows - 1) + 1;
-    size_t upCols = stride * (gradCols - 1) + 1;
+    size_t outRows = (stride > 1) ? stride * (gradRows - 1) + 1 : gradRows;
+    size_t outCols = (stride > 1) ? stride * (gradCols - 1) + 1 : gradCols;
+    outRows += winGrad.padRows;
+    outCols += winGrad.padCols;
 
-    Tensor up({batchSize, upRows, upCols, numKernals});
-    vector<float> &upFlat = up.data;
+    outGrad.reShapeInPlace(
+        {batchSize, outRows, outCols, numKernals}
+    );
+
+    vector<float> &outFlat = outGrad.data;
+    fill(outFlat.begin(), outFlat.end(), 0.0f);
 
     #pragma omp parallel for collapse(2)
     for (size_t n = 0; n < batchSize; n++) {
         for (size_t r = 0; r < gradRows; r++) {
 
-            size_t upRow = r * stride;
+            size_t upRow = r * stride + winGrad.padTop;
             for (size_t c = 0; c < gradCols; c++) {
 
-                size_t upCol = c * stride;
+                size_t upCol = c * stride + winGrad.padLeft;
                 for (size_t d = 0; d < numKernals; d++) {
                     size_t inIdx = (((n * gradRows + r) * gradCols + c) * numKernals) + d;
-                    size_t upIdx = (((n * upRows + upRow) * upCols + upCol) * numKernals) + d;
-                    upFlat[upIdx] = data[inIdx];
+                    size_t upIdx = (((n * outRows + upRow) * outCols + upCol) * numKernals) + d;
+                    outFlat[upIdx] = data[inIdx];
                 }
             }
         }
     }
-
-    return up;
 }
 
-Tensor Tensor::conv2dInput(
-    const Tensor &kernals
+void Tensor::conv2dInput(
+    const Tensor &kernals,
+    Tensor &dX
 ) const {
     const vector<size_t> &kShape = kernals.shape;
     size_t numkernals = shape[3];
@@ -509,10 +485,8 @@ Tensor Tensor::conv2dInput(
     size_t gradRows = shape[1];
     size_t gradCols = shape[2];
 
-    size_t dxRows = gradRows - kRows + 1;
-    size_t dxCols = gradCols - kCols + 1;
-
-    Tensor dX = Tensor({numSamples, dxRows, dxCols, inDepth});
+    size_t dxRows = dX.shape[1];
+    size_t dxCols = dX.shape[2];
 
     const vector<float> &gradFlat = data;
     const vector<float> &kFlat = kernals.data;
@@ -548,30 +522,24 @@ Tensor Tensor::conv2dInput(
             }
         }
     }
-
-    return dX;
 }
 
-Tensor Tensor::maxPool2dGrad(
+void Tensor::maxPool2dGrad(
     const Tensor &grad,
-    const vector<size_t> &maxIndices
+    const vector<size_t> &maxIndices,
+    Tensor &dX
 ) const {
-    Tensor dZ = Tensor(shape);
-    vector<float> &dzFlat = dZ.data;
+    vector<float> &dxFlat = dX.data;
+    fill(dxFlat.begin(), dxFlat.end(), 0.0f);
     const vector<float> &gradFlat = grad.getFlat();
     
     size_t gradSize = grad.getSize();
     
     #pragma omp parallel for
     for (size_t i = 0; i < gradSize; i++) {
-        size_t inIdx = maxIndices[i];
-        if (inIdx != SIZE_MAX) {
-            #pragma omp atomic
-            dzFlat[inIdx] += gradFlat[i];
-        }
+        #pragma omp atomic
+        dxFlat[maxIndices[i]] += gradFlat[i];
     }
-
-    return dZ;
 }
 
 void Tensor::hadamard(const Tensor &ten2) {
