@@ -27,6 +27,9 @@ id<MTLComputePipelineState> GpuEngine::activateSoftmaxPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateMSEGradPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateSoftmaxCrossEntropyGradPipeline  = nil;
 
+id<MTLComputePipelineState> GpuEngine::conv2dForwardPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::padWindowInputPipeline  = nil;
+
 void GpuEngine::init() {
     gpuDevice = MTLCreateSystemDefaultDevice();
     cmdQueue = [gpuDevice newCommandQueue];
@@ -86,6 +89,9 @@ void GpuEngine::initAllPipes() {
 
     initPipe("calculateMSEGrad", calculateMSEGradPipeline);
     initPipe("calculateSoftmaxCrossEntropyGrad", calculateSoftmaxCrossEntropyGradPipeline);
+
+    initPipe("conv2dForward", conv2dForwardPipeline);
+    initPipe("padWindowInput", padWindowInputPipeline);
 }
 
 id<MTLDevice> GpuEngine::getGpuDevice() { return gpuDevice; }
@@ -113,3 +119,6 @@ id<MTLComputePipelineState> GpuEngine::getCalculateSoftmaxCrossEntropyGradPipe()
 id<MTLComputePipelineState> GpuEngine::getActivateLinearPipe() { return activateLinearPipeline; }
 id<MTLComputePipelineState> GpuEngine::getActivateReLUPipe() { return activateReLUPipeline; }
 id<MTLComputePipelineState> GpuEngine::getActivateSoftmaxPipe() { return activateSoftmaxPipeline; }
+
+id<MTLComputePipelineState> GpuEngine::getConv2dForwardPipe() { return conv2dForwardPipeline; }
+id<MTLComputePipelineState> GpuEngine::getPadWindowInputPipe() { return padWindowInputPipeline; }

@@ -36,6 +36,9 @@ class GpuEngine {
             static id<MTLComputePipelineState> calculateMSEGradPipeline;
             static id<MTLComputePipelineState> calculateSoftmaxCrossEntropyGradPipeline;
 
+            static id<MTLComputePipelineState> conv2dForwardPipeline;
+            static id<MTLComputePipelineState> padWindowInputPipeline;
+
             // Static Methods
             static void initLib();
             static void initPipe(const char*, id<MTLComputePipelineState>&);
@@ -75,6 +78,9 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> getCalculateMSEGradPipe();
             static id<MTLComputePipelineState> getCalculateSoftmaxCrossEntropyGradPipe();
+
+            static id<MTLComputePipelineState> getConv2dForwardPipe();
+            static id<MTLComputePipelineState> getPadWindowInputPipe();
         #endif
 };
 

@@ -65,7 +65,6 @@ void Matrix::mm(const Matrix &mat2, Tensor &prod) const {
             prodFlat[offsetProd + j] = value;
         }
     }
-    
 }
 
 void Matrix::mmT(const MatrixT &mat2, Tensor &prod) const {

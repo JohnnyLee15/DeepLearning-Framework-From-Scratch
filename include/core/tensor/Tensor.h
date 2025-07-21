@@ -68,8 +68,7 @@ class Tensor {
         WindowDims computeGradWindow(size_t, size_t, size_t, size_t, size_t, const WindowDims&) const;
 
         const Tensor& padIfNeeded(Tensor&, const WindowDims&, Tensor::Paddings, float padVal = 0.0f) const;
-        const Tensor& prepInputGrad();
-        void conv2dForward(const Tensor&, size_t, Tensor&, const Tensor& biases = Tensor()) const;
+        void conv2dForward(const Tensor&, size_t, Tensor&, const Tensor&) const;
         void conv2dWeights(const Tensor&, size_t, size_t, size_t, size_t, Tensor&) const;
         void conv2dInput(const Tensor&, Tensor&) const;
         void padWindowInput(Tensor&, const WindowDims&, float padVal = 0.0f) const;
@@ -98,6 +97,8 @@ class Tensor {
             id<MTLBuffer> getGpuData();
             const id<MTLBuffer> getGpuData() const;
 
+            void conv2dForwardGpu(const Tensor&, size_t, Tensor&, const Tensor&, id<MTLCommandBuffer>) const;
+            void padWindowInput(Tensor&, const WindowDims&, float padVal = 0.0f, id<MTLCommandBuffer>) const;
             void hadamardGpu(const Tensor&, id<MTLCommandBuffer>);
             void applyGradGpu(const Tensor&, float, id<MTLCommandBuffer>);
         #endif

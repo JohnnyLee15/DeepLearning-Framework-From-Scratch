@@ -70,3 +70,96 @@ void Tensor::applyGradGpu(
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
     [encoder endEncoding];
 }
+
+void Tensor::padWindowInputGpu(
+    Tensor &toPad,
+    const WindowDims &win,
+    float padVal,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    // add fill gpu method
+    id<MTLBuffer> inBuf = getGpuData();
+    id<MTLBuffer> padBuf = toPad.getGpuData();
+
+    uint32_t inDims[4] = {
+        (uint32_t) shape[0], (uint32_t) shape[1], (uint32_t) shape[2], (uint32_t) shape[3]
+    };
+
+    uint32_t padDims[4] = {
+        (uint32_t) toPad.shape[0], (uint32_t) toPad.shape[1], 
+        (uint32_t) toPad.shape[2], (uint32_t) toPad.shape[3]
+    };
+
+    uint32_t padTop = (uint32_t) win.padTop;
+    uint32_t padLeft = (uint32_t) win.padLeft;
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getPadWindowInputPipe()];
+
+    [encoder setBuffer:inBuf offset:0 atIndex:0];
+    [encoder setBuffer:padBuf offset:0 atIndex:1];
+    [encoder setBytes:&inDims length:sizeof(inDims)  atIndex:2];
+    [encoder setBytes:&padDims length:sizeof(padDims)  atIndex:3];
+    [encoder setBytes:&padTop length:sizeof(uint32_t)  atIndex:4];
+    [encoder setBytes:&padLeft length:sizeof(uint32_t)  atIndex:5];   
+
+    NSUInteger tgDim = 16;
+    MTLSize tgSize = MTLSizeMake(tgDim, tgDim, 1);
+    NSUInteger numCols = (padDims[2] + tgDim - 1)/tgDim;
+    NSUInteger numRows = (padDims[1] + tgDim - 1)/tgDim;
+    MTLSize numGroups = MTLSizeMake(numCols, numRows, inDims[0]);
+
+    [encoder dispatchThreadgroups:numGroups threadsPerThreadgroup:tgSize];
+    [encoder endEncoding];
+}
+
+void Tensor::conv2dForwardGpu(
+    const Tensor &kernals,
+    size_t stride,
+    Tensor &output,
+    const Tensor &biases, 
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> inBuf = getGpuData();
+    id<MTLBuffer> kernBuf = kernals.getGpuData();
+    id<MTLBuffer> biasBuf = biases.getGpuData();
+    id<MTLBuffer> outBuf = output.getGpuData();
+
+    uint32_t inDims[4] = {
+        (uint32_t) shape[0], (uint32_t) shape[1], (uint32_t) shape[2], (uint32_t) shape[3]
+    };
+
+    uint32_t kDims[4] = {
+        (uint32_t) kernals.shape[0], (uint32_t) kernals.shape[1], 
+        (uint32_t) kernals.shape[2], (uint32_t) kernals.shape[3]
+    };
+
+    uint32_t outDims[4] = {
+        (uint32_t) output.shape[0], (uint32_t) output.shape[1], 
+        (uint32_t) output.shape[2], (uint32_t) output.shape[3]
+    };
+
+    uint32_t strideU = (uint32_t) stride;
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getConv2dForwardPipe()];
+
+    [encoder setBuffer:inBuf offset:0 atIndex:0];
+    [encoder setBuffer:kernBuf offset:0 atIndex:1];
+    [encoder setBuffer:biasBuf offset:0 atIndex:2];
+    [encoder setBuffer:outBuf offset:0 atIndex:3];
+
+    [encoder setBytes:&inDims length:sizeof(inDims)  atIndex:4];
+    [encoder setBytes:&kDims length:sizeof(kDims)   atIndex:5];
+    [encoder setBytes:&outDims length:sizeof(outDims) atIndex:6];
+    [encoder setBytes:&strideU length:sizeof(uint32_t) atIndex:7];
+
+    NSUInteger tgDim = 16;
+    MTLSize tgSize = MTLSizeMake(tgDim, tgDim, 1);
+    NSUInteger numCols = (outDims[2] + tgDim - 1)/tgDim;
+    NSUInteger numRows = (outDims[1] + tgDim - 1)/tgDim;
+    MTLSize numGroups = MTLSizeMake(numCols, numRows, inDims[0] * kDims[0]);
+
+    [encoder dispatchThreadgroups:numGroups threadsPerThreadgroup:tgSize];
+    [encoder endEncoding];
+}

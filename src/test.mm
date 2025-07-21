@@ -1,67 +1,54 @@
-// // testMM.mm
+// testConv2d_batch.mm  – multi-batch sanity test
+#import <Metal/Metal.h>
+#include "core/gpu/GpuEngine.h"
+#include "core/tensor/Tensor.h"
 
-// #import <Metal/Metal.h>
-// #include "core/GpuEngine.h"
-// #include "core/Tensor.h"
-// #include "core/MatrixT.h"
-// #include "core/Matrix.h"
-// #include <vector>
-// #include <algorithm>
-// #include <iostream>
+int main() {
+    @autoreleasepool {
+        /* ---- Metal init ----------------------------------------------- */
+        GpuEngine::init();
+        id<MTLCommandQueue> queue = GpuEngine::getCmdQueue();
+        id<MTLCommandBuffer> cmd  = [queue commandBuffer];
 
+        /* ---- tensors --------------------------------------------------- */
+        // Input  N,H,W,C = 3×3×3×1
+        //   sample 0 = 1 ..  9   (sum =  45)
+        //   sample 1 = 10 .. 18  (sum = 126)
+        //   sample 2 = 19 .. 27  (sum = 207)
+        Tensor X({3,3,3,1});
+        std::vector<float> in(27);
+        for (int i = 0; i < 27; ++i) in[i] = static_cast<float>(i + 1);
+        X.getFlat() = std::move(in);
 
-// using uint = unsigned int;
+        // Kernel  K,R,S,C = 1×3×3×1, all ones
+        Tensor W({1,3,3,1});
+        W.getFlat() = std::vector<float>(9, 1.0f);
 
-// int main() {
-//     @autoreleasepool {
-//         // 1) Initialize the GPU
-//         GpuEngine::init();
-//         id<MTLCommandQueue> queue = GpuEngine::getCmdQueue();
+        // Bias K = 1
+        Tensor B({1});
+        B.getFlat() = {0};
 
-//         // 2) Create a command buffer
-//         id<MTLCommandBuffer> cmd = [queue commandBuffer];
+        // Output  N,H',W',K = 3×1×1×1
+        Tensor Y({3,1,1,1});
+        Y.getFlat() = std::vector<float>(3, 0.0f);
 
-//         // 3) Create and fill three tensors:
-//         //    A is 2×3, B is 3×2, C (the result) is 2×2
-//         Tensor A({2, 3});
-//         Tensor B({3, 2});
-//         Tensor C({2, 2});
+        /* ---- upload & run --------------------------------------------- */
+        X.uploadToGpu();  W.uploadToGpu();  B.uploadToGpu();  Y.uploadToGpu();
+        X.conv2dForwardGpu(W, /*stride=*/1, Y, B, cmd);
+        [cmd commit];  [cmd waitUntilCompleted];
 
-//         // Fill A = [1,2,3; 4,5,6], B = [7,8; 9,10; 11,12]
-//         std::vector<float> valsA = {1,2,3, 4,5,6};
-//         std::vector<float> valsB = {7,8, 9,10, 11,12};
-//         std::copy(valsA.begin(), valsA.end(), A.getFlat().begin());
-//         std::copy(valsB.begin(), valsB.end(), B.getFlat().begin());
+        /* ---- download & print ----------------------------------------- */
+        Y.downloadFromGpu();
+        auto &out = Y.getFlat();
+        printf("Output (NHWC 3×1×1×1):\n");
+        for (int n = 0; n < 3; ++n) {
+            printf("sample %d → [%.0f]\n", n, out[n]);
+        }
 
-//         // Zero-init C
-//         std::fill(C.getFlat().begin(), C.getFlat().end(), 0.0f);
-
-//         // 4) Upload to GPU
-//         A.uploadToGpu();
-//         B.uploadToGpu();
-//         C.uploadToGpu();
-
-//         // 5) Run your mm kernel via the Matrix wrapper
-//         Matrix MA(A), MB(B);
-//         MA.mmGpu(MB, C, cmd);
-
-//         // 6) Commit and wait for completion
-//         [cmd commit];
-//         [cmd waitUntilCompleted];
-
-//         // 7) Download and print the result
-//         C.downloadFromGpu();
-//         auto &out = C.getFlat();
-//         std::cout << "A × B =\n";
-//         for (int i = 0; i < 2; ++i) {
-//             for (int j = 0; j < 2; ++j) {
-//                 std::cout << out[i*2 + j] << " ";
-//             }
-//             std::cout << "\n";
-//         }
-//         // Expected:
-//         // 58 64
-//         // 139 154
-//     }
-//     return 0;
-// }
+        // Expected:
+        // sample 0 → [45]
+        // sample 1 → [126]
+        // sample 2 → [207]
+    }
+    return 0;
+}

@@ -274,7 +274,7 @@ void Tensor::conv2dForward(
             for (size_t c = 0; c < outCols; c++) {
                 for (size_t o = 0; o < outDepth; o++) {
 
-                    float value = 0.0f;
+                    float value = biasFlat[o];
                     for (size_t i = 0; i < kRows; i++) {
                         size_t inRow = r*stride + i;
 
@@ -290,7 +290,7 @@ void Tensor::conv2dForward(
                     }
 
                     size_t outIdx = (((n * outRows + r) * outCols + c) * outDepth) + o;
-                    outFlat[outIdx] = value + (biasFlat.empty() ? 0.0 : biasFlat[o]);
+                    outFlat[outIdx] = value;
                 }
             }
         }

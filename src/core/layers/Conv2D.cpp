@@ -163,11 +163,11 @@ void Conv2D::reShapeBatch(size_t currBatchSize) {
 }
 
 void Conv2D::forward(const Tensor &input) {
-    // Sanity check prints
-    input .print("Conv2D::forward  input");
-    activations.print("Conv2D::forward  activations");
-    preActivations.print("Conv2D::forward  preActivations");
-    paddedInput.print("Conv2D::forward  paddedInput");
+    // // Sanity check prints
+    // input .print("Conv2D::forward  input");
+    // activations.print("Conv2D::forward  activations");
+    // preActivations.print("Conv2D::forward  preActivations");
+    // paddedInput.print("Conv2D::forward  paddedInput");
 
     if (input.getShape()[0] != activations.getShape()[0]) {
         reShapeBatch(input.getShape()[0]);
@@ -177,8 +177,8 @@ void Conv2D::forward(const Tensor &input) {
     inputFwd.conv2dForward(kernals, stride, preActivations, biases);
     activation->activate(preActivations, activations);
 
-    // After the work, you might also print the result
-    activations.print("Conv2D::forward  output activations");
+    // // After the work, you might also print the result
+    // activations.print("Conv2D::forward  output activations");
 }
 
 void Conv2D::backprop(
@@ -187,11 +187,11 @@ void Conv2D::backprop(
     Tensor &grad,
     bool isFirstLayer
 ) {
-    // Sanity check prints
-    input .print("Conv2D::backprop input");
-    grad  .print("Conv2D::backprop grad");
-    dX    .print("Conv2D::backprop dX (before)");
-    kernals.print("Conv2D::backprop kernels");
+    // // Sanity check prints
+    // input .print("Conv2D::backprop input");
+    // grad  .print("Conv2D::backprop grad");
+    // dX    .print("Conv2D::backprop dX (before)");
+    // kernals.print("Conv2D::backprop kernels");
 
     (void) isFirstLayer;
     float scaleFactor = -learningRate / input.getShape()[0];
@@ -209,8 +209,8 @@ void Conv2D::backprop(
     grad.padAndUpsampleGrad(gradBuf, winGrad, stride);
     gradBuf.conv2dInput(kernals, dX);
 
-    // Print the final propagated gradient
-    dX.print("Conv2D::backprop dX (after)");
+    // // Print the final propagated gradient
+    // dX.print("Conv2D::backprop dX (after)");
 }
 
 
