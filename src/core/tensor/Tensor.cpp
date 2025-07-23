@@ -298,12 +298,10 @@ void Tensor::conv2dForward(
 }
 
 void Tensor::maxPool2d(
-    const WindowDims &win,
     vector<size_t> &maxIndices,
     size_t kRows,
     size_t kCols,
     size_t stride,
-    Tensor::Paddings padding,
     Tensor &pooledOutput
 ) const {
     // Add error checking
@@ -312,6 +310,9 @@ void Tensor::maxPool2d(
     size_t inCols = shape[2];
     size_t inDepth = shape[3];
 
+    size_t outRows = pooledOutput.shape[1];
+    size_t outCols = pooledOutput.shape[2];
+
     maxIndices.assign(pooledOutput.getSize(), SIZE_MAX);
 
     const vector<float> &inFlat = data;
@@ -319,8 +320,8 @@ void Tensor::maxPool2d(
 
     #pragma omp parallel for collapse(4)
     for (size_t b = 0; b < batchSize; b++) {
-        for (size_t r = 0; r < win.outRows; r++) {
-            for (size_t c = 0; c < win.outCols; c++) {
+        for (size_t r = 0; r < outRows; r++) {
+            for (size_t c = 0; c < outCols; c++) {
                 for (size_t d = 0; d < inDepth; d++) {
 
                     float maxVal = -numeric_limits<float>::max();
@@ -338,7 +339,7 @@ void Tensor::maxPool2d(
                         }
                     }
 
-                    size_t outIdx = (((b * win.outRows + r) * win.outCols + c) * inDepth) + d;
+                    size_t outIdx = (((b * outRows + r) * outCols + c) * inDepth) + d;
                     outFlat[outIdx] = maxVal;
                     maxIndices[outIdx] = maxIdx;
                 }

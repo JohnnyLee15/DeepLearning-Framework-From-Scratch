@@ -15,6 +15,7 @@ class MetalBuffer {
         // Constructors
         MetalBuffer();
         MetalBuffer(const void*, size_t);
+        MetalBuffer(size_t);
 
         // Destructor
         ~MetalBuffer();

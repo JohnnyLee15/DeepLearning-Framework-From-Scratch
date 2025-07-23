@@ -1,5 +1,6 @@
 #include "core/layers/MaxPooling2D.h"
 #include "utils/ConsoleUtils.h"
+#include "core/gpu/GpuEngine.h"
 
 MaxPooling2D::MaxPooling2D(
     size_t kRows,
@@ -35,6 +36,7 @@ void MaxPooling2D::build(const vector<size_t> &inShape) {
     paddedInput = Tensor({batchSize, inRows + winIn.padRows, inCols + winIn.padCols, inDepth});
     pooledOutput = Tensor({batchSize, winIn.outRows, winIn.outCols, inDepth});
     dX = Tensor(inShape);
+    initMaxIndices();
 }
 
 void MaxPooling2D::initStride(size_t strideIn) {
@@ -44,6 +46,15 @@ void MaxPooling2D::initStride(size_t strideIn) {
         );
     }
     stride = strideIn;
+}
+
+void MaxPooling2D::initMaxIndices() {
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            size_t bytes = pooledOutput.getSize() * sizeof(uint32_t);
+            maxIndicesGpu = MetalBuffer(bytes);
+        #endif
+    }
 }
 
 vector<size_t> MaxPooling2D::getBuildOutShape(const vector<size_t> &inShape) const {
@@ -84,7 +95,7 @@ void MaxPooling2D::forward(const Tensor &input) {
     }
 
     const Tensor &inputFwd = input.padIfNeeded(paddedInput, winIn, padding, -numeric_limits<float>::max());
-    inputFwd.maxPool2d(winIn, maxIndices, kRows, kCols, stride, padding, pooledOutput);
+    inputFwd.maxPool2d(maxIndices, kRows, kCols, stride, pooledOutput);
 }
 
 void MaxPooling2D::backprop(

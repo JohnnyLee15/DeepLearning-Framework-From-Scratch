@@ -10,6 +10,12 @@ MetalBuffer::MetalBuffer(const void *host, size_t numBytes) {
         options:MTLResourceStorageModeShared];
 }
 
+MetalBuffer::MetalBuffer(size_t numBytes) {
+    buffer = [GpuEngine::getGpuDevice()
+        newBufferWithLength:numBytes
+        options:MTLResourceStorageModeShared];
+}
+
 MetalBuffer& MetalBuffer::operator=(const MetalBuffer &other) {
     if (this != &other) {
         [buffer release];

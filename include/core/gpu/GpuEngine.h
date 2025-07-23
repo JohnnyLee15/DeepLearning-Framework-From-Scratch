@@ -38,6 +38,9 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> conv2dForwardPipeline;
             static id<MTLComputePipelineState> padWindowInputPipeline;
+            static id<MTLComputePipelineState> fillFloatPipeline;
+            static id<MTLComputePipelineState> fillIntPipeline;
+            static id<MTLComputePipelineState> maxPool2dPipeline;
 
             // Static Methods
             static void initLib();
@@ -57,6 +60,9 @@ class GpuEngine {
             static id<MTLDevice> getGpuDevice();
             static id<MTLCommandQueue> getCmdQueue();
             static id<MTLLibrary> getLib();
+
+            static void fillFloat(id<MTLBuffer>, uint32_t, id<MTLCommandBuffer>, float);
+            static void fillInt(id<MTLBuffer>, uint32_t, id<MTLCommandBuffer>, uint32_t);
 
             static id<MTLComputePipelineState> getMatMatPipe();
             static id<MTLComputePipelineState> getMatMatTPipe();
@@ -81,6 +87,7 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> getConv2dForwardPipe();
             static id<MTLComputePipelineState> getPadWindowInputPipe();
+            static id<MTLComputePipelineState> getMaxPool2dPipe();
         #endif
 };
 

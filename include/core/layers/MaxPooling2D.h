@@ -3,6 +3,7 @@
 #include "core/tensor/Tensor.h"
 #include "core/layers/Layer.h"
 #include <string>
+#include "core/gpu/MetalBuffer.h"
 
 class MaxPooling2D : public Layer {
     private:
@@ -19,9 +20,15 @@ class MaxPooling2D : public Layer {
         Tensor::Paddings padding;
         Tensor pooledOutput;
         vector<size_t> maxIndices;
+
+        // GPU Instance Variables
+        #ifdef __APPLE__
+            MetalBuffer maxIndicesGpu;
+        #endif
         
         // Methods
         void initStride(size_t);
+        void initMaxIndices();
         void checkBuildSize(const vector<size_t>&) const;
 
         void reShapeBatch(size_t);
@@ -44,4 +51,10 @@ class MaxPooling2D : public Layer {
 
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
+
+        // GPU Interface
+        #ifdef __APPLE__
+            void forwardGpu(const Tensor&, GpuCommandBuffer) override;
+            // void backpropGpu(const Tensor&, float, Tensor&, bool, GpuCommandBuffer) override;
+        #endif
 };

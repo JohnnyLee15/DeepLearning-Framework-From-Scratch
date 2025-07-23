@@ -29,6 +29,9 @@ id<MTLComputePipelineState> GpuEngine::calculateSoftmaxCrossEntropyGradPipeline 
 
 id<MTLComputePipelineState> GpuEngine::conv2dForwardPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::padWindowInputPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::fillFloatPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::fillIntPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::maxPool2dPipeline  = nil;
 
 void GpuEngine::init() {
     gpuDevice = MTLCreateSystemDefaultDevice();
@@ -92,7 +95,43 @@ void GpuEngine::initAllPipes() {
 
     initPipe("conv2dForward", conv2dForwardPipeline);
     initPipe("padWindowInput", padWindowInputPipeline);
+    initPipe("fillFloat", fillFloatPipeline);
+    initPipe("fillInt", fillIntPipeline);
+    initPipe("maxPool2d", maxPool2dPipeline);
 }
+
+void GpuEngine::fillFloat(id<MTLBuffer> buf, uint32_t size, id<MTLCommandBuffer> cmdBuf, float val) {
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:fillFloatPipeline];
+
+    [encoder setBuffer:buf offset:0 atIndex:0];
+    [encoder setBytes:&size length:sizeof(uint32_t) atIndex:1];
+    [encoder setBytes:&val length:sizeof(float)  atIndex:2];
+
+    MTLSize gridSize = MTLSizeMake(size, 1, 1);
+    NSUInteger tgSize = MIN(size, 256);
+    MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
+    [encoder endEncoding];
+}
+
+void GpuEngine::fillInt(id<MTLBuffer> buf, uint32_t size, id<MTLCommandBuffer> cmdBuf, uint32_t val) {
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:fillIntPipeline];
+
+    [encoder setBuffer:buf offset:0 atIndex:0];
+    [encoder setBytes:&size length:sizeof(uint32_t) atIndex:1];
+    [encoder setBytes:&val length:sizeof(uint32_t)  atIndex:2];
+
+    MTLSize gridSize = MTLSizeMake(size, 1, 1);
+    NSUInteger tgSize = MIN(size, 256);
+    MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
+    [encoder endEncoding];
+}
+
 
 id<MTLDevice> GpuEngine::getGpuDevice() { return gpuDevice; }
 id<MTLCommandQueue> GpuEngine::getCmdQueue() { return cmdQueue; }
@@ -122,3 +161,4 @@ id<MTLComputePipelineState> GpuEngine::getActivateSoftmaxPipe() { return activat
 
 id<MTLComputePipelineState> GpuEngine::getConv2dForwardPipe() { return conv2dForwardPipeline; }
 id<MTLComputePipelineState> GpuEngine::getPadWindowInputPipe() { return padWindowInputPipeline; }
+id<MTLComputePipelineState> GpuEngine::getMaxPool2dPipe() { return maxPool2dPipeline; }

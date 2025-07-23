@@ -71,9 +71,9 @@ class Tensor {
         void conv2dForward(const Tensor&, size_t, Tensor&, const Tensor&) const;
         void conv2dWeights(const Tensor&, size_t, size_t, size_t, size_t, Tensor&) const;
         void conv2dInput(const Tensor&, Tensor&) const;
-        void padWindowInput(Tensor&, const WindowDims&, float padVal = 0.0f) const;
+        void padWindowInput(Tensor&, const WindowDims&, float) const;
         void padAndUpsampleGrad(Tensor&, const WindowDims&, size_t) const;
-        void maxPool2d(const WindowDims&, vector<size_t>&, size_t, size_t, size_t, Tensor::Paddings, Tensor&) const;
+        void maxPool2d(vector<size_t>&, size_t, size_t, size_t, Tensor&) const;
         void maxPool2dGrad(const Tensor&, const vector<size_t>&, Tensor&) const;
 
         void hadamard(const Tensor&);
@@ -96,9 +96,12 @@ class Tensor {
         #ifdef __OBJC__
             id<MTLBuffer> getGpuData();
             const id<MTLBuffer> getGpuData() const;
-
+            
+            const Tensor& padIfNeededGpu(Tensor&, const WindowDims&, Tensor::Paddings, id<MTLCommandBuffer>, float padVal = 0.0f) const;
             void conv2dForwardGpu(const Tensor&, size_t, Tensor&, const Tensor&, id<MTLCommandBuffer>) const;
-            void padWindowInput(Tensor&, const WindowDims&, float padVal = 0.0f, id<MTLCommandBuffer>) const;
+            void padWindowInputGpu(Tensor&, const WindowDims&, id<MTLCommandBuffer>) const;
+            void maxPool2dGpu(MetalBuffer&, size_t, size_t, size_t, Tensor&, id<MTLCommandBuffer>) const;
+
             void hadamardGpu(const Tensor&, id<MTLCommandBuffer>);
             void applyGradGpu(const Tensor&, float, id<MTLCommandBuffer>);
         #endif
