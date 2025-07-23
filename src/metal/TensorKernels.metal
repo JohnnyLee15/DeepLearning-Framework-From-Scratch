@@ -1,10 +1,6 @@
 #include <metal_stdlib>
 using namespace metal;
 
-#define TILE_SIZE 8
-#define CHANNEL_SLICE 4
-#define MAX_KERNEL 7
-
 kernel void hadamard(
     device float *ten1 [[ buffer(0) ]],
     device const float *ten2 [[ buffer(1) ]],
@@ -61,7 +57,7 @@ kernel void padWindowInput(
     }
 }
 
-kernel void conv2dForward(
+kernel void conv2dForwardNaive(
     device const float *input [[ buffer(0) ]],
     device const float *kernals [[ buffer(1) ]],
     device const float *biases [[ buffer(2) ]],
@@ -70,15 +66,11 @@ kernel void conv2dForward(
     constant uint4 &kernalDims [[ buffer(5) ]],
     constant uint4 &outputDims [[ buffer(6) ]],
     constant uint &stride [[ buffer(7) ]],
-    uint3 gid [[ thread_position_in_grid ]],
-    uint3 tid [[ thread_position_in_threadgroup ]]
+    uint3 gid [[ thread_position_in_grid ]]
 ) {
     uint numKernals = kernalDims[0];
     uint kRows = kernalDims[1];
     uint kCols = kernalDims[2];
-
-    if (kRows > MAX_KERNEL || kCols > MAX_KERNEL)
-        return;
 
     uint numSamples = inputDims[0];
     uint inRows = inputDims[1];
@@ -93,62 +85,25 @@ kernel void conv2dForward(
     uint c = gid.x;
     uint o = gid.z % numKernals;
 
-    uint tRow = tid.y;
-    uint tCol = tid.x;
+    if (n >= numSamples || r >= outRows || c >= outCols)
+        return;
     
-    uint baseRow = (r - tRow) * stride;
-    uint baseCol = (c - tCol) * stride;      
-
-    bool inBounds = (n < numSamples) && (r < outRows) && (c < outCols);
-
-    uint numSlices = (inDepth + CHANNEL_SLICE - 1)/CHANNEL_SLICE;
-    threadgroup float patch[TILE_SIZE + MAX_KERNEL - 1][TILE_SIZE + MAX_KERNEL - 1][CHANNEL_SLICE];
-
-    float val = inBounds ? biases[o] : 0.0f;
-    for (uint p = 0; p < numSlices; p++) {
-
-        for (uint i = tRow; i < kRows + TILE_SIZE - 1; i+= TILE_SIZE) {
-            uint inRow = baseRow+ i;
-            for (uint j = tCol; j < kCols + TILE_SIZE - 1; j += TILE_SIZE) {
-                uint inCol = baseCol + j;
-                for (uint d = 0; d < CHANNEL_SLICE; d++) {
-                    uint inChan = p*CHANNEL_SLICE + d;
-                    float sharedVal = 0.0f;
-
-                    if (inRow < inRows && inCol < inCols && inChan < inDepth) {
-                        uint inIdx = (((n * inRows + inRow) * inCols + inCol) * inDepth) + inChan;
-                        sharedVal = input[inIdx];
-                    }
-
-                    patch[i][j][d] = sharedVal;
-                }
+    float val = biases[o];
+    for (uint i = 0; i < kRows; i++) {
+        uint inRow = r * stride + i;
+        for (uint j = 0; j < kCols; j++) {
+            uint inCol = c * stride + j;
+            uint baseK = ((o * kRows + i) * kCols + j) * inDepth;
+            uint baseI = ((n * inRows + inRow) * inCols + inCol) * inDepth;
+            for (uint d = 0; d < inDepth; d++) {
+                uint kIdx = baseK + d;
+                uint inIdx = baseI + d;
+                val += (input[inIdx] * kernals[kIdx]);
             }
         }
-
-        threadgroup_barrier(mem_flags::mem_threadgroup);
-
-        uint pRow = tRow * stride;
-        uint pCol = tCol * stride;
-        for (uint i = 0; i < kRows; i++) {
-            for (uint j = 0; j < kCols; j++) {
-                for (uint d = 0; d < CHANNEL_SLICE; d++) {
-                    uint inChan = p*CHANNEL_SLICE + d;
-                    if (inChan < inDepth) {
-                        uint kIdx = (((o * kRows + i) * kCols + j) * inDepth) + inChan;
-                        val += (patch[pRow + i][pCol + j][d] * kernals[kIdx]);
-                    }
-                }
-            }
-        }
-        
-
-        threadgroup_barrier(mem_flags::mem_threadgroup);
     }
-
-    if (inBounds) {
-        uint outIdx = (((n * outRows + r) * outCols + c) * numKernals) + o;
-        output[outIdx] = val;
-    }
+    uint outIdx = ((n * outRows + r) * outCols + c) * numKernals + o;
+    output[outIdx] = val;
 }
 
 kernel void maxPool2d(

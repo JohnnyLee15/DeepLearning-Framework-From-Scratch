@@ -3,6 +3,9 @@
 #include "core/gpu/GpuEngine.h"
 #include "core/tensor/MatrixT.h"
 
+#define TILE_SIZE 16
+#define NUM_THREADS 256
+
 id<MTLBuffer> Matrix::getGpuData() const {
     return tensor.getGpuData();
 }
@@ -66,11 +69,10 @@ void Matrix::matMatEngine(
     [encoder setBuffer:prodBuf offset:0 atIndex:2];
     [encoder setBytes:&dims length:sizeof(dims) atIndex:3];
 
-    NSUInteger tgDim = 16;
-    MTLSize threadGroupSize = MTLSizeMake(tgDim, tgDim, 1);
+    MTLSize threadGroupSize = MTLSizeMake(TILE_SIZE, TILE_SIZE, 1);
 
-    NSUInteger numTgRows = (mat1Rows + tgDim - 1)/tgDim;
-    NSUInteger numTgCols = (mat2Cols + tgDim - 1)/tgDim;
+    NSUInteger numTgRows = (mat1Rows + TILE_SIZE - 1)/TILE_SIZE;
+    NSUInteger numTgCols = (mat2Cols + TILE_SIZE - 1)/TILE_SIZE;
     MTLSize numThreadGroups = MTLSizeMake(numTgCols, numTgRows, 1);
 
     [encoder dispatchThreadgroups:numThreadGroups threadsPerThreadgroup:threadGroupSize];
@@ -94,7 +96,7 @@ void Matrix::colSumsGpu(Tensor &vec, id<MTLCommandBuffer> cmdBuf) const {
 
     MTLSize gridSize = MTLSizeMake(numCols, 1, 1);
 
-    NSUInteger tgCols = MIN(numCols, 256);
+    NSUInteger tgCols = MIN(numCols, NUM_THREADS);
     MTLSize threadSize = MTLSizeMake(tgCols, 1, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
@@ -116,8 +118,7 @@ void Matrix::addToRowsGpu(const Tensor &vec, id<MTLCommandBuffer> cmdBuf) {
     [encoder setBuffer:vecBuf offset:0 atIndex:1];
     [encoder setBytes:&dims length:sizeof(dims) atIndex:2];
 
-    NSUInteger tgDim = 16;
-    MTLSize threadGroupSize = MTLSizeMake(tgDim, tgDim, 1);
+    MTLSize threadGroupSize = MTLSizeMake(TILE_SIZE, TILE_SIZE, 1);
     MTLSize gridSize = MTLSizeMake(numCols, numRows, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadGroupSize];

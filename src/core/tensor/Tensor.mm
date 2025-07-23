@@ -1,5 +1,12 @@
 #include "core/tensor/Tensor.h"
 #include "core/gpu/GpuEngine.h"
+#define SMALL_TILE 8
+#define MEDIUM_TILE 16
+#define CHANNEL_SLICE 4
+#define MAX_KERNEL 7
+#define MED_PATCH_DIM ((SMALL_TILE - 1) * 2 + MAX_KERNEL)
+#define SMALL_PATCH_DIM ((SMALL_TILE - 1) + MAX_KERNEL)
+#define NUM_THREADS 256
 
 void Tensor::initGpuTensor() {
     size_t bytes = getSize() * sizeof(float);
@@ -38,7 +45,7 @@ void Tensor::hadamardGpu(const Tensor &ten2, id<MTLCommandBuffer> cmdBuf) {
 
     MTLSize gridSize = MTLSizeMake(size, 1, 1);
 
-    NSUInteger tgSize = MIN(size, 256);
+    NSUInteger tgSize = MIN(size, NUM_THREADS);
     MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
@@ -64,7 +71,7 @@ void Tensor::applyGradGpu(
 
     MTLSize gridSize = MTLSizeMake(size, 1, 1);
 
-    NSUInteger tgSize = MIN(size, 256);
+    NSUInteger tgSize = MIN(size, NUM_THREADS);
     MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
@@ -102,7 +109,7 @@ void Tensor::padWindowInputGpu(
     [encoder setBytes:&padTop length:sizeof(uint32_t)  atIndex:4];
     [encoder setBytes:&padLeft length:sizeof(uint32_t)  atIndex:5];   
 
-    MTLSize tgSize = MTLSizeMake(16, 16, 1);
+    MTLSize tgSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
     MTLSize gridSize = MTLSizeMake(inDims[2], inDims[1], inDims[0]);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgSize];
@@ -125,6 +132,49 @@ const Tensor& Tensor::padIfNeededGpu(
     return toPad;
 }
 
+bool Tensor::setConv2dForwardPipe(
+    id<MTLComputeCommandEncoder> encoder,
+    uint32_t strideU,
+    uint32_t kRows,
+    uint32_t kCols,
+    uint32_t baseDim
+) const {
+    if ((baseDim + kRows <= SMALL_PATCH_DIM) && (baseDim + kCols <= SMALL_PATCH_DIM)) {
+        [encoder setComputePipelineState:GpuEngine::getConv2dForwardFastPipe()];
+        return false;
+    } else if ((baseDim + kRows <= MED_PATCH_DIM) && (baseDim + kCols <= MED_PATCH_DIM)) {
+        [encoder setComputePipelineState:GpuEngine::getConv2dForwardMedPipe()];
+        return false;
+    } 
+
+    [encoder setComputePipelineState:GpuEngine::getConv2dForwardNaivePipe()];
+    return true;
+}
+
+void Tensor::setConv2dForwardThreads(
+    id<MTLComputeCommandEncoder> encoder,
+    bool naive,
+    uint32_t outRows,
+    uint32_t outCols,
+    uint32_t zDim
+) const {
+    if (naive) {
+        MTLSize tgNaiveSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
+        MTLSize gridSize = MTLSizeMake(outCols, outRows, zDim);
+
+        [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgNaiveSize];
+    } else {
+        MTLSize tgFastSize = MTLSizeMake(SMALL_TILE, SMALL_TILE, 1);
+
+        NSUInteger numCols = (outCols + SMALL_TILE - 1)/SMALL_TILE;
+        NSUInteger numRows = (outRows + SMALL_TILE - 1)/SMALL_TILE;
+
+        MTLSize numGroups = MTLSizeMake(numCols, numRows, zDim);
+
+        [encoder dispatchThreadgroups:numGroups threadsPerThreadgroup:tgFastSize];
+    }
+}
+
 void Tensor::conv2dForwardGpu(
     const Tensor &kernals,
     size_t stride,
@@ -140,12 +190,10 @@ void Tensor::conv2dForwardGpu(
     uint32_t inDims[4] = {
         (uint32_t) shape[0], (uint32_t) shape[1], (uint32_t) shape[2], (uint32_t) shape[3]
     };
-
     uint32_t kDims[4] = {
         (uint32_t) kernals.shape[0], (uint32_t) kernals.shape[1], 
         (uint32_t) kernals.shape[2], (uint32_t) kernals.shape[3]
     };
-
     uint32_t outDims[4] = {
         (uint32_t) output.shape[0], (uint32_t) output.shape[1], 
         (uint32_t) output.shape[2], (uint32_t) output.shape[3]
@@ -154,7 +202,8 @@ void Tensor::conv2dForwardGpu(
     uint32_t strideU = (uint32_t) stride;
 
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
-    [encoder setComputePipelineState:GpuEngine::getConv2dForwardPipe()];
+    size_t baseDim = (SMALL_TILE - 1) * strideU;
+    bool naive = setConv2dForwardPipe(encoder, strideU, kDims[1], kDims[2], baseDim);
 
     [encoder setBuffer:inBuf offset:0 atIndex:0];
     [encoder setBuffer:kernBuf offset:0 atIndex:1];
@@ -166,13 +215,7 @@ void Tensor::conv2dForwardGpu(
     [encoder setBytes:&outDims length:sizeof(outDims) atIndex:6];
     [encoder setBytes:&strideU length:sizeof(uint32_t) atIndex:7];
 
-    NSUInteger tgDim = 8;
-    MTLSize tgSize = MTLSizeMake(tgDim, tgDim, 1);
-    NSUInteger numCols = (outDims[2] + tgDim - 1)/tgDim;
-    NSUInteger numRows = (outDims[1] + tgDim - 1)/tgDim;
-    MTLSize numGroups = MTLSizeMake(numCols, numRows, inDims[0] * kDims[0]);
-
-    [encoder dispatchThreadgroups:numGroups threadsPerThreadgroup:tgSize];
+    setConv2dForwardThreads(encoder, naive, outDims[1], outDims[2], inDims[0] * kDims[0]);
     [encoder endEncoding];
 }
 
@@ -206,7 +249,7 @@ void Tensor::maxPool2dGpu(
     [encoder setBytes:&strideU length:sizeof(uint32_t) atIndex:6];
 
     MTLSize gridSize = MTLSizeMake(outDims[1], outDims[0], inDims[0] * inDims[3]);
-    MTLSize tgSize = MTLSizeMake(16, 16, 1);
+    MTLSize tgSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgSize];
     [encoder endEncoding];

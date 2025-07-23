@@ -27,7 +27,9 @@ id<MTLComputePipelineState> GpuEngine::activateSoftmaxPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateMSEGradPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateSoftmaxCrossEntropyGradPipeline  = nil;
 
-id<MTLComputePipelineState> GpuEngine::conv2dForwardPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::conv2dForwardFastPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::conv2dForwardMedPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::conv2dForwardNaivePipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::padWindowInputPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::fillFloatPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::fillIntPipeline  = nil;
@@ -93,7 +95,9 @@ void GpuEngine::initAllPipes() {
     initPipe("calculateMSEGrad", calculateMSEGradPipeline);
     initPipe("calculateSoftmaxCrossEntropyGrad", calculateSoftmaxCrossEntropyGradPipeline);
 
-    initPipe("conv2dForward", conv2dForwardPipeline);
+    initPipe("conv2dForwardFast", conv2dForwardFastPipeline);
+    initPipe("conv2dForwardMed", conv2dForwardMedPipeline);
+    initPipe("conv2dForwardNaive", conv2dForwardNaivePipeline);
     initPipe("padWindowInput", padWindowInputPipeline);
     initPipe("fillFloat", fillFloatPipeline);
     initPipe("fillInt", fillIntPipeline);
@@ -159,6 +163,8 @@ id<MTLComputePipelineState> GpuEngine::getActivateLinearPipe() { return activate
 id<MTLComputePipelineState> GpuEngine::getActivateReLUPipe() { return activateReLUPipeline; }
 id<MTLComputePipelineState> GpuEngine::getActivateSoftmaxPipe() { return activateSoftmaxPipeline; }
 
-id<MTLComputePipelineState> GpuEngine::getConv2dForwardPipe() { return conv2dForwardPipeline; }
+id<MTLComputePipelineState> GpuEngine::getConv2dForwardFastPipe() { return conv2dForwardFastPipeline; }
+id<MTLComputePipelineState> GpuEngine::getConv2dForwardMedPipe() { return conv2dForwardMedPipeline; }
+id<MTLComputePipelineState> GpuEngine::getConv2dForwardNaivePipe() { return conv2dForwardNaivePipeline; }
 id<MTLComputePipelineState> GpuEngine::getPadWindowInputPipe() { return padWindowInputPipeline; }
 id<MTLComputePipelineState> GpuEngine::getMaxPool2dPipe() { return maxPool2dPipeline; }

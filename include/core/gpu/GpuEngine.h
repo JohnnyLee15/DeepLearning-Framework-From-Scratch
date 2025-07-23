@@ -36,7 +36,9 @@ class GpuEngine {
             static id<MTLComputePipelineState> calculateMSEGradPipeline;
             static id<MTLComputePipelineState> calculateSoftmaxCrossEntropyGradPipeline;
 
-            static id<MTLComputePipelineState> conv2dForwardPipeline;
+            static id<MTLComputePipelineState> conv2dForwardFastPipeline;
+            static id<MTLComputePipelineState> conv2dForwardMedPipeline;
+            static id<MTLComputePipelineState> conv2dForwardNaivePipeline;
             static id<MTLComputePipelineState> padWindowInputPipeline;
             static id<MTLComputePipelineState> fillFloatPipeline;
             static id<MTLComputePipelineState> fillIntPipeline;
@@ -85,7 +87,9 @@ class GpuEngine {
             static id<MTLComputePipelineState> getCalculateMSEGradPipe();
             static id<MTLComputePipelineState> getCalculateSoftmaxCrossEntropyGradPipe();
 
-            static id<MTLComputePipelineState> getConv2dForwardPipe();
+            static id<MTLComputePipelineState> getConv2dForwardFastPipe();
+            static id<MTLComputePipelineState> getConv2dForwardMedPipe();
+            static id<MTLComputePipelineState> getConv2dForwardNaivePipe();
             static id<MTLComputePipelineState> getPadWindowInputPipe();
             static id<MTLComputePipelineState> getMaxPool2dPipe();
         #endif

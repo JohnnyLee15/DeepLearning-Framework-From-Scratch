@@ -104,5 +104,8 @@ class Tensor {
 
             void hadamardGpu(const Tensor&, id<MTLCommandBuffer>);
             void applyGradGpu(const Tensor&, float, id<MTLCommandBuffer>);
+
+            bool setConv2dForwardPipe(id<MTLComputeCommandEncoder>, uint32_t, uint32_t, uint32_t, uint32_t) const;
+            void setConv2dForwardThreads(id<MTLComputeCommandEncoder>, bool, uint32_t, uint32_t, uint32_t) const;
         #endif
 };
