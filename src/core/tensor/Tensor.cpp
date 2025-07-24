@@ -55,7 +55,12 @@ Tensor& Tensor::operator =(const Tensor &other) {
     if (this != &other) { 
         shape = other.shape;
         data = other.data;
-        ensureGpu();
+
+        if (GpuEngine::isUsingGpu()) {
+            #ifdef __APPLE__
+                dataGpu = other.dataGpu;
+            #endif 
+        }
     }
 
     return *this;
@@ -76,6 +81,11 @@ void Tensor::print(const string &name) const {
         if (i < shape.size() - 1) cout << ", ";
     }
     cout << "]\n";
+}
+
+void Tensor::zero() {
+    fill(data.begin(), data.end(), 0.0f);
+    ensureGpu();
 }
 
 void Tensor::reShapeInPlace(const vector<size_t> &newShape) {

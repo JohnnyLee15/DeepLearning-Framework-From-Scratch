@@ -1,7 +1,7 @@
 #include <metal_stdlib>
 using namespace metal;
 
-#define TILE_SIZE 16
+#define TILE_SIZE 8
 
 kernel void mm(
     device const float *mat1 [[ buffer(0) ]],
@@ -21,6 +21,8 @@ kernel void mm(
     uint mat1Cols = dims[1];
     uint mat2Cols = dims[2];
 
+    uint row1Offset = i * mat1Cols;
+
     threadgroup float mat1Tile[TILE_SIZE][TILE_SIZE];
     threadgroup float mat2Tile[TILE_SIZE][TILE_SIZE];
 
@@ -31,22 +33,24 @@ kernel void mm(
 
         uint mat1Col = (t * TILE_SIZE) + tCol;
         if (i < mat1Rows && mat1Col < mat1Cols) {
-            mat1Tile[tRow][tCol] = mat1[i * mat1Cols + mat1Col];
+            mat1Tile[tRow][tCol] = mat1[row1Offset + mat1Col];
         } else {
             mat1Tile[tRow][tCol] = 0.0;
         }
 
         uint mat2Row = (t * TILE_SIZE) + tRow;
         if (mat2Row < mat1Cols && j < mat2Cols) {
-            mat2Tile[tRow][tCol] = mat2[mat2Row * mat2Cols + j];
+            mat2Tile[tCol][tRow] = mat2[mat2Row * mat2Cols + j];
         } else {
-            mat2Tile[tRow][tCol] = 0.0;
+            mat2Tile[tCol][tRow] = 0.0;
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
-        for (uint k = 0; k < TILE_SIZE; k++) {
-            val += mat1Tile[tRow][k] * mat2Tile[k][tCol];
+        for (uint k = 0; k < TILE_SIZE; k+=4) {
+            float4 a = *((threadgroup float4*)&mat1Tile[tRow][k]);
+            float4 b = *((threadgroup float4*)&mat2Tile[tCol][k]);
+            val += dot(a, b);
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -93,15 +97,17 @@ kernel void mmT(
 
         uint mat2Row = t * TILE_SIZE + tRow;
         if (mat2Row < mat1Cols && j < mat2Cols) {
-            mat2Tile[tRow][tCol] = mat2[j * mat1Cols + mat2Row];
+            mat2Tile[tCol][tRow] = mat2[j * mat1Cols + mat2Row];
         } else {
-            mat2Tile[tRow][tCol] = 0.0;
+            mat2Tile[tCol][tRow] = 0.0;
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
-        for (uint k = 0; k < TILE_SIZE; k++) {
-            val += mat1Tile[tRow][k] * mat2Tile[k][tCol];
+        for (uint k = 0; k < TILE_SIZE; k+=4) {
+            float4 a = *((threadgroup float4*)&mat1Tile[tRow][k]);
+            float4 b = *((threadgroup float4*)&mat2Tile[tCol][k]);
+            val += dot(a, b);
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -148,15 +154,17 @@ kernel void mTm(
 
         uint mat2Row = t * TILE_SIZE + tRow;
         if (mat2Row < mat1Cols && j < mat2Cols) {
-            mat2Tile[tRow][tCol] = mat2[mat2Row * mat2Cols + j];
+            mat2Tile[tCol][tRow] = mat2[mat2Row * mat2Cols + j];
         } else {
-            mat2Tile[tRow][tCol] = 0.0;
+            mat2Tile[tCol][tRow] = 0.0;
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
-        for (uint k = 0; k < TILE_SIZE; k++) {
-            val += mat1Tile[tRow][k] * mat2Tile[k][tCol];
+        for (uint k = 0; k < TILE_SIZE; k+=4) {
+            float4 a = *((threadgroup float4*)&mat1Tile[tRow][k]);
+            float4 b = *((threadgroup float4*)&mat2Tile[tCol][k]);
+            val += dot(a, b);
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -203,15 +211,17 @@ kernel void mTmT(
 
         uint mat2Row = t * TILE_SIZE + tRow;
         if (mat2Row < mat1Cols && j < mat2Cols) {
-            mat2Tile[tRow][tCol] = mat2[j * mat1Cols + mat2Row];
+            mat2Tile[tCol][tRow] = mat2[j * mat1Cols + mat2Row];
         } else {
-            mat2Tile[tRow][tCol] = 0.0;
+            mat2Tile[tCol][tRow] = 0.0;
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
-        for (uint k = 0; k < TILE_SIZE; k++) {
-            val += mat1Tile[tRow][k] * mat2Tile[k][tCol];
+        for (uint k = 0; k < TILE_SIZE; k+=4) {
+            float4 a = *((threadgroup float4*)&mat1Tile[tRow][k]);
+            float4 b = *((threadgroup float4*)&mat2Tile[tCol][k]);
+            val += dot(a, b);
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);

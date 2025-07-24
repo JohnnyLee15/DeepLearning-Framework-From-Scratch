@@ -3,7 +3,7 @@
 #include "core/gpu/GpuEngine.h"
 #include "core/tensor/MatrixT.h"
 
-#define TILE_SIZE 16
+#define TILE_SIZE 8
 #define NUM_THREADS 256
 
 id<MTLBuffer> Matrix::getGpuData() const {

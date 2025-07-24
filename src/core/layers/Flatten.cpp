@@ -12,9 +12,9 @@ void Flatten::checkInputSize(const vector<size_t> &givenShape) const {
 
 void Flatten::forward(const Tensor &input) {
     const vector<size_t> &shape = input.getShape();
-    size_t batchSize = shape[0];
-
+    
     checkInputSize(shape);
+    size_t batchSize = shape[0];
 
     inShape[0] = batchSize;
     outShape[0] = batchSize;

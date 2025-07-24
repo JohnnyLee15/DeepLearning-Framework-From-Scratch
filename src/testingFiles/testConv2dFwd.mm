@@ -121,8 +121,29 @@ void runBenchmark(const char* name, size_t batchSize, size_t height, size_t widt
         /* ---- Verify result (first few elements) --------------------- */
         Y.downloadFromGpu();
         auto& result = Y.getFlat();
-        printf("First 4 output values: [%.3f, %.3f, %.3f, %.3f]\n", 
+        printf("First 4 output values GPU: [%.3f, %.3f, %.3f, %.3f]\n", 
                result[0], result[1], result[2], result[3]);
+
+        /* ----------  CPU reference & verification -------------------- */
+        Tensor Y_cpu(Y.getShape());
+        Y_cpu.zero();   // helper that fills host vector with 0
+
+        X.conv2dForward(W, stride, Y_cpu, B);  // run on CPU (single call)
+        const auto& gpu = Y.getFlat();
+        const auto& cpu = Y_cpu.getFlat();
+        printf("First 4 output values GPU: [%.3f, %.3f, %.3f, %.3f]\n", 
+               cpu[0], cpu[1], cpu[2], cpu[3]);
+
+        double maxErr = 0.0, meanErr = 0.0;
+        size_t sz = gpu.size();
+        for (size_t i = 0; i < sz; ++i) {
+            double e = std::fabs(gpu[i] - cpu[i]);
+            maxErr   = std::max(maxErr, e);
+            meanErr += e;
+        }
+        meanErr /= sz;
+
+        printf("  Max |Δ| : %.6e   Mean |Δ| : %.6e\n", maxErr, meanErr);
     }
 }
 

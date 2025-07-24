@@ -1,18 +1,6 @@
 #include <metal_stdlib>
 using namespace metal;
 
-kernel void activateLinear(
-    device const float *z [[ buffer(0) ]],
-    device float *a [[ buffer(1) ]],
-    constant uint &size [[ buffer(2) ]],
-    uint gid [[thread_position_in_grid]]
-) {
-    if (gid >= size)
-        return;
-    
-    a[gid] = z[gid];
-}
-
 kernel void activateReLU(
     device const float *z [[ buffer(0) ]],
     device float *a [[ buffer(1) ]],

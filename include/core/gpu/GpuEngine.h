@@ -29,20 +29,25 @@ class GpuEngine {
             static id<MTLComputePipelineState> calculateLinearGradPipeline;
             static id<MTLComputePipelineState> calculateReluGradPipeline;
 
-            static id<MTLComputePipelineState> activateLinearPipeline;
             static id<MTLComputePipelineState> activateReLUPipeline;
             static id<MTLComputePipelineState> activateSoftmaxPipeline;
 
             static id<MTLComputePipelineState> calculateMSEGradPipeline;
             static id<MTLComputePipelineState> calculateSoftmaxCrossEntropyGradPipeline;
 
-            static id<MTLComputePipelineState> conv2dForwardFastPipeline;
-            static id<MTLComputePipelineState> conv2dForwardMedPipeline;
-            static id<MTLComputePipelineState> conv2dForwardNaivePipeline;
+            static id<MTLComputePipelineState> copyTensorPipeline;
             static id<MTLComputePipelineState> padWindowInputPipeline;
             static id<MTLComputePipelineState> fillFloatPipeline;
             static id<MTLComputePipelineState> fillIntPipeline;
             static id<MTLComputePipelineState> maxPool2dPipeline;
+
+            static id<MTLComputePipelineState> conv2dForwardFastPipeline;
+            static id<MTLComputePipelineState> conv2dForwardMedPipeline;
+            static id<MTLComputePipelineState> conv2dForwardNaivePipeline;
+
+            static id<MTLComputePipelineState> conv2dWeightsFastPipeline;
+            static id<MTLComputePipelineState> conv2dWeightsMedPipeline;
+            static id<MTLComputePipelineState> conv2dWeightsNaivePipeline;
 
             // Static Methods
             static void initLib();
@@ -80,18 +85,22 @@ class GpuEngine {
             static id<MTLComputePipelineState> getCalculateLinearGradPipe();
             static id<MTLComputePipelineState> getCalculateReluGradPipe();
 
-            static id<MTLComputePipelineState> getActivateLinearPipe();
             static id<MTLComputePipelineState> getActivateReLUPipe();
             static id<MTLComputePipelineState> getActivateSoftmaxPipe();
 
             static id<MTLComputePipelineState> getCalculateMSEGradPipe();
             static id<MTLComputePipelineState> getCalculateSoftmaxCrossEntropyGradPipe();
 
+            static id<MTLComputePipelineState> getCopyTensorPipe();
             static id<MTLComputePipelineState> getConv2dForwardFastPipe();
             static id<MTLComputePipelineState> getConv2dForwardMedPipe();
             static id<MTLComputePipelineState> getConv2dForwardNaivePipe();
             static id<MTLComputePipelineState> getPadWindowInputPipe();
             static id<MTLComputePipelineState> getMaxPool2dPipe();
+
+            static id<MTLComputePipelineState> getConv2dWeightsFastPipe();
+            static id<MTLComputePipelineState> getConv2dWeightsMedPipe();
+            static id<MTLComputePipelineState> getConv2dWeightsNaivePipe();
         #endif
 };
 

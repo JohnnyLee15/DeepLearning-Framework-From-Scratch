@@ -1,6 +1,18 @@
 #include <metal_stdlib>
 using namespace metal;
 
+kernel void copy(
+    device const float *in [[ buffer(0) ]],
+    device float *out [[ buffer(1) ]],
+    constant uint &size [[ buffer(2) ]],
+    uint gid [[thread_position_in_grid]]
+) {
+    if (gid >= size) 
+        return;
+
+    out[gid] = in[gid];
+}
+
 kernel void hadamard(
     device float *ten1 [[ buffer(0) ]],
     device const float *ten2 [[ buffer(1) ]],
@@ -155,4 +167,51 @@ kernel void maxPool2d(
     uint outIdx = (((n * outRows + r) * outCols + c) * depth) + d;
     output[outIdx] = maxVal;
     maxIndices[outIdx] = maxIdx;
+}
+
+kernel void conv2dWeightsNaive(
+    device const float *input [[ buffer(0) ]],
+    device const float *grad [[ buffer(1) ]],
+    device float *dW [[ buffer(2) ]],
+    constant uint4 &inDims [[ buffer(3) ]],
+    constant uint2 &gradDims [[ buffer(4) ]],
+    constant uint3 &kDims [[ buffer(5) ]],
+    constant uint &stride [[ buffer(6) ]],
+    uint3 gid [[ thread_position_in_grid ]]
+) {
+    uint numSamples = inDims[0];
+    uint inRows = inDims[1];
+    uint inCols = inDims[2];
+    uint inDepth = inDims[3];
+
+    uint gradRows = gradDims[0];
+    uint gradCols = gradDims[1];
+
+    uint numKernals = kDims[0];
+    uint kRows = kDims[1];
+    uint kCols = kDims[2];
+
+    uint k = gid.z / inDepth;
+    uint i = gid.y;
+    uint j = gid.x;
+    uint d = gid.z % inDepth;
+
+    if (k >= numKernals || i >= kRows || j >= kCols)
+        return;
+
+    float val = 0.0f;
+    for (uint n = 0; n < numSamples; n++) {
+        for (uint r = 0; r < gradRows; r++) {
+            uint inRow = r*stride + i;
+            for (uint c = 0; c < gradCols; c++) {
+                uint inCol = c*stride + j;
+                uint inIdx = ((n * inRows + inRow) * inCols + inCol) * inDepth + d;
+                uint gradIdx = ((n * gradRows + r) * gradCols + c) * numKernals + k;
+                val += (input[inIdx] * grad[gradIdx]);
+            }
+        }
+    }
+
+    uint dwIdx = ((k * kRows + i) * kCols + j) * inDepth + d;
+    dW[dwIdx] = val;
 }

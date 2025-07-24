@@ -17,43 +17,20 @@ static inline packed_float4 loadConv2dFwdPatch(
     uint baseChan,
     uint n
 ) {
-    if (inRow < inRows && inCol < inCols && baseChan + 3 < inDepth) {
-        uint inIdx = (((n * inRows + inRow) * inCols + inCol) * inDepth) + baseChan;
-        return  *((device packed_float4*)&input[inIdx]);
+    if (inRow >= inRows || inCol >= inCols || baseChan >= inDepth) {
+        return packed_float4(0.0f);
+    }
 
+    uint inIdx = (((n * inRows + inRow) * inCols + inCol) * inDepth) + baseChan;
+    if (baseChan + 3 < inDepth) {
+        return *((device packed_float4*)&input[inIdx]);
     } 
 
-    packed_float4 sharedVals = packed_float4(0.0f);
-    for (uint d = 0; d < CHANNEL_SLICE; d++) {
-        uint inChan = baseChan + d;
-
-        if (inRow < inRows && inCol < inCols && inChan < inDepth) {
-            uint inIdx = (((n * inRows + inRow) * inCols + inCol) * inDepth) + inChan;
-            sharedVals[d] = input[inIdx];
-            
-        } else {
-            sharedVals[d] = 0.0f;
-        }
-    }
-    return sharedVals;
-}
-
-static inline float conv2dFwdDot(
-    uint kIdx,
-    packed_float4 patchVec,
-    device const float *kernals,
-    uint baseChan,
-    uint inDepth
-) {
-    packed_float4 kvec = *((device packed_float4*)&kernals[kIdx]);
-    packed_float4 mask = packed_float4(
-        (baseChan + 0 < inDepth) ? 1.0f : 0.0f,
-        (baseChan + 1 < inDepth) ? 1.0f : 0.0f,
-        (baseChan + 2 < inDepth) ? 1.0f : 0.0f,
-        (baseChan + 3 < inDepth) ? 1.0f : 0.0f
-    );
-    kvec *= mask;
-    return dot(patchVec, kvec);
+    float v0 = (baseChan < inDepth) ? input[inIdx] : 0.0f;
+    float v1 = (baseChan + 1 < inDepth) ? input[inIdx + 1] : 0.0f;
+    float v2 = (baseChan + 2 < inDepth) ? input[inIdx + 2] : 0.0f;
+    float v3 = (baseChan + 3 < inDepth) ? input[inIdx + 3] : 0.0f;
+    return packed_float4(v0, v1, v2, v3);
 }
 
 static inline void conv2dForward(
@@ -68,7 +45,8 @@ static inline void conv2dForward(
     uint3 gid,
     uint3 tid,
     threadgroup packed_float4 *patch,
-    uint patchCols
+    uint patchDim,
+    threadgroup packed_float4 *kPatch
 ) {
     uint numKernals = kernalDims[0];
     uint kRows = kernalDims[1];
@@ -101,11 +79,18 @@ static inline void conv2dForward(
     float val = inBounds ? biases[o] : 0.0f;
     for (uint p = 0; p < numSlices; p++) {
         uint baseChan = p*CHANNEL_SLICE;
-        for (uint i = tRow; i < kRows + TILE_SIZE - 1; i+= TILE_SIZE) {
+
+        if (tRow < kRows && tCol < kCols){
+            kPatch[tRow * kCols + tCol] = loadConv2dFwdPatch(
+                kernals, tRow, kRows, tCol, kCols, inDepth, baseChan, o
+            );
+        }
+        
+        for (uint i = tRow; i < patchDim; i+= TILE_SIZE) {
             uint inRow = baseRow+ i;
-            for (uint j = tCol; j < kCols + TILE_SIZE - 1; j += TILE_SIZE) {
+            for (uint j = tCol; j < patchDim; j += TILE_SIZE) {
                 uint inCol = baseCol + j;
-                patch[i * patchCols + j] = loadConv2dFwdPatch(
+                patch[i * patchDim + j] = loadConv2dFwdPatch(
                     input, inRow, inRows, inCol, inCols, inDepth, baseChan, n
                     );
             }
@@ -115,9 +100,9 @@ static inline void conv2dForward(
 
         for (uint i = 0; i < kRows; i++) {
             for (uint j = 0; j < kCols; j++) {
-                uint kIdx = ((o * kRows + i) * kCols + j) * inDepth + baseChan;
-                packed_float4 patchVec = patch[(pRow + i) * patchCols + (pCol + j)];
-                val += conv2dFwdDot(kIdx, patchVec, kernals, baseChan, inDepth);
+                packed_float4 kPatchVec = kPatch[i * kCols + j];
+                packed_float4 patchVec = patch[(pRow + i) * patchDim + (pCol + j)];
+                val += dot(kPatchVec, patchVec);
             }
         }
 
@@ -143,10 +128,12 @@ kernel void conv2dForwardMed(
     uint3 tid [[ thread_position_in_threadgroup ]]
 ) {
     threadgroup packed_float4 patch[MED_PATCH_DIM][MED_PATCH_DIM];
+    threadgroup packed_float4 kPatch[MAX_KERNEL][MAX_KERNEL];
     conv2dForward(
         input, kernals, biases, output, inputDims,
         kernalDims, outputDims, stride, gid, tid, 
-        (threadgroup packed_float4*)patch, MED_PATCH_DIM
+        (threadgroup packed_float4*)patch, MED_PATCH_DIM,
+        (threadgroup packed_float4*)kPatch
     );
 }
 
@@ -163,9 +150,11 @@ kernel void conv2dForwardFast(
     uint3 tid [[ thread_position_in_threadgroup ]]
 ) {
     threadgroup packed_float4 patch[SMALL_PATCH_DIM][SMALL_PATCH_DIM];
+    threadgroup packed_float4 kPatch[MAX_KERNEL][MAX_KERNEL];
     conv2dForward(
         input, kernals, biases, output, inputDims,
         kernalDims, outputDims, stride, gid, tid, 
-        (threadgroup packed_float4*)patch, SMALL_PATCH_DIM
+        (threadgroup packed_float4*)patch, SMALL_PATCH_DIM,
+        (threadgroup packed_float4*)kPatch
     );
 }

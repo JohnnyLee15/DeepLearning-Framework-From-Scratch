@@ -81,6 +81,8 @@ class Tensor {
 
         void reShapeInPlace(const vector<size_t>&);
 
+        void zero();
+
         void print(const string&) const;
 
         // Static methods
@@ -98,14 +100,20 @@ class Tensor {
             const id<MTLBuffer> getGpuData() const;
             
             const Tensor& padIfNeededGpu(Tensor&, const WindowDims&, Tensor::Paddings, id<MTLCommandBuffer>, float padVal = 0.0f) const;
-            void conv2dForwardGpu(const Tensor&, size_t, Tensor&, const Tensor&, id<MTLCommandBuffer>) const;
             void padWindowInputGpu(Tensor&, const WindowDims&, id<MTLCommandBuffer>) const;
             void maxPool2dGpu(MetalBuffer&, size_t, size_t, size_t, Tensor&, id<MTLCommandBuffer>) const;
 
             void hadamardGpu(const Tensor&, id<MTLCommandBuffer>);
             void applyGradGpu(const Tensor&, float, id<MTLCommandBuffer>);
 
+            void copyGpu(Tensor&, id<MTLCommandBuffer>) const;
+
+            void conv2dForwardGpu(const Tensor&, size_t, Tensor&, const Tensor&, id<MTLCommandBuffer>) const;
             bool setConv2dForwardPipe(id<MTLComputeCommandEncoder>, uint32_t, uint32_t, uint32_t, uint32_t) const;
             void setConv2dForwardThreads(id<MTLComputeCommandEncoder>, bool, uint32_t, uint32_t, uint32_t) const;
+
+            void conv2dWeightsGpu(const Tensor&, size_t, size_t, size_t, size_t, Tensor&, id<MTLCommandBuffer>) const;
+            bool setConv2dWeightsPipe(id<MTLComputeCommandEncoder>, uint32_t, uint32_t, uint32_t, uint32_t) const;
+            void setConv2dWeightsThreads(id<MTLComputeCommandEncoder>, bool, uint32_t, uint32_t, uint32_t) const;
         #endif
 };

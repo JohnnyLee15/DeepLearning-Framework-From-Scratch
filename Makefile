@@ -19,7 +19,7 @@ ifeq ($(UNAME_S), Darwin)
 	CXX      := /opt/homebrew/opt/llvm/bin/clang++
 	CXXFLAGS += -isysroot $(SYSROOT) -I/opt/homebrew/opt/libomp/include
     LDFLAGS  := -isysroot $(SYSROOT) -L/opt/homebrew/opt/libomp/lib -lomp \
-                -framework Metal -framework Foundation
+                -framework Metal -framework Foundation -framework MetalPerformanceShaders
 
 	# Add Metal files
 	METAL_SRC := $(shell find src/metal -name '*.metal')
@@ -27,6 +27,7 @@ ifeq ($(UNAME_S), Darwin)
 	METAL_LIB := CoreKernels.metallib
 
 	# Add .mm files too
+	METALFLAGS := -O3 -ffast-math -funroll-loops
 	MM_SRC := $(shell find src -name '*.mm')
 	MM_OBJ := $(MM_SRC:.mm=_gpu.o)
 
@@ -54,7 +55,7 @@ ifeq ($(UNAME_S), Darwin)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.air: %.metal
-	xcrun -sdk macosx metal -c $< -o $@
+	xcrun -sdk macosx metal $(METALFLAGS) -c $< -o $@
 
 $(METAL_LIB): $(METAL_AIR)
 	xcrun -sdk macosx metallib $^ -o $@
