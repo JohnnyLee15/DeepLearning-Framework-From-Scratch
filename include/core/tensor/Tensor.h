@@ -99,6 +99,8 @@ class Tensor {
             id<MTLBuffer> getGpuData();
             const id<MTLBuffer> getGpuData() const;
             
+            void reduceSumBiasGpu(Tensor&, id<MTLCommandBuffer>) const;
+
             const Tensor& padIfNeededGpu(Tensor&, const WindowDims&, Tensor::Paddings, id<MTLCommandBuffer>, float padVal = 0.0f) const;
             void padWindowInputGpu(Tensor&, const WindowDims&, id<MTLCommandBuffer>) const;
             void maxPool2dGpu(MetalBuffer&, size_t, size_t, size_t, Tensor&, id<MTLCommandBuffer>) const;

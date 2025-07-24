@@ -104,7 +104,6 @@ void Tensor::padWindowInputGpu(
     const WindowDims &win,
     id<MTLCommandBuffer> cmdBuf
 ) const {
-    // add fill gpu method
     id<MTLBuffer> inBuf = getGpuData();
     id<MTLBuffer> padBuf = toPad.getGpuData();
 
@@ -340,8 +339,8 @@ void Tensor::conv2dWeightsGpu(
 
     uint32_t strideU = (uint32_t) stride;
 
-    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
     size_t baseDim = (SMALL_TILE - 1) * strideU;
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
     bool naive = setConv2dWeightsPipe(encoder, strideU, kDims[1], kDims[2], baseDim);
 
     [encoder setBuffer:inBuf offset:0 atIndex:0];
@@ -354,5 +353,34 @@ void Tensor::conv2dWeightsGpu(
     [encoder setBytes:&strideU length:sizeof(uint32_t) atIndex:6];
 
     setConv2dWeightsThreads(encoder, naive, kRows, kCols, inDims[3] * kDims[0]);
+    [encoder endEncoding];
+}
+
+void Tensor::reduceSumBiasGpu(
+    Tensor &dB,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> gradBuf = getGpuData();
+    id<MTLBuffer> dbBuf = dB.getGpuData();
+    uint32_t gradDims[4] = {
+        (uint32_t) shape[0], (uint32_t) shape[1],  
+        (uint32_t) shape[2], (uint32_t) shape[3]
+    };
+
+    GpuEngine::fillFloat(dbBuf, (uint32_t) dB.getSize(), cmdBuf, 0.0f);
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getReduceBiasSumPipe()];
+
+    [encoder setBuffer:gradBuf offset:0 atIndex:0];
+    [encoder setBuffer:dbBuf offset:0 atIndex:1];
+    [encoder setBytes:&gradDims length:sizeof(gradDims)  atIndex:2];
+
+    MTLSize gridSize = MTLSizeMake(gradDims[3], 1, 1);
+
+    NSUInteger tgSize = MIN(gradDims[3], NUM_THREADS);
+    MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
     [encoder endEncoding];
 }

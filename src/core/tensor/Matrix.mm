@@ -3,7 +3,8 @@
 #include "core/gpu/GpuEngine.h"
 #include "core/tensor/MatrixT.h"
 
-#define TILE_SIZE 8
+#define MEDIUM_TILE
+#define SMALL_TILE 8
 #define NUM_THREADS 256
 
 id<MTLBuffer> Matrix::getGpuData() const {
@@ -69,10 +70,10 @@ void Matrix::matMatEngine(
     [encoder setBuffer:prodBuf offset:0 atIndex:2];
     [encoder setBytes:&dims length:sizeof(dims) atIndex:3];
 
-    MTLSize threadGroupSize = MTLSizeMake(TILE_SIZE, TILE_SIZE, 1);
+    MTLSize threadGroupSize = MTLSizeMake(SMALL_TILE, SMALL_TILE, 1);
 
-    NSUInteger numTgRows = (mat1Rows + TILE_SIZE - 1)/TILE_SIZE;
-    NSUInteger numTgCols = (mat2Cols + TILE_SIZE - 1)/TILE_SIZE;
+    NSUInteger numTgRows = (mat1Rows + SMALL_TILE - 1)/SMALL_TILE;
+    NSUInteger numTgCols = (mat2Cols + SMALL_TILE - 1)/SMALL_TILE;
     MTLSize numThreadGroups = MTLSizeMake(numTgCols, numTgRows, 1);
 
     [encoder dispatchThreadgroups:numThreadGroups threadsPerThreadgroup:threadGroupSize];
@@ -118,7 +119,7 @@ void Matrix::addToRowsGpu(const Tensor &vec, id<MTLCommandBuffer> cmdBuf) {
     [encoder setBuffer:vecBuf offset:0 atIndex:1];
     [encoder setBytes:&dims length:sizeof(dims) atIndex:2];
 
-    MTLSize threadGroupSize = MTLSizeMake(TILE_SIZE, TILE_SIZE, 1);
+    MTLSize threadGroupSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
     MTLSize gridSize = MTLSizeMake(numCols, numRows, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadGroupSize];

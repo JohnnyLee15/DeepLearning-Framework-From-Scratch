@@ -40,6 +40,7 @@ class GpuEngine {
             static id<MTLComputePipelineState> fillFloatPipeline;
             static id<MTLComputePipelineState> fillIntPipeline;
             static id<MTLComputePipelineState> maxPool2dPipeline;
+            static id<MTLComputePipelineState> reduceBiasSumPipeline;
 
             static id<MTLComputePipelineState> conv2dForwardFastPipeline;
             static id<MTLComputePipelineState> conv2dForwardMedPipeline;
@@ -97,6 +98,7 @@ class GpuEngine {
             static id<MTLComputePipelineState> getConv2dForwardNaivePipe();
             static id<MTLComputePipelineState> getPadWindowInputPipe();
             static id<MTLComputePipelineState> getMaxPool2dPipe();
+            static id<MTLComputePipelineState> getReduceBiasSumPipe();
 
             static id<MTLComputePipelineState> getConv2dWeightsFastPipe();
             static id<MTLComputePipelineState> getConv2dWeightsMedPipe();

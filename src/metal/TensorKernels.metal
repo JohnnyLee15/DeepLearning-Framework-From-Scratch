@@ -215,3 +215,32 @@ kernel void conv2dWeightsNaive(
     uint dwIdx = ((k * kRows + i) * kCols + j) * inDepth + d;
     dW[dwIdx] = val;
 }
+
+kernel void reduceSumBias(
+    device const float *grad [[ buffer(0) ]],
+    device float *dB [[ buffer(1) ]],
+    constant uint4 &gradDims [[ buffer(2) ]],
+    uint gid [[ thread_position_in_grid ]]
+ ) {
+    uint numSamples = gradDims[0];
+    uint gradRows = gradDims[1];
+    uint gradCols = gradDims[2];
+    uint numKernals = gradDims[3];
+
+    uint k = gid;
+
+    if (k >= numKernals)
+        return;
+
+    float sum = 0.0f;
+    for (uint n = 0; n < numSamples; n++) {
+        for (uint r = 0; r < gradRows; r++) {
+            for (uint c = 0; c < gradCols; c++) {
+                uint gradIdx = ((n * gradRows + r) * gradCols + c) * numKernals + k;
+                sum += grad[gradIdx];
+            }
+        }
+    }
+
+    dB[k] = sum;
+}
