@@ -107,7 +107,7 @@ void MaxPooling2D::backprop(
     // Add error checking
     (void)learningRate;
     (void)isFirstLayer;
-    prevActivations.maxPool2dGrad(outputGradients, maxIndices, dX);
+    outputGradients.maxPool2dGrad(maxIndices, dX);
 }
 
 const Tensor& MaxPooling2D::getOutput() const {

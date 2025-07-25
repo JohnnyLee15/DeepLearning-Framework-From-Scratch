@@ -55,6 +55,6 @@ class MaxPooling2D : public Layer {
         // GPU Interface
         #ifdef __APPLE__
             void forwardGpu(const Tensor&, GpuCommandBuffer) override;
-            // void backpropGpu(const Tensor&, float, Tensor&, bool, GpuCommandBuffer) override;
+            void backpropGpu(const Tensor&, float, Tensor&, bool, GpuCommandBuffer) override;
         #endif
 };

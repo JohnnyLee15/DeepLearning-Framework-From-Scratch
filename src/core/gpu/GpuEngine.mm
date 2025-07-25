@@ -31,15 +31,19 @@ id<MTLComputePipelineState> GpuEngine::padWindowInputPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::fillFloatPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::fillIntPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::maxPool2dPipeline  = nil;
-id<MTLComputePipelineState> GpuEngine::reduceBiasSumPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::reduceSumBiasPipeline  = nil;
 
 id<MTLComputePipelineState> GpuEngine::conv2dForwardFastPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::conv2dForwardMedPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::conv2dForwardNaivePipeline  = nil;
 
-id<MTLComputePipelineState> GpuEngine::conv2dWeightsFastPipeline  = nil;
-id<MTLComputePipelineState> GpuEngine::conv2dWeightsMedPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::conv2dWeightsNaivePipeline  = nil;
+
+id<MTLComputePipelineState> GpuEngine::conv2dInputNaivePipeline  = nil;
+
+id<MTLComputePipelineState> GpuEngine::padAndUpsampleGradPipeline  = nil;
+
+id<MTLComputePipelineState> GpuEngine::maxPool2dGradPipeline  = nil;
 
 void GpuEngine::init() {
     gpuDevice = MTLCreateSystemDefaultDevice();
@@ -105,15 +109,19 @@ void GpuEngine::initAllPipes() {
     initPipe("fillFloat", fillFloatPipeline);
     initPipe("fillInt", fillIntPipeline);
     initPipe("maxPool2d", maxPool2dPipeline);
-    initPipe("reduceBiasSum", reduceBiasSumPipeline);
+    initPipe("reduceSumBias", reduceSumBiasPipeline);
 
     initPipe("conv2dForwardFast", conv2dForwardFastPipeline);
     initPipe("conv2dForwardMed", conv2dForwardMedPipeline);
     initPipe("conv2dForwardNaive", conv2dForwardNaivePipeline);
 
-    initPipe("conv2dWeightsFast", conv2dWeightsFastPipeline);
-    initPipe("conv2dWeightsMed", conv2dWeightsMedPipeline);
     initPipe("conv2dWeightsNaive", conv2dWeightsNaivePipeline);
+
+    initPipe("conv2dInputNaive", conv2dInputNaivePipeline);
+
+    initPipe("padAndUpsampleGrad", padAndUpsampleGradPipeline);
+
+    initPipe("maxPool2dGrad", maxPool2dGradPipeline);
 }
 
 void GpuEngine::fillFloat(id<MTLBuffer> buf, uint32_t size, id<MTLCommandBuffer> cmdBuf, float val) {
@@ -177,12 +185,16 @@ id<MTLComputePipelineState> GpuEngine::getActivateSoftmaxPipe() { return activat
 id<MTLComputePipelineState> GpuEngine::getCopyTensorPipe() { return copyTensorPipeline; }
 id<MTLComputePipelineState> GpuEngine::getPadWindowInputPipe() { return padWindowInputPipeline; }
 id<MTLComputePipelineState> GpuEngine::getMaxPool2dPipe() { return maxPool2dPipeline; }
-id<MTLComputePipelineState> GpuEngine::getReduceBiasSumPipe() { return reduceBiasSumPipeline; }
+id<MTLComputePipelineState> GpuEngine::getReduceSumBiasPipe() { return reduceSumBiasPipeline; }
 
 id<MTLComputePipelineState> GpuEngine::getConv2dForwardFastPipe() { return conv2dForwardFastPipeline; }
 id<MTLComputePipelineState> GpuEngine::getConv2dForwardMedPipe() { return conv2dForwardMedPipeline; }
 id<MTLComputePipelineState> GpuEngine::getConv2dForwardNaivePipe() { return conv2dForwardNaivePipeline; }
 
-id<MTLComputePipelineState> GpuEngine::getConv2dWeightsFastPipe() { return conv2dWeightsFastPipeline; }
-id<MTLComputePipelineState> GpuEngine::getConv2dWeightsMedPipe() { return conv2dWeightsMedPipeline; }
 id<MTLComputePipelineState> GpuEngine::getConv2dWeightsNaivePipe() { return conv2dWeightsNaivePipeline; }
+
+id<MTLComputePipelineState> GpuEngine::getConv2dInputNaivePipe() { return conv2dInputNaivePipeline; }
+
+id<MTLComputePipelineState> GpuEngine::getMaxPool2dGradPipe() { return maxPool2dGradPipeline; }
+
+id<MTLComputePipelineState> GpuEngine::getPadAndUpsampleGradPipe() { return padAndUpsampleGradPipeline; }

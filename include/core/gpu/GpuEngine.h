@@ -40,15 +40,18 @@ class GpuEngine {
             static id<MTLComputePipelineState> fillFloatPipeline;
             static id<MTLComputePipelineState> fillIntPipeline;
             static id<MTLComputePipelineState> maxPool2dPipeline;
-            static id<MTLComputePipelineState> reduceBiasSumPipeline;
+            static id<MTLComputePipelineState> reduceSumBiasPipeline;
 
             static id<MTLComputePipelineState> conv2dForwardFastPipeline;
             static id<MTLComputePipelineState> conv2dForwardMedPipeline;
             static id<MTLComputePipelineState> conv2dForwardNaivePipeline;
 
-            static id<MTLComputePipelineState> conv2dWeightsFastPipeline;
-            static id<MTLComputePipelineState> conv2dWeightsMedPipeline;
             static id<MTLComputePipelineState> conv2dWeightsNaivePipeline;
+            static id<MTLComputePipelineState> conv2dInputNaivePipeline;
+
+            static id<MTLComputePipelineState> padAndUpsampleGradPipeline;
+
+            static id<MTLComputePipelineState> maxPool2dGradPipeline;
 
             // Static Methods
             static void initLib();
@@ -93,16 +96,21 @@ class GpuEngine {
             static id<MTLComputePipelineState> getCalculateSoftmaxCrossEntropyGradPipe();
 
             static id<MTLComputePipelineState> getCopyTensorPipe();
+            static id<MTLComputePipelineState> getPadWindowInputPipe();
+            static id<MTLComputePipelineState> getMaxPool2dPipe();
+            static id<MTLComputePipelineState> getReduceSumBiasPipe();
+
             static id<MTLComputePipelineState> getConv2dForwardFastPipe();
             static id<MTLComputePipelineState> getConv2dForwardMedPipe();
             static id<MTLComputePipelineState> getConv2dForwardNaivePipe();
-            static id<MTLComputePipelineState> getPadWindowInputPipe();
-            static id<MTLComputePipelineState> getMaxPool2dPipe();
-            static id<MTLComputePipelineState> getReduceBiasSumPipe();
 
-            static id<MTLComputePipelineState> getConv2dWeightsFastPipe();
-            static id<MTLComputePipelineState> getConv2dWeightsMedPipe();
             static id<MTLComputePipelineState> getConv2dWeightsNaivePipe();
+
+            static id<MTLComputePipelineState> getConv2dInputNaivePipe();
+
+            static id<MTLComputePipelineState> getMaxPool2dGradPipe();
+
+            static id<MTLComputePipelineState> getPadAndUpsampleGradPipe();
         #endif
 };
 

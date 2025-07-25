@@ -14,3 +14,20 @@ void Flatten::forwardGpu(const Tensor &input, GpuCommandBuffer cmdBufVoid) {
     input.copyGpu(output, cmdBuf);
     output.reShapeInPlace(outShape);
 }
+
+void Flatten::backpropGpu(
+    const Tensor &prevActivations,
+    float learningRate,
+    Tensor &grad,
+    bool isFirstLayer,
+    GpuCommandBuffer cmdBufVoid
+) {
+    // Add error checking
+    (void)prevActivations;
+    (void)learningRate;
+    (void)isFirstLayer;
+
+    id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>) cmdBufVoid;
+    grad.copyGpu(dX,cmdBuf);
+    dX.reShapeInPlace(inShape);
+}

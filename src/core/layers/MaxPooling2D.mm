@@ -15,3 +15,17 @@ void MaxPooling2D::forwardGpu(const Tensor &input, GpuCommandBuffer cmdBufVoid) 
     const Tensor &inputFwd = input.padIfNeededGpu(paddedInput, winIn, padding, cmdBuf, -FLT_MAX);
     inputFwd.maxPool2dGpu(maxIndicesGpu, kRows, kCols, stride, pooledOutput, cmdBuf);
 }
+
+void MaxPooling2D::backpropGpu(
+    const Tensor &prevActivations,
+    float learningRate,
+    Tensor &outputGradients,
+    bool isFirstLayer,
+    GpuCommandBuffer cmdBufVoid
+) {
+    // Add error checking
+    (void)learningRate;
+    (void)isFirstLayer;
+    id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>)cmdBufVoid;
+    outputGradients.maxPool2dGradGpu(maxIndicesGpu, dX, cmdBuf);
+}

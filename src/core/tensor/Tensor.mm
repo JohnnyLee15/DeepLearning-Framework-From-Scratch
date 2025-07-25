@@ -275,49 +275,6 @@ void Tensor::maxPool2dGpu(
     [encoder endEncoding];
 }
 
-bool Tensor::setConv2dWeightsPipe(
-    id<MTLComputeCommandEncoder> encoder,
-    uint32_t strideU,
-    uint32_t kRows,
-    uint32_t kCols,
-    uint32_t baseDim
-) const {
-    // if ((baseDim + kRows <= SMALL_PATCH_DIM) && (baseDim + kCols <= SMALL_PATCH_DIM)) {
-    //     [encoder setComputePipelineState:GpuEngine::getConv2dWeightsFastPipe()];
-    //     return false;
-    // } else if ((baseDim + kRows <= MED_PATCH_DIM) && (baseDim + kCols <= MED_PATCH_DIM)) {
-    //     [encoder setComputePipelineState:GpuEngine::getConv2dWeightsMedPipe()];
-    //     return false;
-    // } 
-
-    [encoder setComputePipelineState:GpuEngine::getConv2dWeightsNaivePipe()];
-    return true;
-}
-
-void Tensor::setConv2dWeightsThreads(
-    id<MTLComputeCommandEncoder> encoder,
-    bool naive,
-    uint32_t outRows,
-    uint32_t outCols,
-    uint32_t zDim
-) const {
-    // if (naive) {
-        MTLSize tgNaiveSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
-        MTLSize gridSize = MTLSizeMake(outCols, outRows, zDim);
-
-        [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgNaiveSize];
-    // } else {
-    //     MTLSize tgFastSize = MTLSizeMake(SMALL_TILE, SMALL_TILE, 1);
-
-    //     NSUInteger numCols = (outCols + SMALL_TILE - 1)/SMALL_TILE;
-    //     NSUInteger numRows = (outRows + SMALL_TILE - 1)/SMALL_TILE;
-
-    //     MTLSize numGroups = MTLSizeMake(numCols, numRows, zDim);
-
-    //     [encoder dispatchThreadgroups:numGroups threadsPerThreadgroup:tgFastSize];
-    // }
-}
-
 void Tensor::conv2dWeightsGpu(
     const Tensor &grad,
     size_t numKernals,
@@ -338,10 +295,8 @@ void Tensor::conv2dWeightsGpu(
     uint32_t kDims[3] = {(uint32_t) numKernals, (uint32_t) kRows, (uint32_t) kCols};
 
     uint32_t strideU = (uint32_t) stride;
-
-    size_t baseDim = (SMALL_TILE - 1) * strideU;
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
-    bool naive = setConv2dWeightsPipe(encoder, strideU, kDims[1], kDims[2], baseDim);
+    [encoder setComputePipelineState:GpuEngine::getConv2dWeightsNaivePipe()];
 
     [encoder setBuffer:inBuf offset:0 atIndex:0];
     [encoder setBuffer:gradBuf offset:0 atIndex:1];
@@ -352,7 +307,10 @@ void Tensor::conv2dWeightsGpu(
     [encoder setBytes:&kDims length:sizeof(kDims) atIndex:5];
     [encoder setBytes:&strideU length:sizeof(uint32_t) atIndex:6];
 
-    setConv2dWeightsThreads(encoder, naive, kRows, kCols, inDims[3] * kDims[0]);
+    MTLSize tgNaiveSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
+    MTLSize gridSize = MTLSizeMake(kDims[2], kDims[1], inDims[3] * kDims[0]);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgNaiveSize];
     [encoder endEncoding];
 }
 
@@ -370,7 +328,7 @@ void Tensor::reduceSumBiasGpu(
     GpuEngine::fillFloat(dbBuf, (uint32_t) dB.getSize(), cmdBuf, 0.0f);
 
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
-    [encoder setComputePipelineState:GpuEngine::getReduceBiasSumPipe()];
+    [encoder setComputePipelineState:GpuEngine::getReduceSumBiasPipe()];
 
     [encoder setBuffer:gradBuf offset:0 atIndex:0];
     [encoder setBuffer:dbBuf offset:0 atIndex:1];
@@ -379,6 +337,119 @@ void Tensor::reduceSumBiasGpu(
     MTLSize gridSize = MTLSizeMake(gradDims[3], 1, 1);
 
     NSUInteger tgSize = MIN(gradDims[3], NUM_THREADS);
+    MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
+    [encoder endEncoding];
+}
+
+void Tensor::padAndUpsampleGradGpu(
+    Tensor &outGrad, 
+    const WindowDims &winGrad, 
+    size_t stride,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> gradBuf = getGpuData();
+    id<MTLBuffer> outBuf = outGrad.getGpuData();
+
+    uint32_t batchSize = shape[0];
+    uint32_t gradRows = shape[1];
+    uint32_t gradCols = shape[2];
+    uint32_t numKernals = shape[3];
+
+    uint32_t outRows = (stride > 1) ? stride * (gradRows - 1) + 1 : gradRows;
+    uint32_t outCols = (stride > 1) ? stride * (gradCols - 1) + 1 : gradCols;
+    outRows += winGrad.padRows;
+    outCols += winGrad.padCols;
+
+    outGrad.reShapeInPlace(
+        {batchSize, outRows, outCols, numKernals}
+    );
+
+    uint32_t gradDims[4] = {batchSize, gradRows, gradCols, numKernals};
+    uint32_t outDims[2] = {outRows, outCols};
+    uint32_t padding[2] = {(uint32_t) winGrad.padTop, (uint32_t) winGrad.padLeft};
+    uint32_t strideU = (uint32_t) stride;
+
+    GpuEngine::fillInt(outBuf, (uint32_t) outGrad.getSize(), cmdBuf, 0.0f);
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getPadAndUpsampleGradPipe()];
+
+    [encoder setBuffer:gradBuf offset:0 atIndex:0];
+    [encoder setBuffer:outBuf offset:0 atIndex:1];
+    [encoder setBytes:&gradDims length:sizeof(gradDims)  atIndex:2];
+    [encoder setBytes:&outDims length:sizeof(outDims)  atIndex:3];
+    [encoder setBytes:&padding length:sizeof(padding)  atIndex:4];
+    [encoder setBytes:&strideU length:sizeof(uint32_t)  atIndex:5];   
+
+    MTLSize tgSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
+    MTLSize gridSize = MTLSizeMake(gradCols, gradRows, batchSize);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgSize];
+    [encoder endEncoding];
+}
+
+void Tensor::conv2dInputGpu(
+    const Tensor &kernals,
+    Tensor &dX,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> gradBuf = getGpuData();
+    id<MTLBuffer> kBuf = kernals.getGpuData();
+    id<MTLBuffer> dxBuf = dX.getGpuData();
+
+    uint32_t gradDims[4] = {
+        (uint32_t) shape[0], (uint32_t) shape[1], (uint32_t) shape[2], (uint32_t) shape[3]
+    };
+    uint32_t kDims[4] = {
+        (uint32_t) kernals.shape[0], (uint32_t) kernals.shape[1], 
+        (uint32_t) kernals.shape[2], (uint32_t) kernals.shape[3]
+    };
+    uint32_t dxDims[2] = {(uint32_t) dX.shape[1], (uint32_t) dX.shape[2], };
+
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getConv2dInputNaivePipe()];
+
+    [encoder setBuffer:gradBuf offset:0 atIndex:0];
+    [encoder setBuffer:kBuf offset:0 atIndex:1];
+    [encoder setBuffer:dxBuf offset:0 atIndex:2];
+
+    [encoder setBytes:&gradDims length:sizeof(gradDims)  atIndex:3];
+    [encoder setBytes:&kDims length:sizeof(kDims)   atIndex:4];
+    [encoder setBytes:&dxDims length:sizeof(dxDims) atIndex:5];
+
+    MTLSize tgNaiveSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
+    MTLSize gridSize = MTLSizeMake(dxDims[1], dxDims[0], gradDims[0] * kDims[3]);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgNaiveSize];
+    [encoder endEncoding];
+}
+
+void Tensor::maxPool2dGradGpu(
+    MetalBuffer &maxIndices,
+    Tensor &dX,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> dxBuf = dX.getGpuData();
+    id<MTLBuffer> gradBuf = getGpuData();
+    id<MTLBuffer> indBuf = maxIndices.getBuffer();
+    uint32_t gradSize = (uint32_t) getSize();
+
+     GpuEngine::fillInt(dxBuf, (uint32_t) dX.getSize(), cmdBuf, 0u);
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getMaxPool2dGradPipe()];
+
+    [encoder setBuffer:gradBuf offset:0 atIndex:0];
+    [encoder setBuffer:indBuf offset:0 atIndex:1];
+    [encoder setBuffer:dxBuf offset:0 atIndex:2];
+    [encoder setBytes:&gradSize length:sizeof(uint32_t)  atIndex:3];
+
+    MTLSize gridSize = MTLSizeMake(gradSize, 1, 1);
+
+    NSUInteger tgSize = MIN(gradSize, NUM_THREADS);
     MTLSize threadSize = MTLSizeMake(tgSize, 1, 1);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];

@@ -536,15 +536,14 @@ void Tensor::conv2dInput(
 }
 
 void Tensor::maxPool2dGrad(
-    const Tensor &grad,
     const vector<size_t> &maxIndices,
     Tensor &dX
 ) const {
     vector<float> &dxFlat = dX.data;
     fill(dxFlat.begin(), dxFlat.end(), 0.0f);
-    const vector<float> &gradFlat = grad.getFlat();
+    const vector<float> &gradFlat = getFlat();
     
-    size_t gradSize = grad.getSize();
+    size_t gradSize = getSize();
     
     #pragma omp parallel for
     for (size_t i = 0; i < gradSize; i++) {

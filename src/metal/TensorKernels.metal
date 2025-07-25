@@ -58,13 +58,16 @@ kernel void padWindowInput(
     uint n = gid.z;
     uint r = gid.y;
     uint c = gid.x;
+
+    uint baseIn = (((n * inRows + r) * inCols + c) * depth);
+    uint basePad = (((n * newRows + (r + padTop)) * newCols + (c + padLeft)) * depth);
     
     if (n >= numSamples || r >= inRows || c >= inCols)
         return;
 
     for (uint d = 0; d < depth; d++) {
-        uint inIdx = (((n * inRows + r) * inCols + c) * depth) + d;
-        uint padIdx = (((n * newRows + (r + padTop)) * newCols + (c + padLeft)) * depth)+ d;
+        uint inIdx = baseIn + d;
+        uint padIdx = basePad + d;
         toPad[padIdx] = input[inIdx];
     }
 }
@@ -243,4 +246,108 @@ kernel void reduceSumBias(
     }
 
     dB[k] = sum;
+}
+
+kernel void padAndUpsampleGrad(
+    device const float *grad [[ buffer(0) ]],
+    device float *output [[ buffer(1) ]],
+    constant uint4 &gradDims [[ buffer(2) ]],
+    constant uint2 &outDims [[ buffer(3) ]],
+    constant uint2 &padding [[ buffer(4) ]],
+    constant uint &stride [[ buffer(5) ]], 
+    uint3 gid [[ thread_position_in_grid ]]
+) {
+    uint n = gid.z;
+    uint r = gid.y;
+    uint c = gid.x;
+
+    uint numSamples = gradDims[0];
+    uint gradRows = gradDims[1];
+    uint gradCols = gradDims[2];
+    uint numKernals = gradDims[3];
+
+    if (n >= numSamples || r >= gradRows || c >= gradCols)
+        return;
+
+    uint outRows = outDims[0];
+    uint outCols = outDims[1];
+
+    uint padTop = padding[0];
+    uint padLeft = padding[1];
+
+    uint upRow = r * stride + padTop;
+    uint upCol = c * stride + padLeft;
+
+    uint baseIn = ((n * gradRows + r) * gradCols + c) * numKernals;
+    uint baseUp = ((n * outRows + upRow) * outCols + upCol) * numKernals;
+
+    for (uint d = 0; d < numKernals; d++) {
+        uint inIdx = baseIn + d;
+        uint upIdx = baseUp + d;
+        output[upIdx] = grad[inIdx];
+    }
+}
+
+kernel void conv2dInputNaive(
+    device const float *grad [[ buffer(0) ]],
+    device const float *kernals [[ buffer (1) ]],
+    device float *dX [[ buffer(2) ]],
+    constant uint4 &gradDims [[ buffer(3) ]],
+    constant uint4 &kDims [[ buffer(4) ]],
+    constant uint2 &dxDims [[ buffer(5) ]],
+    uint3 gid [[ thread_position_in_grid ]]
+) {
+    uint numSamples = gradDims[0];
+    uint gradRows = gradDims[1];
+    uint gradCols = gradDims[2];
+    uint numKernals = gradDims[3];
+
+    uint kRows = kDims[1];
+    uint kCols = kDims[2];
+    uint inDepth = kDims[3];
+
+    uint dxRows = dxDims[0];
+    uint dxCols = dxDims[1];
+
+    uint n = gid.z / inDepth;
+    uint r = gid.y;
+    uint c = gid.x;
+    uint d = gid.z % inDepth;
+
+    if (n >= numSamples || r >= dxRows || c >= dxCols)
+        return;
+
+    float val = 0.0f;
+    for (uint i = 0; i < kRows; i++) {
+        uint gradRow = r + i;
+        uint flipI = kRows - 1 - i;
+
+        for (uint j = 0; j < kCols; j++) {
+            uint gradCol = c + j;
+            uint flipJ = kCols - 1 - j;
+
+            for (uint k = 0; k < numKernals; k++) {
+                uint kIdx = ((k * kRows + flipI) * kCols + flipJ) * inDepth + d;
+                uint gradIdx = ((n * gradRows + gradRow) * gradCols + gradCol) * numKernals + k;
+                val += kernals[kIdx] * grad[gradIdx];
+            }
+        }
+    }
+
+    uint dxIdx = ((n * dxRows + r) * dxCols + c) * inDepth + d;
+    dX[dxIdx] = val;
+}
+
+kernel void maxPool2dGrad(
+    device const float *grad [[ buffer(0) ]],
+    device const uint *maxIndices [[ buffer(1) ]],
+    device atomic_float *dX [[ buffer(2) ]],
+    constant uint &gradSize [[ buffer(3) ]],
+    uint gid [[ thread_position_in_grid ]]
+) {
+    if (gid >= gradSize)
+        return;
+
+    uint dxIdx = maxIndices[gid];
+    atomic_fetch_add_explicit(&dX[dxIdx], grad[gid], memory_order_relaxed);
 }

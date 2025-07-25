@@ -47,46 +47,53 @@
 //     /* ---------------- tensors ---------------- */
 //     Tensor A({M,K});
 //     Tensor B({K,N});
-//     Tensor C({M,N});              // product matrix as tensor
+//     Tensor C({M,N});              // product matrix for custom
+//     Tensor Cref({M,N});           // to hold custom result
+//     Tensor Cmps({M,N});           // to hold MPS result
 
 //     std::mt19937 gen(42);
 //     std::uniform_real_distribution<float> dis(-1.f,1.f);
 //     for(float &v: A.getFlat()) v = dis(gen);
 //     for(float &v: B.getFlat()) v = dis(gen);
 
-//     A.uploadToGpu(); B.uploadToGpu(); C.uploadToGpu();
+//     A.uploadToGpu(); B.uploadToGpu(); 
+//     C.uploadToGpu(); Cref.uploadToGpu(); Cmps.uploadToGpu();
 
 //     id<MTLCommandQueue> q = GpuEngine::getCmdQueue();
 
-//     /* -------- warm-up custom kernel ---------- */
+//     // --- warm-up custom kernel ---
 //     for(int i=0;i<3;i++){
-//         id<MTLCommandBuffer> cmd=[q commandBuffer];
-//         A.M().mmGpu(B,C,cmd);
+//         auto cmd=[q commandBuffer];
+//         A.M().mmGpu(B, C, cmd);
 //         [cmd commit]; [cmd waitUntilCompleted];
 //     }
 
-//     /* -------- timed runs: custom ------------- */
-//     double tot=0,mn=1e9,mx=0;
+//     // --- timed runs: custom ---
+//     double tot=0;
 //     for(size_t r=0;r<runs;r++){
-//         id<MTLCommandBuffer> cmd=[q commandBuffer];
+//         auto cmd=[q commandBuffer];
 //         uint64_t t0=mach_absolute_time();
-//         A.M().mmGpu(B,C,cmd);
+//         A.M().mmGpu(B, C, cmd);
 //         [cmd commit]; [cmd waitUntilCompleted];
 //         double ms=ns2ms(mach_absolute_time()-t0);
-//         tot+=ms; mn=fmin(mn,ms); mx=fmax(mx,ms);
-//         if(r<3||r%20==0) printf("Run %3zu: %.3f ms\n",r,ms);
+//         tot += ms;
 //     }
-//     double avg=tot/runs;
-
+//     double avg = tot / runs;
 //     double flops = 2.0*M*N*K;
 //     printf("-- Custom GEMM --  avg %.3f ms  (%.2f GFLOP/s)\n",
 //            avg, flops/(avg*1e6));
 
+//     // Download custom result
+//     C.downloadFromGpu();
+//     auto &outCustom = C.getFlat();
+//     // copy into Cref (just to show you could keep it separate)
+//     Cref.getFlat() = outCustom;  
+
 //     /* ===========  MPS GEMM  ============ */
 //     id<MTLDevice> dev = q.device;
-//     auto *mA = makeMPSMatrix(dev,A.getGpuData(),M,K);
-//     auto *mB = makeMPSMatrix(dev,B.getGpuData(),K,N);
-//     auto *mC = makeMPSMatrix(dev,C.getGpuData(),M,N);
+//     auto *mA = makeMPSMatrix(dev, A.getGpuData(), M, K);
+//     auto *mB = makeMPSMatrix(dev, B.getGpuData(), K, N);
+//     auto *mC = makeMPSMatrix(dev, Cmps.getGpuData(), M, N);
 
 //     MPSMatrixMultiplication *mps =
 //         [[MPSMatrixMultiplication alloc] initWithDevice:dev
@@ -98,33 +105,44 @@
 //                                                   alpha:1.0
 //                                                    beta:0.0];
 
-//     // warm-up
+//     // warm-up MPS
 //     for(int i=0;i<3;i++){
-//         id<MTLCommandBuffer> cmd=[q commandBuffer];
+//         auto cmd=[q commandBuffer];
 //         [mps encodeToCommandBuffer:cmd leftMatrix:mA rightMatrix:mB resultMatrix:mC];
 //         [cmd commit]; [cmd waitUntilCompleted];
 //     }
 
-//     double mpsTot=0,mpsMn=1e9,mpsMx=0;
+//     // timed runs: MPS
+//     double mpsTot=0;
 //     for(size_t r=0;r<runs;r++){
-//         id<MTLCommandBuffer> cmd=[q commandBuffer];
+//         auto cmd=[q commandBuffer];
 //         uint64_t t0=mach_absolute_time();
 //         [mps encodeToCommandBuffer:cmd leftMatrix:mA rightMatrix:mB resultMatrix:mC];
 //         [cmd commit]; [cmd waitUntilCompleted];
 //         double ms=ns2ms(mach_absolute_time()-t0);
-//         mpsTot+=ms; mpsMn=fmin(mpsMn,ms); mpsMx=fmax(mpsMx,ms);
+//         mpsTot += ms;
 //     }
-//     double mpsAvg=mpsTot/runs;
+//     double mpsAvg = mpsTot / runs;
 //     printf("-- MPS GEMM  --    avg %.3f ms  (%.2f GFLOP/s, %.2fx faster)\n",
 //            mpsAvg, flops/(mpsAvg*1e6), avg/mpsAvg);
 
-//     /* ----- simple checksum --------------- */
-//     C.downloadFromGpu();
-//     auto &out=C.getFlat();
-//     printf("First 4 results: %.3f  %.3f  %.3f  %.3f\n",
-//            out[0],out[1],out[2],out[3]);
-// }
+//     // Download MPS result
+//     Cmps.downloadFromGpu();
+//     auto &outMPS = Cmps.getFlat();
 
+//     // --- compute sum of absolute differences ---
+//     double sumAbsDiff = 0.0;
+//     for (size_t idx = 0, sz = outCustom.size(); idx < sz; ++idx) {
+//         sumAbsDiff += fabs(outCustom[idx] - outMPS[idx]);
+//     }
+//     printf("-- Sum abs difference custom vs MPS: %.6f\n", sumAbsDiff);
+
+//     // simple checksum printout
+//     printf("First 4 custom: %.3f  %.3f  %.3f  %.3f\n",
+//            outCustom[0], outCustom[1], outCustom[2], outCustom[3]);
+//     printf("First 4   MPS : %.3f  %.3f  %.3f  %.3f\n",
+//            outMPS[0],   outMPS[1],   outMPS[2],   outMPS[3]);
+// }
 // /* ------------------------------------------------------------------ */
 // int main()
 // {

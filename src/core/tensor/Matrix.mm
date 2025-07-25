@@ -3,7 +3,7 @@
 #include "core/gpu/GpuEngine.h"
 #include "core/tensor/MatrixT.h"
 
-#define MEDIUM_TILE
+#define MEDIUM_TILE 16
 #define SMALL_TILE 8
 #define NUM_THREADS 256
 
