@@ -57,6 +57,7 @@ void Flatten::build(const vector<size_t> &givenShape) {
     }
 
     outShape = {getMaxBatchSize(), flatSize};
+    output = Tensor(outShape);
 }
 
 vector<size_t> Flatten::getBuildOutShape(const vector<size_t> &givenShape) const {

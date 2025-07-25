@@ -195,8 +195,6 @@ void Conv2D::backprop(
     gradBuf.conv2dInput(kernals, dX);
 }
 
-
-
 const Tensor& Conv2D::getOutput() const {
     return activations;
 }

@@ -33,12 +33,8 @@ id<MTLComputePipelineState> GpuEngine::fillIntPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::maxPool2dPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::reduceSumBiasPipeline  = nil;
 
-id<MTLComputePipelineState> GpuEngine::conv2dForwardFastPipeline  = nil;
-id<MTLComputePipelineState> GpuEngine::conv2dForwardMedPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::conv2dForwardNaivePipeline  = nil;
-
 id<MTLComputePipelineState> GpuEngine::conv2dWeightsNaivePipeline  = nil;
-
 id<MTLComputePipelineState> GpuEngine::conv2dInputNaivePipeline  = nil;
 
 id<MTLComputePipelineState> GpuEngine::padAndUpsampleGradPipeline  = nil;
@@ -111,12 +107,8 @@ void GpuEngine::initAllPipes() {
     initPipe("maxPool2d", maxPool2dPipeline);
     initPipe("reduceSumBias", reduceSumBiasPipeline);
 
-    initPipe("conv2dForwardFast", conv2dForwardFastPipeline);
-    initPipe("conv2dForwardMed", conv2dForwardMedPipeline);
     initPipe("conv2dForwardNaive", conv2dForwardNaivePipeline);
-
     initPipe("conv2dWeightsNaive", conv2dWeightsNaivePipeline);
-
     initPipe("conv2dInputNaive", conv2dInputNaivePipeline);
 
     initPipe("padAndUpsampleGrad", padAndUpsampleGradPipeline);
@@ -187,12 +179,9 @@ id<MTLComputePipelineState> GpuEngine::getPadWindowInputPipe() { return padWindo
 id<MTLComputePipelineState> GpuEngine::getMaxPool2dPipe() { return maxPool2dPipeline; }
 id<MTLComputePipelineState> GpuEngine::getReduceSumBiasPipe() { return reduceSumBiasPipeline; }
 
-id<MTLComputePipelineState> GpuEngine::getConv2dForwardFastPipe() { return conv2dForwardFastPipeline; }
-id<MTLComputePipelineState> GpuEngine::getConv2dForwardMedPipe() { return conv2dForwardMedPipeline; }
+
 id<MTLComputePipelineState> GpuEngine::getConv2dForwardNaivePipe() { return conv2dForwardNaivePipeline; }
-
 id<MTLComputePipelineState> GpuEngine::getConv2dWeightsNaivePipe() { return conv2dWeightsNaivePipeline; }
-
 id<MTLComputePipelineState> GpuEngine::getConv2dInputNaivePipe() { return conv2dInputNaivePipeline; }
 
 id<MTLComputePipelineState> GpuEngine::getMaxPool2dGradPipe() { return maxPool2dGradPipeline; }
