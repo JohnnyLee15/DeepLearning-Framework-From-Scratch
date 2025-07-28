@@ -56,8 +56,8 @@ int main() {
 
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
-        new Dense(64, new ReLU()),
-        new Dense(128, new ReLU()),
+        new Dense(8192, new ReLU()),
+        new Dense(4096, new ReLU()),
         new Dense(10, new Softmax())
     };
 
@@ -70,7 +70,7 @@ int main() {
         0.01,
         0.01,
         5,
-        32,
+        128,
         *metric
     );
 

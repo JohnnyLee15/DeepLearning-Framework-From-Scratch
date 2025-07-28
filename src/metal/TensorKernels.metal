@@ -345,6 +345,9 @@ kernel void maxPool2dGrad(
     constant uint &gradSize [[ buffer(3) ]],
     uint gid [[ thread_position_in_grid ]]
 ) {
+    if (gid >= gradSize)
+        return; 
+        
     uint dxIdx = maxIndices[gid];
     atomic_fetch_add_explicit(&dX[dxIdx], grad[gid], memory_order_relaxed);
 }

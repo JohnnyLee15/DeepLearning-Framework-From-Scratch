@@ -46,6 +46,9 @@ class GpuEngine {
             static id<MTLComputePipelineState> conv2dWeightsNaivePipeline;
             static id<MTLComputePipelineState> conv2dInputNaivePipeline;
 
+            static id<MTLComputePipelineState> im2ColPipeline;
+            static id<MTLComputePipelineState> addBiasIm2ColPipeline;
+
             static id<MTLComputePipelineState> padAndUpsampleGradPipeline;
 
             static id<MTLComputePipelineState> maxPool2dGradPipeline;
@@ -100,6 +103,9 @@ class GpuEngine {
             static id<MTLComputePipelineState> getConv2dForwardNaivePipe();
             static id<MTLComputePipelineState> getConv2dWeightsNaivePipe();
             static id<MTLComputePipelineState> getConv2dInputNaivePipe();
+
+            static id<MTLComputePipelineState> getIm2ColPipe();
+            static id<MTLComputePipelineState> getAddBiasIm2ColPipe();
 
             static id<MTLComputePipelineState> getMaxPool2dGradPipe();
 

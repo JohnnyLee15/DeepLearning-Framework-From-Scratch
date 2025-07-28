@@ -20,6 +20,7 @@ Conv2D::Conv2D(
 void Conv2D::ensureGpu() {
     if (GpuEngine::isUsingGpu()) {
         #ifdef __APPLE__
+            im2ColKBuf.uploadToGpu();
             kernals.uploadToGpu();
             biases.uploadToGpu();
         #endif
@@ -58,47 +59,33 @@ void Conv2D::initGradBuf() {
 void Conv2D::initParams(size_t inDepth) {
     if (isLoadedConv2D)
         return;
-
+    
     kernals = Tensor({numKernals, kRows, kCols, inDepth});
     initKernals();
     biases = activation->initBias(numKernals);
 }
 
-void Conv2D::build(const vector<size_t> &inShape) {
-    checkBuildSize(inShape);
+void Conv2D::initFlatKernals() {
+    size_t inDepth = kernals.getShape()[3];
 
-    Layer::build(inShape);
+    im2ColKBuf = Tensor({kRows * kCols * inDepth, numKernals});
+    vector<float> &kColFlat = im2ColKBuf.getFlat();
+    const vector<float> kFlat = kernals.getFlat();
 
-    size_t batchSize = inShape[0];
-    size_t inRows = inShape[1];
-    size_t inCols = inShape[2];
-    size_t inDepth = inShape[3];
+    #pragma omp parallel for collapse(4)
+    for (size_t o = 0; o < numKernals; o++) {
+        for (size_t i = 0; i < kRows; i++) {
+            for (size_t j = 0; j < kCols; j++) {
+                for (size_t d  = 0; d < inDepth; d++) {
+                    size_t kIdx = ((o * kRows + i) * kCols + j) * inDepth + d;
+                    size_t row = (i * kCols + j) * inDepth + d;
+                    size_t col = o;
 
-    winIn = Tensor({inShape}).computeInputWindow(kRows, kCols, padding, stride);
-
-    paddedInput = Tensor({batchSize, inRows + winIn.padRows, inCols + winIn.padCols, inDepth});
-    preActivations = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
-    activations = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
-
-    dB = Tensor({numKernals});
-    dW = Tensor({numKernals, kRows, kCols, inDepth});
-    dA = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
-    dX = Tensor({batchSize, inRows, inCols, inDepth});
-
-    initGradBuf();
-    initParams(inDepth);
-    ensureGpu();
-}
-
-vector<uint32_t> Conv2D::generateThreadSeeds() const {
-    size_t numSeeds = omp_get_max_threads();
-    vector<uint32_t> seeds(numSeeds);
-    random_device rd;
-    for (size_t i = 0; i < numSeeds; i++) {
-        seeds[i] = rd();
+                    kColFlat[row * numKernals + col] = kFlat[kIdx];
+                }
+            }
+        }
     }
-
-    return seeds;
 }
 
 void Conv2D::initKernals() {
@@ -119,6 +106,7 @@ void Conv2D::initKernals() {
             kernalsFlat[i] = distribution(generator);
         }
     }
+    initFlatKernals();
 }
 
 void Conv2D::initStride(size_t strideIn) {
@@ -130,16 +118,55 @@ void Conv2D::initStride(size_t strideIn) {
     stride = strideIn;
 }
 
+void Conv2D::build(const vector<size_t> &inShape) {
+    checkBuildSize(inShape);
+
+    Layer::build(inShape);
+
+    size_t batchSize = inShape[0];
+    size_t inRows = inShape[1];
+    size_t inCols = inShape[2];
+    size_t inDepth = inShape[3];
+
+    winIn = Tensor({inShape}).computeInputWindow(kRows, kCols, padding, stride);
+
+    paddedInput = Tensor({batchSize, inRows + winIn.padRows, inCols + winIn.padCols, inDepth});
+    im2ColInBuf = Tensor({batchSize * winIn.outRows * winIn.outCols, kRows * kCols * inDepth});
+    preActivations = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
+    im2ColOutBuf = Tensor({batchSize * winIn.outRows * winIn.outCols, numKernals});
+    activations = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
+
+    dB = Tensor({numKernals});
+    dW = Tensor({numKernals, kRows, kCols, inDepth});
+    dA = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
+    dX = Tensor({batchSize, inRows, inCols, inDepth});
+
+    initGradBuf();
+    initParams(inDepth);
+    ensureGpu();
+}
+
+vector<uint32_t> Conv2D::generateThreadSeeds() const {
+    size_t numSeeds = omp_get_max_threads();
+    vector<uint32_t> seeds(numSeeds);
+    random_device rd;
+    for (size_t i = 0; i < numSeeds; i++) {
+        seeds[i] = i;
+    }
+
+    return seeds;
+}
+
 vector<size_t> Conv2D::getBuildOutShape(const vector<size_t> &inShape) const {
     checkBuildSize(inShape);
     return {getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernals};
 }
 
 void Conv2D::reShapeBatch(size_t currBatchSize) {
-    vector<size_t> outShape = activations.getShape();
-    vector<size_t> inShape = dX.getShape();
-    vector<size_t> inPadShape = paddedInput.getShape();
-    vector<size_t> gradShape = gradBuf.getShape();
+    const vector<size_t> &outShape = activations.getShape();
+    const vector<size_t> &inShape = dX.getShape();
+    const vector<size_t> &inPadShape = paddedInput.getShape();
+    const vector<size_t> &gradShape = gradBuf.getShape();
 
     size_t outRows = outShape[1];
     size_t outCols = outShape[2];
@@ -155,7 +182,9 @@ void Conv2D::reShapeBatch(size_t currBatchSize) {
     size_t gradCols = gradShape[2];
 
     paddedInput.reShapeInPlace({currBatchSize, inPadRows, inPadCols, inDepth});
+    im2ColInBuf.reShapeInPlace({currBatchSize * winIn.outRows * winIn.outCols, kRows * kCols * inDepth});
     preActivations.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
+    im2ColOutBuf.reShapeInPlace({currBatchSize * winIn.outRows * winIn.outCols, numKernals});
     activations.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
     dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});
     dA.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});

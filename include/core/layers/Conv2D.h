@@ -18,9 +18,12 @@ class Conv2D : public Layer {
         size_t kCols;
 
         Tensor paddedInput;
+        Tensor im2ColInBuf;
         Tensor kernals;
+        Tensor im2ColKBuf;
         Tensor activations;
         Tensor preActivations;
+        Tensor im2ColOutBuf;
         Tensor dB;
         Tensor dW;
         Tensor dA;
@@ -37,6 +40,7 @@ class Conv2D : public Layer {
 
         // Methods
         void initKernals();
+        void initFlatKernals();
         void initGradBuf();
         void initStride(size_t);
         void initParams(size_t);

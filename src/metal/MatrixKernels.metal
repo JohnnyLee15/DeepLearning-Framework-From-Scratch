@@ -3,109 +3,228 @@ using namespace metal;
 
 #define TILE_SIZE 8
 
+#define TILE_MAT1_ROWS 64
+#define TILE_MAT1_COLS 32
+#define TILE_MAT2_COLS 64
+#define COARSE_FACTOR_COL 4
+#define COARSE_FACTOR_ROW 4
+#define THREADS_PER_BLOCK 256
+#define THREADGROUP_WIDTH 16
+
 kernel void mm(
     device const float *mat1 [[ buffer(0) ]],
     device const float *mat2 [[ buffer(1) ]],
     device float *prodMat [[ buffer(2) ]],
-    constant uint *dims [[ buffer(3) ]],
+    constant uint3 &dims [[ buffer(3) ]],
     uint2 tid [[thread_position_in_threadgroup]],
-    uint2 gid [[thread_position_in_grid]]
+    uint2 gid [[thread_position_in_grid]],
+    uint2 group_id [[ threadgroup_position_in_grid ]]
 ) {
-    uint i = gid.y;
-    uint j = gid.x;
-
-    uint tRow = tid.y;
-    uint tCol = tid.x;
-
     uint mat1Rows = dims[0];
     uint mat1Cols = dims[1];
     uint mat2Cols = dims[2];
 
-    uint row1Offset = i * mat1Cols;
+    uint threadNum = tid.y * THREADGROUP_WIDTH + tid.x;
 
-    threadgroup float mat1Tile[TILE_SIZE][TILE_SIZE];
-    threadgroup float mat2Tile[TILE_SIZE][TILE_SIZE];
+    uint row = COARSE_FACTOR_ROW * (threadNum / (TILE_MAT2_COLS/COARSE_FACTOR_COL));
+    uint col = COARSE_FACTOR_COL * (threadNum % (TILE_MAT2_COLS/COARSE_FACTOR_COL));
 
-    uint numTiles = (mat1Cols + TILE_SIZE - 1)/TILE_SIZE;
+    threadgroup float mat1Tile[TILE_MAT1_COLS][TILE_MAT1_ROWS];
+    threadgroup float mat2Tile[TILE_MAT1_COLS][TILE_MAT2_COLS];
 
-    float val = 0.0;
+    float prodVals[COARSE_FACTOR_ROW][COARSE_FACTOR_COL] = {{0.0f}};
+    float regMat1[COARSE_FACTOR_ROW] = {0.0f};
+    float regMat2[COARSE_FACTOR_COL] = {0.0f};
+
+    uint numTiles = (mat1Cols + TILE_MAT1_COLS - 1)/TILE_MAT1_COLS;
+
+    uint mat1TileStartRow = threadNum / (TILE_MAT1_COLS / 4);
+    uint mat1TileStartCol = threadNum % (TILE_MAT1_COLS / 4);
+    uint mat1Stride = THREADS_PER_BLOCK / (TILE_MAT1_COLS / 4);
+
+    uint mat2TileStartRow = threadNum / (TILE_MAT2_COLS / 4);
+    uint mat2TileStartCol = threadNum % (TILE_MAT2_COLS / 4);
+    uint mat2Stride = THREADS_PER_BLOCK / (TILE_MAT2_COLS / 4);
+    
     for (uint t = 0; t < numTiles; t++) {
+        for (uint i = 0; i < TILE_MAT1_ROWS; i += mat1Stride) {
+            uint mat1Row = group_id.y * TILE_MAT1_ROWS + i + mat1TileStartRow;
+            uint mat1Col = t * TILE_MAT1_COLS + mat1TileStartCol*4;
 
-        uint mat1Col = (t * TILE_SIZE) + tCol;
-        bool c1 = (i < mat1Rows && mat1Col < mat1Cols);
-        mat1Tile[tRow][tCol] = (c1 ? mat1[row1Offset + mat1Col] : 0.0f);
- 
+            if (mat1Row < mat1Rows && mat1Col < mat1Cols) {
+                packed_float4 mat1Temp = *(device const float4*)&mat1[mat1Row * mat1Cols + mat1Col];
+                mat1Tile[mat1TileStartCol * 4 + 0][i + mat1TileStartRow] = mat1Temp[0]; 
+                mat1Tile[mat1TileStartCol * 4 + 1][i + mat1TileStartRow] = mat1Temp[1];
+                mat1Tile[mat1TileStartCol * 4 + 2][i + mat1TileStartRow] = mat1Temp[2];
+                mat1Tile[mat1TileStartCol * 4 + 3][i + mat1TileStartRow] = mat1Temp[3];                
 
-        uint mat2Row = (t * TILE_SIZE) + tRow;
-        bool c2  (mat2Row < mat1Cols && j < mat2Cols);
-        mat2Tile[tCol][tRow] = (c2 ? mat2[mat2Row * mat2Cols + j] : 0.0f);
+            } else {
+                mat1Tile[mat1TileStartCol * 4 + 0][i + mat1TileStartRow] = 0.0f; 
+                mat1Tile[mat1TileStartCol * 4 + 1][i + mat1TileStartRow] = 0.0f;
+                mat1Tile[mat1TileStartCol * 4 + 2][i + mat1TileStartRow] = 0.0f;
+                mat1Tile[mat1TileStartCol * 4 + 3][i + mat1TileStartRow] = 0.0f;             
+            }
+        }
+
+        for (uint i = 0; i < TILE_MAT1_COLS; i += mat2Stride) {
+            uint mat2Row = t * TILE_MAT1_COLS + i + mat2TileStartRow;
+            uint mat2Col = group_id.x * TILE_MAT2_COLS + mat2TileStartCol*4;
+
+            if (mat2Row < mat1Cols && mat2Col < mat2Cols) {
+                packed_float4 mat2Temp = *(device const float4*)&mat2[mat2Row * mat2Cols + mat2Col];
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 0] = mat2Temp[0]; 
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 1] = mat2Temp[1];
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 2] = mat2Temp[2];
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 3] = mat2Temp[3];                
+
+            } else {
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 0] = 0.0f; 
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 1] = 0.0f;
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 2] = 0.0f;
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 3] = 0.0f;              
+            }
+        }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
-        for (uint k = 0; k < TILE_SIZE; k+=4) {
-            packed_float4 a = *((threadgroup packed_float4*)&mat1Tile[tRow][k]);
-            packed_float4 b = *((threadgroup packed_float4*)&mat2Tile[tCol][k]);
-            val += dot(a, b);
+        for (uint k = 0; k < TILE_MAT1_COLS; k++) {
+            for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+                regMat1[i] = mat1Tile[k][row + i];
+            }
+
+            for (uint i = 0; i < COARSE_FACTOR_COL; i++) {
+                regMat2[i] = mat2Tile[k][col + i];
+            }
+
+            for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+                for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+                    prodVals[i][j] += regMat1[i] * regMat2[j];
+                }
+            }
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
     }
 
-    if (i < mat1Rows && j < mat2Cols) {
-        prodMat[i * mat2Cols + j] = val;
+    for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+        for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+            uint prodRow = group_id.y * TILE_MAT1_ROWS + row + i;
+            uint prodCol = group_id.x * TILE_MAT2_COLS + col + j;
+
+            if (prodRow < mat1Rows && prodCol < mat2Cols) {
+                prodMat[prodRow * mat2Cols + prodCol] = prodVals[i][j];
+            }
+        }
     }
 }
+
 
 kernel void mmT(
     device const float *mat1 [[ buffer(0) ]],
     device const float *mat2 [[ buffer(1) ]],
     device float *prodMat [[ buffer(2) ]],
-    constant uint *dims [[ buffer(3) ]],
+    constant uint3 &dims [[ buffer(3) ]],
     uint2 tid [[thread_position_in_threadgroup]],
-    uint2 gid [[thread_position_in_grid]]
+    uint2 gid [[thread_position_in_grid]],
+    uint2 group_id [[ threadgroup_position_in_grid ]]
 ) {
-    uint i = gid.y;
-    uint j = gid.x;
-
-    uint tRow = tid.y;
-    uint tCol = tid.x;
-
     uint mat1Rows = dims[0];
     uint mat1Cols = dims[1];
     uint mat2Cols = dims[2];
 
-    uint row1Offset = i * mat1Cols;
+    uint threadNum = tid.y * THREADGROUP_WIDTH + tid.x;
+    uint float4PerThread = ((TILE_MAT1_COLS * TILE_MAT2_COLS) / 4) / THREADS_PER_BLOCK;
+
+    uint row = COARSE_FACTOR_ROW * (threadNum / (TILE_MAT2_COLS/COARSE_FACTOR_COL));
+    uint col = COARSE_FACTOR_COL * (threadNum % (TILE_MAT2_COLS/COARSE_FACTOR_COL));
+
+    threadgroup float mat1Tile[TILE_MAT1_COLS][TILE_MAT1_ROWS];
+    threadgroup float mat2Tile[TILE_MAT1_COLS][TILE_MAT2_COLS];
+
+    float prodVals[COARSE_FACTOR_ROW][COARSE_FACTOR_COL] = {{0.0f}};
+    float regMat1[COARSE_FACTOR_ROW] = {0.0f};
+    float regMat2[COARSE_FACTOR_COL] = {0.0f};
+
+    uint numTiles = (mat1Cols + TILE_MAT1_COLS - 1)/TILE_MAT1_COLS;
+
+    uint mat1TileStartRow = threadNum / (TILE_MAT1_COLS / 4);
+    uint mat1TileStartCol = threadNum % (TILE_MAT1_COLS / 4);
+    uint mat1Stride = THREADS_PER_BLOCK / (TILE_MAT1_COLS / 4);
     
-    threadgroup float mat1Tile[TILE_SIZE][TILE_SIZE];
-    threadgroup float mat2Tile[TILE_SIZE][TILE_SIZE];
-
-    uint numTiles = (mat1Cols + TILE_SIZE - 1)/TILE_SIZE;
-
-    float val = 0.0;
-
     for (uint t = 0; t < numTiles; t++) {
+        for (uint i = 0; i < TILE_MAT1_ROWS; i += mat1Stride) {
+            uint mat1Row = group_id.y * TILE_MAT1_ROWS + i + mat1TileStartRow;
+            uint mat1Col = t * TILE_MAT1_COLS + mat1TileStartCol*4;
 
-        uint mat1Col = (t * TILE_SIZE) + tCol;
-        bool c1 = (i < mat1Rows && mat1Col < mat1Cols);
-        mat1Tile[tRow][tCol] = (c1 ? mat1[row1Offset + mat1Col] : 0.0f);
+            if (mat1Row < mat1Rows && mat1Col < mat1Cols) {
+                packed_float4 mat1Temp = *(device const float4*)&mat1[mat1Row * mat1Cols + mat1Col];
+                mat1Tile[mat1TileStartCol * 4 + 0][i + mat1TileStartRow] = mat1Temp[0]; 
+                mat1Tile[mat1TileStartCol * 4 + 1][i + mat1TileStartRow] = mat1Temp[1];
+                mat1Tile[mat1TileStartCol * 4 + 2][i + mat1TileStartRow] = mat1Temp[2];
+                mat1Tile[mat1TileStartCol * 4 + 3][i + mat1TileStartRow] = mat1Temp[3];                
 
-        uint mat2Row = t * TILE_SIZE + tRow;
-        bool c2 = (mat2Row < mat1Cols && j < mat2Cols);
-        mat2Tile[tCol][tRow] = (c2 ? mat2[j * mat1Cols + mat2Row] : 0.0f);
+            } else {
+                mat1Tile[mat1TileStartCol * 4 + 0][i + mat1TileStartRow] = 0.0f; 
+                mat1Tile[mat1TileStartCol * 4 + 1][i + mat1TileStartRow] = 0.0f;
+                mat1Tile[mat1TileStartCol * 4 + 2][i + mat1TileStartRow] = 0.0f;
+                mat1Tile[mat1TileStartCol * 4 + 3][i + mat1TileStartRow] = 0.0f;             
+            }
+        }
+
+        for (uint i = 0; i < float4PerThread; i++) {
+            uint flatTile2Idx = threadNum + THREADS_PER_BLOCK * i;
+
+            uint mat2TileRow = flatTile2Idx / (TILE_MAT1_COLS/4);
+            uint mat2TileCol = (flatTile2Idx % (TILE_MAT1_COLS/4)) * 4;
+
+            uint mat2Row = group_id.x * TILE_MAT2_COLS  + mat2TileRow;
+            uint mat2Col = t * TILE_MAT1_COLS + mat2TileCol;
+
+            if (mat2Row < mat2Cols && mat2Col < mat1Cols) {
+                packed_float4 mat2Temp = *(device const packed_float4*)&mat2[mat2Row * mat1Cols + mat2Col];
+
+                mat2Tile[mat2TileCol + 0][mat2TileRow] = mat2Temp[0];
+                mat2Tile[mat2TileCol + 1][mat2TileRow] = mat2Temp[1];
+                mat2Tile[mat2TileCol + 2][mat2TileRow] = mat2Temp[2];
+                mat2Tile[mat2TileCol + 3][mat2TileRow] = mat2Temp[3];
+            } else {
+                mat2Tile[mat2TileCol + 0][mat2TileRow] = 0.0f;
+                mat2Tile[mat2TileCol + 1][mat2TileRow] = 0.0f;
+                mat2Tile[mat2TileCol + 2][mat2TileRow] = 0.0f;
+                mat2Tile[mat2TileCol + 3][mat2TileRow] = 0.0f;
+            }
+        }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
-        for (uint k = 0; k < TILE_SIZE; k+=4) {
-            float4 a = *((threadgroup float4*)&mat1Tile[tRow][k]);
-            float4 b = *((threadgroup float4*)&mat2Tile[tCol][k]);
-            val += dot(a, b);
+        for (uint k = 0; k < TILE_MAT1_COLS; k++) {
+            for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+                regMat1[i] = mat1Tile[k][row + i];
+            }
+
+            for (uint i = 0; i < COARSE_FACTOR_COL; i++) {
+                regMat2[i] = mat2Tile[k][col + i];
+            }
+
+            for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+                for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+                    prodVals[i][j] += regMat1[i] * regMat2[j];
+                }
+            }
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
     }
 
-    if (i < mat1Rows && j < mat2Cols) {
-        prodMat[i * mat2Cols + j] = val;
+    for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+        for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+            uint prodRow = group_id.y * TILE_MAT1_ROWS + row + i;
+            uint prodCol = group_id.x * TILE_MAT2_COLS + col + j;
+
+            if (prodRow < mat1Rows && prodCol < mat2Cols) {
+                prodMat[prodRow * mat2Cols + prodCol] = prodVals[i][j];
+            }
+        }
     }
 }
 
@@ -113,51 +232,109 @@ kernel void mTm(
     device const float *mat1 [[ buffer(0) ]],
     device const float *mat2 [[ buffer(1) ]],
     device float *prodMat [[ buffer(2) ]],
-    constant uint *dims [[ buffer(3) ]],
+    constant uint3 &dims [[ buffer(3) ]],
     uint2 tid [[thread_position_in_threadgroup]],
-    uint2 gid [[thread_position_in_grid]]
+    uint2 gid [[thread_position_in_grid]],
+    uint2 group_id [[ threadgroup_position_in_grid ]]
 ) {
-    uint i = gid.y;
-    uint j = gid.x;
-
-    uint tRow = tid.y;
-    uint tCol = tid.x;
-
     uint mat1Rows = dims[0];
     uint mat1Cols = dims[1];
     uint mat2Cols = dims[2];
 
-    threadgroup float mat1Tile[TILE_SIZE][TILE_SIZE];
-    threadgroup float mat2Tile[TILE_SIZE][TILE_SIZE];
+    uint threadNum = tid.y * THREADGROUP_WIDTH + tid.x;
 
-    uint numTiles = (mat1Cols + TILE_SIZE - 1)/TILE_SIZE;
+    uint row = COARSE_FACTOR_ROW * (threadNum / (TILE_MAT2_COLS/COARSE_FACTOR_COL));
+    uint col = COARSE_FACTOR_COL * (threadNum % (TILE_MAT2_COLS/COARSE_FACTOR_COL));
 
-    float val = 0.0;
+    threadgroup float mat1Tile[TILE_MAT1_COLS][TILE_MAT1_ROWS];
+    threadgroup float mat2Tile[TILE_MAT1_COLS][TILE_MAT2_COLS];
 
+    float prodVals[COARSE_FACTOR_ROW][COARSE_FACTOR_COL] = {{0.0f}};
+    float regMat1[COARSE_FACTOR_ROW] = {0.0f};
+    float regMat2[COARSE_FACTOR_COL] = {0.0f};
+
+    uint numTiles = (mat1Cols + TILE_MAT1_COLS - 1)/TILE_MAT1_COLS;
+
+    uint mat1TileStartRow = threadNum / (TILE_MAT1_ROWS / 4);
+    uint mat1TileStartCol = (threadNum % (TILE_MAT1_ROWS / 4)) * 4;
+    uint mat1Stride = THREADS_PER_BLOCK / (TILE_MAT1_ROWS  / 4);
+
+    uint mat2TileStartRow = threadNum / (TILE_MAT2_COLS / 4);
+    uint mat2TileStartCol = threadNum % (TILE_MAT2_COLS / 4);
+    uint mat2Stride = THREADS_PER_BLOCK / (TILE_MAT2_COLS / 4);
+    
     for (uint t = 0; t < numTiles; t++) {
+        for (uint i = 0; i < TILE_MAT1_COLS; i += mat1Stride) {
+            uint mat1TileRow = i + mat1TileStartRow;
+            uint mat1TileCol = mat1TileStartCol;
 
-        uint mat1Col = t * TILE_SIZE + tCol;
-        bool c1 = (i < mat1Rows && mat1Col < mat1Cols);
-        mat1Tile[tRow][tCol] = (c1 ? mat1[mat1Col * mat1Rows + i] : 0.0f);
+            uint mat1Row = t * TILE_MAT1_COLS + mat1TileRow;
+            uint mat1Col = group_id.y * TILE_MAT1_ROWS + mat1TileCol;
 
+            if (mat1Row < mat1Cols && mat1Col < mat1Rows) {
+                packed_float4 mat1Temp = *(device const packed_float4*)&mat1[mat1Row * mat1Rows + mat1Col];
+                mat1Tile[mat1TileRow][mat1TileCol + 0] = mat1Temp[0];
+                mat1Tile[mat1TileRow][mat1TileCol + 1] = mat1Temp[1];
+                mat1Tile[mat1TileRow][mat1TileCol + 2] = mat1Temp[2];
+                mat1Tile[mat1TileRow][mat1TileCol + 3] = mat1Temp[3];
 
-        uint mat2Row = (t * TILE_SIZE) + tRow;
-        bool c2  (mat2Row < mat1Cols && j < mat2Cols);
-        mat2Tile[tCol][tRow] = (c2 ? mat2[mat2Row * mat2Cols + j] : 0.0f);
+            } else {
+                mat1Tile[mat1TileRow][mat1TileCol + 0] = 0.0f;
+                mat1Tile[mat1TileRow][mat1TileCol + 1] = 0.0f;
+                mat1Tile[mat1TileRow][mat1TileCol + 2] = 0.0f;
+                mat1Tile[mat1TileRow][mat1TileCol + 3] = 0.0f;
+            }
+        }
+
+        for (uint i = 0; i < TILE_MAT1_COLS; i += mat2Stride) {
+            uint mat2Row = t * TILE_MAT1_COLS + i + mat2TileStartRow;
+            uint mat2Col = group_id.x * TILE_MAT2_COLS + mat2TileStartCol*4;
+
+            if (mat2Row < mat1Cols && mat2Col < mat2Cols) {
+                packed_float4 mat2Temp = *(device const float4*)&mat2[mat2Row * mat2Cols + mat2Col];
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 0] = mat2Temp[0]; 
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 1] = mat2Temp[1];
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 2] = mat2Temp[2];
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 3] = mat2Temp[3];                
+
+            } else {
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 0] = 0.0f; 
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 1] = 0.0f;
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 2] = 0.0f;
+                mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 3] = 0.0f;              
+            }
+        }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
-        for (uint k = 0; k < TILE_SIZE; k+=4) {
-            float4 a = *((threadgroup float4*)&mat1Tile[tRow][k]);
-            float4 b = *((threadgroup float4*)&mat2Tile[tCol][k]);
-            val += dot(a, b);
+        for (uint k = 0; k < TILE_MAT1_COLS; k++) {
+            for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+                regMat1[i] = mat1Tile[k][row + i];
+            }
+
+            for (uint i = 0; i < COARSE_FACTOR_COL; i++) {
+                regMat2[i] = mat2Tile[k][col + i];
+            }
+
+            for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+                for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+                    prodVals[i][j] += regMat1[i] * regMat2[j];
+                }
+            }
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
     }
 
-    if (i < mat1Rows && j < mat2Cols) {
-        prodMat[i * mat2Cols + j] = val;
+    for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+        for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+            uint prodRow = group_id.y * TILE_MAT1_ROWS + row + i;
+            uint prodCol = group_id.x * TILE_MAT2_COLS + col + j;
+
+            if (prodRow < mat1Rows && prodCol < mat2Cols) {
+                prodMat[prodRow * mat2Cols + prodCol] = prodVals[i][j];
+            }
+        }
     }
 }
 
@@ -165,50 +342,111 @@ kernel void mTmT(
     device const float *mat1 [[ buffer(0) ]],
     device const float *mat2 [[ buffer(1) ]],
     device float *prodMat [[ buffer(2) ]],
-    constant uint *dims [[ buffer(3) ]],
+    constant uint3 &dims [[ buffer(3) ]],
     uint2 tid [[thread_position_in_threadgroup]],
-    uint2 gid [[thread_position_in_grid]]
+    uint2 gid [[thread_position_in_grid]],
+    uint2 group_id [[ threadgroup_position_in_grid ]]
 ) {
-    uint i = gid.y;
-    uint j = gid.x;
-
-    uint tRow = tid.y;
-    uint tCol = tid.x;
-
     uint mat1Rows = dims[0];
     uint mat1Cols = dims[1];
     uint mat2Cols = dims[2];
 
-    threadgroup float mat1Tile[TILE_SIZE][TILE_SIZE];
-    threadgroup float mat2Tile[TILE_SIZE][TILE_SIZE];
+    uint threadNum = tid.y * THREADGROUP_WIDTH + tid.x;
+    uint float4PerThread = ((TILE_MAT1_COLS * TILE_MAT2_COLS) / 4) / THREADS_PER_BLOCK;
 
-    uint numTiles = (mat1Cols + TILE_SIZE - 1)/TILE_SIZE;
+    uint row = COARSE_FACTOR_ROW * (threadNum / (TILE_MAT2_COLS/COARSE_FACTOR_COL));
+    uint col = COARSE_FACTOR_COL * (threadNum % (TILE_MAT2_COLS/COARSE_FACTOR_COL));
 
-    float val = 0.0;
+    threadgroup float mat1Tile[TILE_MAT1_COLS][TILE_MAT1_ROWS];
+    threadgroup float mat2Tile[TILE_MAT1_COLS][TILE_MAT2_COLS];
 
+    float prodVals[COARSE_FACTOR_ROW][COARSE_FACTOR_COL] = {{0.0f}};
+    float regMat1[COARSE_FACTOR_ROW] = {0.0f};
+    float regMat2[COARSE_FACTOR_COL] = {0.0f};
+
+    uint numTiles = (mat1Cols + TILE_MAT1_COLS - 1)/TILE_MAT1_COLS;
+
+    uint mat1TileStartRow = threadNum / (TILE_MAT1_ROWS / 4);
+    uint mat1TileStartCol = (threadNum % (TILE_MAT1_ROWS / 4)) * 4;
+    uint mat1Stride = THREADS_PER_BLOCK / (TILE_MAT1_ROWS  / 4);
+    
     for (uint t = 0; t < numTiles; t++) {
+        for (uint i = 0; i < TILE_MAT1_COLS; i += mat1Stride) {
+            uint mat1TileRow = i + mat1TileStartRow;
+            uint mat1TileCol = mat1TileStartCol;
 
-        uint mat1Col = t * TILE_SIZE + tCol;
-        bool c1 = (i < mat1Rows && mat1Col < mat1Cols);
-        mat1Tile[tRow][tCol] = (c1 ? mat1[mat1Col * mat1Rows + i] : 0.0f);
+            uint mat1Row = t * TILE_MAT1_COLS + mat1TileRow;
+            uint mat1Col = group_id.y * TILE_MAT1_ROWS + mat1TileCol;
 
-        uint mat2Row = t * TILE_SIZE + tRow;
-        bool c2 = (mat2Row < mat1Cols && j < mat2Cols);
-        mat2Tile[tCol][tRow] = (c2 ? mat2[j * mat1Cols + mat2Row] : 0.0f);
+            if (mat1Row < mat1Cols && mat1Col < mat1Rows) {
+                packed_float4 mat1Temp = *(device const packed_float4*)&mat1[mat1Row * mat1Rows + mat1Col];
+                mat1Tile[mat1TileRow][mat1TileCol + 0] = mat1Temp[0];
+                mat1Tile[mat1TileRow][mat1TileCol + 1] = mat1Temp[1];
+                mat1Tile[mat1TileRow][mat1TileCol + 2] = mat1Temp[2];
+                mat1Tile[mat1TileRow][mat1TileCol + 3] = mat1Temp[3];
+
+            } else {
+                mat1Tile[mat1TileRow][mat1TileCol + 0] = 0.0f;
+                mat1Tile[mat1TileRow][mat1TileCol + 1] = 0.0f;
+                mat1Tile[mat1TileRow][mat1TileCol + 2] = 0.0f;
+                mat1Tile[mat1TileRow][mat1TileCol + 3] = 0.0f;
+            }
+        }
+
+        for (uint i = 0; i < float4PerThread; i++) {
+            uint flatTile2Idx = threadNum + THREADS_PER_BLOCK * i;
+
+            uint mat2TileRow = flatTile2Idx / (TILE_MAT1_COLS/4);
+            uint mat2TileCol = (flatTile2Idx % (TILE_MAT1_COLS/4)) * 4;
+
+            uint mat2Row = group_id.x * TILE_MAT2_COLS  + mat2TileRow;
+            uint mat2Col = t * TILE_MAT1_COLS + mat2TileCol;
+
+            if (mat2Row < mat2Cols && mat2Col < mat1Cols) {
+                packed_float4 mat2Temp = *(device const packed_float4*)&mat2[mat2Row * mat1Cols + mat2Col];
+
+                mat2Tile[mat2TileCol + 0][mat2TileRow] = mat2Temp[0];
+                mat2Tile[mat2TileCol + 1][mat2TileRow] = mat2Temp[1];
+                mat2Tile[mat2TileCol + 2][mat2TileRow] = mat2Temp[2];
+                mat2Tile[mat2TileCol + 3][mat2TileRow] = mat2Temp[3];
+            } else {
+                mat2Tile[mat2TileCol + 0][mat2TileRow] = 0.0f;
+                mat2Tile[mat2TileCol + 1][mat2TileRow] = 0.0f;
+                mat2Tile[mat2TileCol + 2][mat2TileRow] = 0.0f;
+                mat2Tile[mat2TileCol + 3][mat2TileRow] = 0.0f;
+            }
+        }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
-        for (uint k = 0; k < TILE_SIZE; k+=4) {
-            float4 a = *((threadgroup float4*)&mat1Tile[tRow][k]);
-            float4 b = *((threadgroup float4*)&mat2Tile[tCol][k]);
-            val += dot(a, b);
+        for (uint k = 0; k < TILE_MAT1_COLS; k++) {
+            for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+                regMat1[i] = mat1Tile[k][row + i];
+            }
+
+            for (uint i = 0; i < COARSE_FACTOR_COL; i++) {
+                regMat2[i] = mat2Tile[k][col + i];
+            }
+
+            for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+                for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+                    prodVals[i][j] += regMat1[i] * regMat2[j];
+                }
+            }
         }
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
     }
 
-    if (i < mat1Rows && j < mat2Cols) {
-        prodMat[i * mat2Cols + j] = val;
+    for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+        for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+            uint prodRow = group_id.y * TILE_MAT1_ROWS + row + i;
+            uint prodCol = group_id.x * TILE_MAT2_COLS + col + j;
+
+            if (prodRow < mat1Rows && prodCol < mat2Cols) {
+                prodMat[prodRow * mat2Cols + prodCol] = prodVals[i][j];
+            }
+        }
     }
 }
 

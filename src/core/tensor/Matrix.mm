@@ -7,6 +7,43 @@
 #define SMALL_TILE 8
 #define NUM_THREADS 256
 
+#define TILE_MAT1_ROWS 64
+#define TILE_MAT1_COLS 32
+#define TILE_MAT2_COLS 64
+
+void Matrix::matMatEngine(
+    id<MTLBuffer> mat1Buf,
+    id<MTLBuffer> mat2Buf,
+    id<MTLBuffer> prodBuf,
+    size_t mat1Rows,
+    size_t mat1Cols,
+    size_t mat2Cols,
+    id<MTLComputePipelineState> pipeline,
+    id<MTLCommandBuffer> cmdBuf
+) {
+    uint32_t mat1RowsU = (uint32_t) mat1Rows;
+    uint32_t mat1ColsU = (uint32_t) mat1Cols;
+    uint32_t mat2ColsU = (uint32_t) mat2Cols;
+    uint32_t dims[3] = {mat1RowsU, mat1ColsU, mat2ColsU};
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+
+    [encoder setComputePipelineState:pipeline];
+    [encoder setBuffer:mat1Buf offset:0 atIndex:0];
+    [encoder setBuffer:mat2Buf offset:0 atIndex:1];
+    [encoder setBuffer:prodBuf offset:0 atIndex:2];
+    [encoder setBytes:&dims length:sizeof(dims) atIndex:3];
+
+    MTLSize threadGroupSize = MTLSizeMake(16, 16, 1);
+
+    NSUInteger numTgRows = (mat1Rows + TILE_MAT1_ROWS - 1)/TILE_MAT1_ROWS;
+    NSUInteger numTgCols = (mat2Cols + TILE_MAT2_COLS - 1)/TILE_MAT2_COLS;
+    MTLSize numThreadGroups = MTLSizeMake(numTgCols, numTgRows, 1);
+
+    [encoder dispatchThreadgroups:numThreadGroups threadsPerThreadgroup:threadGroupSize];
+    [encoder endEncoding];
+}
+
 id<MTLBuffer> Matrix::getGpuData() const {
     return tensor.getGpuData();
 }
@@ -46,39 +83,6 @@ void Matrix::mmTGpu(
         cmdBuf
     );
 } 
-
-void Matrix::matMatEngine(
-    id<MTLBuffer> mat1Buf,
-    id<MTLBuffer> mat2Buf,
-    id<MTLBuffer> prodBuf,
-    size_t mat1Rows,
-    size_t mat1Cols,
-    size_t mat2Cols,
-    id<MTLComputePipelineState> pipeline,
-    id<MTLCommandBuffer> cmdBuf
-) {
-    uint32_t mat1RowsU = (uint32_t) mat1Rows;
-    uint32_t mat1ColsU = (uint32_t) mat1Cols;
-    uint32_t mat2ColsU = (uint32_t) mat2Cols;
-    uint32_t dims[3] = {mat1RowsU, mat1ColsU, mat2ColsU};
-
-    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
-
-    [encoder setComputePipelineState:pipeline];
-    [encoder setBuffer:mat1Buf offset:0 atIndex:0];
-    [encoder setBuffer:mat2Buf offset:0 atIndex:1];
-    [encoder setBuffer:prodBuf offset:0 atIndex:2];
-    [encoder setBytes:&dims length:sizeof(dims) atIndex:3];
-
-    MTLSize threadGroupSize = MTLSizeMake(SMALL_TILE, SMALL_TILE, 1);
-
-    NSUInteger numTgRows = (mat1Rows + SMALL_TILE - 1)/SMALL_TILE;
-    NSUInteger numTgCols = (mat2Cols + SMALL_TILE - 1)/SMALL_TILE;
-    MTLSize numThreadGroups = MTLSizeMake(numTgCols, numTgRows, 1);
-
-    [encoder dispatchThreadgroups:numThreadGroups threadsPerThreadgroup:threadGroupSize];
-    [encoder endEncoding];
-}
 
 void Matrix::colSumsGpu(Tensor &vec, id<MTLCommandBuffer> cmdBuf) const {
     id<MTLBuffer> matBuf = getGpuData();
