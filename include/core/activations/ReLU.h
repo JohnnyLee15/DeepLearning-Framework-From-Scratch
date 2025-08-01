@@ -20,5 +20,6 @@ class ReLU : public Activation {
         #ifdef __APPLE__
             void activateGpu(const Tensor&, Tensor&, GpuCommandBuffer) const override;
             void calculateGradientGpu(const Tensor&, Tensor&, GpuCommandBuffer) const override;
+            void backpropGpu(const Tensor&, Tensor&, GpuCommandBuffer) const override;
         #endif
 };

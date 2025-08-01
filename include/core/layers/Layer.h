@@ -46,6 +46,11 @@ class Layer {
         virtual void writeBin(ofstream&) const;
         virtual void loadFromBin(ifstream&) = 0;
 
+        virtual const Tensor& getDeltaWeights() const;
+        virtual const Tensor& getDeltaWeightsIm2Col() const;
+        virtual const Tensor& getDeltaBiases() const;
+        virtual const Tensor& getDeltaInputs() const;
+
         // GPU Interface
         #ifdef __APPLE__
             virtual void forwardGpu(const Tensor&, GpuCommandBuffer);

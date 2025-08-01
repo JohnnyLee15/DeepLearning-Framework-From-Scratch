@@ -7,6 +7,7 @@ id<MTLCommandQueue> GpuEngine::cmdQueue = nil;
 id<MTLLibrary> GpuEngine::defaultLib = nil;
 
 id<MTLComputePipelineState> GpuEngine::matMatPipeline = nil;
+id<MTLComputePipelineState> GpuEngine::mmBiasReLUPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::matMatTPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::matTMatPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::matTMatTPipeline = nil;
@@ -20,6 +21,7 @@ id<MTLComputePipelineState> GpuEngine::applyGradPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateLinearGradPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateReluGradPipeline  = nil;
 
+id<MTLComputePipelineState> GpuEngine::backpropReLUPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::activateReLUPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::activateSoftmaxPipeline = nil;
 
@@ -38,7 +40,8 @@ id<MTLComputePipelineState> GpuEngine::conv2dWeightsNaivePipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::conv2dInputNaivePipeline  = nil;
 
 id<MTLComputePipelineState> GpuEngine::im2ColPipeline  = nil;
-id<MTLComputePipelineState> GpuEngine::addBiasIm2ColPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::col2ImPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::addBiasApplyReLUIm2ColPipeline  = nil;
 
 id<MTLComputePipelineState> GpuEngine::padAndUpsampleGradPipeline  = nil;
 
@@ -84,6 +87,7 @@ void GpuEngine::initPipe(const char *funcName, id<MTLComputePipelineState> &pipe
 
 void GpuEngine::initAllPipes() {
     initPipe("mm", matMatPipeline);
+    initPipe("mmBiasReLU", mmBiasReLUPipeline);
     initPipe("mmT", matMatTPipeline);
     initPipe("mTm", matTMatPipeline);
     initPipe("mTmT", matTMatTPipeline);
@@ -96,6 +100,7 @@ void GpuEngine::initAllPipes() {
 
     initPipe("calculateLinearGrad", calculateLinearGradPipeline);
     initPipe("calculateReluGrad", calculateReluGradPipeline);
+    initPipe("backpropReLU", backpropReLUPipeline);
 
     initPipe("activateReLU", activateReLUPipeline);
     initPipe("activateSoftmax", activateSoftmaxPipeline);
@@ -115,7 +120,8 @@ void GpuEngine::initAllPipes() {
     initPipe("conv2dInputNaive", conv2dInputNaivePipeline);
 
     initPipe("im2Col", im2ColPipeline);
-    initPipe("addBiasIm2Col", addBiasIm2ColPipeline);
+    initPipe("col2Im", col2ImPipeline);
+    initPipe("addBiasApplyReLUIm2Col", addBiasApplyReLUIm2ColPipeline);
 
     initPipe("padAndUpsampleGrad", padAndUpsampleGradPipeline);
 
@@ -159,8 +165,8 @@ id<MTLDevice> GpuEngine::getGpuDevice() { return gpuDevice; }
 id<MTLCommandQueue> GpuEngine::getCmdQueue() { return cmdQueue; }
 id<MTLLibrary> GpuEngine::getLib() { return defaultLib; }
 
-
 id<MTLComputePipelineState> GpuEngine::getMatMatPipe() { return matMatPipeline; }
+id<MTLComputePipelineState> GpuEngine::getMMBiasReLUPipe() { return mmBiasReLUPipeline; }
 id<MTLComputePipelineState> GpuEngine::getMatMatTPipe() { return matMatTPipeline; }
 id<MTLComputePipelineState> GpuEngine::getMatTMatPipe() { return matTMatPipeline; }
 id<MTLComputePipelineState> GpuEngine::getMatTMatTPipe() { return matTMatTPipeline; }
@@ -173,6 +179,7 @@ id<MTLComputePipelineState> GpuEngine::getApplyGradPipe() { return applyGradPipe
 
 id<MTLComputePipelineState> GpuEngine::getCalculateLinearGradPipe() { return calculateLinearGradPipeline; }
 id<MTLComputePipelineState> GpuEngine::getCalculateReluGradPipe() { return calculateReluGradPipeline; }
+id<MTLComputePipelineState> GpuEngine::getBackpropReLUPipe() { return backpropReLUPipeline; }
 
 id<MTLComputePipelineState> GpuEngine::getCalculateMSEGradPipe() { return calculateMSEGradPipeline; }
 id<MTLComputePipelineState> GpuEngine::getCalculateSoftmaxCrossEntropyGradPipe() { return calculateSoftmaxCrossEntropyGradPipeline; }
@@ -190,7 +197,8 @@ id<MTLComputePipelineState> GpuEngine::getConv2dWeightsNaivePipe() { return conv
 id<MTLComputePipelineState> GpuEngine::getConv2dInputNaivePipe() { return conv2dInputNaivePipeline; }
 
 id<MTLComputePipelineState> GpuEngine::getIm2ColPipe() { return im2ColPipeline; }
-id<MTLComputePipelineState> GpuEngine::getAddBiasIm2ColPipe() { return addBiasIm2ColPipeline; }
+id<MTLComputePipelineState> GpuEngine::getCol2ImPipe() { return col2ImPipeline; }
+id<MTLComputePipelineState> GpuEngine::getAddBiasApplyReLUIm2ColPipe() { return addBiasApplyReLUIm2ColPipeline; }
 
 id<MTLComputePipelineState> GpuEngine::getMaxPool2dGradPipe() { return maxPool2dGradPipeline; }
 

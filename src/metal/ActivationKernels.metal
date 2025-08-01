@@ -1,6 +1,8 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#define COARSE_FACTOR 4
+
 kernel void activateReLU(
     device const float *z [[ buffer(0) ]],
     device float *a [[ buffer(1) ]],
@@ -67,4 +69,29 @@ kernel void calculateReluGrad(
     } else {
         dZ[gid] = 0.0;
     }
+}
+
+kernel void backpropReLU(
+    device const float *a [[ buffer(0) ]],
+    device float *grad [[ buffer(1) ]],
+    constant uint &size [[ buffer(2) ]],
+    constant uint &gridWidth [[ buffer(3) ]],
+    uint gid [[thread_position_in_grid]]
+) {
+    uint idx = gid;
+
+    if (idx >= size) return;
+    grad[idx] *= (a[idx] > 0.0f);
+
+    idx += gridWidth;
+    if (idx >= size) return;
+    grad[idx] *= (a[idx] > 0.0f);
+
+    idx += gridWidth;
+    if (idx >= size) return;
+    grad[idx] *= (a[idx] > 0.0f);
+
+    idx += gridWidth;
+    if (idx >= size) return;
+    grad[idx] *= (a[idx] > 0.0f);
 }

@@ -54,6 +54,7 @@ void Conv2D::initGradBuf() {
     gradCols += winGrad.padCols;
 
     gradBuf = Tensor({getMaxBatchSize(), gradRows, gradCols, numKernals});
+    gradIm2ColBuf = Tensor(im2ColInBuf.getShape());
 }
 
 void Conv2D::initParams(size_t inDepth) {
@@ -133,11 +134,13 @@ void Conv2D::build(const vector<size_t> &inShape) {
     paddedInput = Tensor({batchSize, inRows + winIn.padRows, inCols + winIn.padCols, inDepth});
     im2ColInBuf = Tensor({batchSize * winIn.outRows * winIn.outCols, kRows * kCols * inDepth});
     preActivations = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
-    im2ColOutBuf = Tensor({batchSize * winIn.outRows * winIn.outCols, numKernals});
+    preActTensorShape = preActivations.getShape();
+    im2ColPreActShape = {batchSize * winIn.outRows * winIn.outCols, numKernals};
     activations = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
 
     dB = Tensor({numKernals});
     dW = Tensor({numKernals, kRows, kCols, inDepth});
+    dwIm2Col = Tensor({kRows * kCols * inDepth, numKernals});
     dA = Tensor({batchSize, winIn.outRows, winIn.outCols, numKernals});
     dX = Tensor({batchSize, inRows, inCols, inDepth});
 
@@ -184,11 +187,13 @@ void Conv2D::reShapeBatch(size_t currBatchSize) {
     paddedInput.reShapeInPlace({currBatchSize, inPadRows, inPadCols, inDepth});
     im2ColInBuf.reShapeInPlace({currBatchSize * winIn.outRows * winIn.outCols, kRows * kCols * inDepth});
     preActivations.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
-    im2ColOutBuf.reShapeInPlace({currBatchSize * winIn.outRows * winIn.outCols, numKernals});
+    im2ColPreActShape = {currBatchSize * winIn.outRows * winIn.outCols, numKernals};
+    preActTensorShape = preActivations.getShape();
     activations.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
     dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});
     dA.reShapeInPlace({currBatchSize, outRows, outCols, numKernals});
     gradBuf.reShapeInPlace({currBatchSize, gradRows, gradCols, numKernals});
+    gradIm2ColBuf.reShapeInPlace(im2ColInBuf.getShape());
 }
 
 void Conv2D::forward(const Tensor &input) {
@@ -207,7 +212,6 @@ void Conv2D::backprop(
     Tensor &grad,
     bool isFirstLayer
 ) {
-    (void) isFirstLayer;
     float scaleFactor = -learningRate / input.getShape()[0];
 
     activation->calculateGradient(preActivations, dA);
@@ -220,8 +224,10 @@ void Conv2D::backprop(
     kernals.applyGrad(dW, scaleFactor);
     biases.applyGrad(dB, scaleFactor);
 
-    grad.padAndUpsampleGrad(gradBuf, winGrad, stride);
-    gradBuf.conv2dInput(kernals, dX);
+    if (!isFirstLayer) {
+        grad.padAndUpsampleGrad(gradBuf, winGrad, stride);
+        gradBuf.conv2dInput(kernals, dX);
+    }
 }
 
 const Tensor& Conv2D::getOutput() const {
@@ -236,4 +242,20 @@ void Conv2D::writeBin(ofstream &modelBin) const {}
 void Conv2D::loadFromBin(ifstream &modelBin) {}
 Layer::Encodings Conv2D::getEncoding() const {
     return Layer::Encodings::Conv2D;
+}
+
+const Tensor& Conv2D::getDeltaWeights() const {
+    return dW;
+}
+
+const Tensor& Conv2D::getDeltaWeightsIm2Col() const {
+    return dwIm2Col;
+}
+
+const Tensor& Conv2D::getDeltaBiases() const {
+    return dB;
+}
+
+const Tensor& Conv2D::getDeltaInputs() const {
+    return dX;
 }

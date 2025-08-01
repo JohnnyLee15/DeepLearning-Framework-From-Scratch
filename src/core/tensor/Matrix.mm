@@ -34,7 +34,7 @@ void Matrix::matMatEngine(
     [encoder setBuffer:prodBuf offset:0 atIndex:2];
     [encoder setBytes:&dims length:sizeof(dims) atIndex:3];
 
-    MTLSize threadGroupSize = MTLSizeMake(16, 16, 1);
+    MTLSize threadGroupSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
 
     NSUInteger numTgRows = (mat1Rows + TILE_MAT1_ROWS - 1)/TILE_MAT1_ROWS;
     NSUInteger numTgCols = (mat2Cols + TILE_MAT2_COLS - 1)/TILE_MAT2_COLS;
@@ -64,6 +64,42 @@ void Matrix::mmGpu(
         GpuEngine::getMatMatPipe(),
         cmdBuf
     );
+}
+
+void Matrix::mmBiasReLU(
+    const Matrix &mat2,
+    Tensor &a,
+    const Tensor &biases,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
+    uint32_t mat1RowsU = (uint32_t) getNumRows();
+    uint32_t mat1ColsU = (uint32_t) getNumCols();
+    uint32_t mat2ColsU = (uint32_t) mat2.getNumCols();
+    uint32_t dims[3] = {mat1RowsU, mat1ColsU, mat2ColsU};
+
+    id<MTLBuffer> mat1Buf = getGpuData();
+    id<MTLBuffer> mat2Buf = mat2.getGpuData();
+    id<MTLBuffer> aBuf = a.getGpuData();
+    id<MTLBuffer> biasBuf = biases.getGpuData();
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+
+    [encoder setComputePipelineState:GpuEngine::getMMBiasReLUPipe()];
+    [encoder setBuffer:mat1Buf offset:0 atIndex:0];
+    [encoder setBuffer:mat2Buf offset:0 atIndex:1];
+    [encoder setBuffer:aBuf offset:0 atIndex:2];
+    [encoder setBuffer:biasBuf offset:0 atIndex:3];
+    [encoder setBytes:&dims length:sizeof(dims) atIndex:4];
+
+    MTLSize threadGroupSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
+
+    NSUInteger numTgRows = (mat1RowsU + TILE_MAT1_ROWS - 1)/TILE_MAT1_ROWS;
+    NSUInteger numTgCols = (mat2ColsU + TILE_MAT2_COLS - 1)/TILE_MAT2_COLS;
+    MTLSize numThreadGroups = MTLSizeMake(numTgCols, numTgRows, 1);
+
+    [encoder dispatchThreadgroups:numThreadGroups threadsPerThreadgroup:threadGroupSize];
+    [encoder endEncoding];
 }
 
 void Matrix::mmTGpu(

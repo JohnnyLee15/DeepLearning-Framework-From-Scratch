@@ -55,6 +55,7 @@ class Matrix {
 
             // Instance Methods
             void mmGpu(const Matrix&, Tensor&, id<MTLCommandBuffer>) const;
+            void mmBiasReLU(const Matrix&, Tensor&, const Tensor&, id<MTLCommandBuffer>) const;
             void mmTGpu(const MatrixT&, Tensor&, id<MTLCommandBuffer>) const;
             void colSumsGpu(Tensor&, id<MTLCommandBuffer>) const;
             void addToRowsGpu(const Tensor&, id<MTLCommandBuffer>);

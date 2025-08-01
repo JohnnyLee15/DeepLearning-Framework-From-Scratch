@@ -2,6 +2,7 @@
 #include "core/gpu/GpuEngine.h"
 #define TILE_SIZE 8
 #define NUM_THREADS 256
+#define COARSE_FACTOR 4
 
 void Tensor::initGpuTensor() {
     size_t bytes = getSize() * sizeof(float);
@@ -125,7 +126,11 @@ void Tensor::padWindowInputGpu(
     [encoder setBytes:&padLeft length:sizeof(uint32_t)  atIndex:5];   
 
     MTLSize tgSize = MTLSizeMake(TILE_SIZE, TILE_SIZE, 1);
-    MTLSize gridSize = MTLSizeMake(inDims[2], inDims[1], inDims[0]);
+    MTLSize gridSize = MTLSizeMake(
+        inDims[3], 
+        (inDims[2] + COARSE_FACTOR - 1) / COARSE_FACTOR, 
+        inDims[1] * inDims[0]
+    );
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgSize];
     [encoder endEncoding];

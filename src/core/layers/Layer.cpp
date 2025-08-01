@@ -1,4 +1,5 @@
 #include "core/layers/Layer.h"
+#include "core/tensor/Tensor.h"
 
 Layer::Layer() : maxBatchSize(0), isMaxBatchSet(false) {}
 
@@ -19,4 +20,21 @@ void Layer::downloadOutputFromGpu() {}
 
 size_t Layer::getMaxBatchSize() const {
     return maxBatchSize;
+}
+
+const Tensor& Layer::getDeltaWeights() const {
+    return Tensor();
+}
+
+const Tensor& Layer::getDeltaWeightsIm2Col() const {
+    return Tensor();
+}
+
+
+const Tensor& Layer::getDeltaBiases() const {
+    return Tensor();
+}
+
+const Tensor& Layer::getDeltaInputs() const {
+    return Tensor();
 }

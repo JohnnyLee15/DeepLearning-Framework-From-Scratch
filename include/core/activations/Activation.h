@@ -34,5 +34,6 @@ class Activation {
         #ifdef __APPLE__
             virtual void activateGpu(const Tensor&, Tensor&, GpuCommandBuffer) const = 0;
             virtual void calculateGradientGpu(const Tensor&, Tensor&, GpuCommandBuffer) const = 0;
+            virtual void backpropGpu(const Tensor&, Tensor&, GpuCommandBuffer) const;
         #endif
 };

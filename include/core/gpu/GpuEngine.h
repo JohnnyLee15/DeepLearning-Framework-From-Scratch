@@ -16,6 +16,7 @@ class GpuEngine {
             static id<MTLLibrary> defaultLib;
 
             static id<MTLComputePipelineState> matMatPipeline;
+            static id<MTLComputePipelineState> mmBiasReLUPipeline;
             static id<MTLComputePipelineState> matMatTPipeline;
             static id<MTLComputePipelineState> matTMatPipeline;
             static id<MTLComputePipelineState> matTMatTPipeline;
@@ -28,6 +29,7 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> calculateLinearGradPipeline;
             static id<MTLComputePipelineState> calculateReluGradPipeline;
+            static id<MTLComputePipelineState> backpropReLUPipeline;
 
             static id<MTLComputePipelineState> activateReLUPipeline;
             static id<MTLComputePipelineState> activateSoftmaxPipeline;
@@ -47,7 +49,8 @@ class GpuEngine {
             static id<MTLComputePipelineState> conv2dInputNaivePipeline;
 
             static id<MTLComputePipelineState> im2ColPipeline;
-            static id<MTLComputePipelineState> addBiasIm2ColPipeline;
+            static id<MTLComputePipelineState> addBiasApplyReLUIm2ColPipeline;
+            static id<MTLComputePipelineState> col2ImPipeline;
 
             static id<MTLComputePipelineState> padAndUpsampleGradPipeline;
 
@@ -76,6 +79,7 @@ class GpuEngine {
             static void fillInt(id<MTLBuffer>, uint32_t, id<MTLCommandBuffer>, uint32_t);
 
             static id<MTLComputePipelineState> getMatMatPipe();
+            static id<MTLComputePipelineState> getMMBiasReLUPipe();
             static id<MTLComputePipelineState> getMatMatTPipe();
             static id<MTLComputePipelineState> getMatTMatPipe();
             static id<MTLComputePipelineState> getMatTMatTPipe();
@@ -88,6 +92,7 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> getCalculateLinearGradPipe();
             static id<MTLComputePipelineState> getCalculateReluGradPipe();
+            static id<MTLComputePipelineState> getBackpropReLUPipe();
 
             static id<MTLComputePipelineState> getActivateReLUPipe();
             static id<MTLComputePipelineState> getActivateSoftmaxPipe();
@@ -105,7 +110,8 @@ class GpuEngine {
             static id<MTLComputePipelineState> getConv2dInputNaivePipe();
 
             static id<MTLComputePipelineState> getIm2ColPipe();
-            static id<MTLComputePipelineState> getAddBiasIm2ColPipe();
+            static id<MTLComputePipelineState> getCol2ImPipe();
+            static id<MTLComputePipelineState> getAddBiasApplyReLUIm2ColPipe();
 
             static id<MTLComputePipelineState> getMaxPool2dGradPipe();
 

@@ -1,6 +1,8 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#define COARSE_FACTOR 4
+
 kernel void copy(
     device const float *in [[ buffer(0) ]],
     device float *out [[ buffer(1) ]],
@@ -55,19 +57,21 @@ kernel void padWindowInput(
     uint newRows = padDims[1];
     uint newCols = padDims[2];
 
-    uint n = gid.z;
-    uint r = gid.y;
-    uint c = gid.x;
-
-    uint baseIn = (((n * inRows + r) * inCols + c) * depth);
-    uint basePad = (((n * newRows + (r + padTop)) * newCols + (c + padLeft)) * depth);
+    uint d = gid.x;
+    uint cStart = gid.y * COARSE_FACTOR;
+    uint r = gid.z % inRows;
+    uint n = gid.z / inRows;
     
-    if (n >= numSamples || r >= inRows || c >= inCols)
+    if (n >= numSamples || cStart >= inCols || d >= depth)
         return;
 
-    for (uint d = 0; d < depth; d++) {
-        uint inIdx = baseIn + d;
-        uint padIdx = basePad + d;
+    for (uint c = 0; c < COARSE_FACTOR; c++) {
+        uint col = cStart + c;
+        if (col >= inCols) 
+            return;
+
+        uint inIdx = ((n * inRows + r) * inCols + col) * depth + d;
+        uint padIdx = ((n * newRows + (r + padTop)) * newCols + (col + padLeft)) * depth + d;
         toPad[padIdx] = input[inIdx];
     }
 }

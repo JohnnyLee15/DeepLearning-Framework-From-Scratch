@@ -23,11 +23,14 @@ class Conv2D : public Layer {
         Tensor im2ColKBuf;
         Tensor activations;
         Tensor preActivations;
-        Tensor im2ColOutBuf;
+        vector<size_t> im2ColPreActShape;
+        vector<size_t> preActTensorShape;
         Tensor dB;
         Tensor dW;
+        Tensor dwIm2Col;
         Tensor dA;
         Tensor dX;
+        Tensor gradIm2ColBuf;
         Tensor gradBuf;
         Tensor biases;
 
@@ -70,6 +73,11 @@ class Conv2D : public Layer {
 
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
+
+        const Tensor& getDeltaWeights() const override;
+        const Tensor& getDeltaWeightsIm2Col() const override;
+        const Tensor& getDeltaBiases() const override;
+        const Tensor& getDeltaInputs() const override;
 
         // GPU Interface
         #ifdef __APPLE__

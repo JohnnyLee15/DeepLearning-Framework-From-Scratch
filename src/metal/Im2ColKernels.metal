@@ -6,6 +6,7 @@ using namespace metal;
 #define MAX_KERNEL 7
 #define MAX_STRIDE 2
 #define PATCH_DIM ((TILE_SIZE - 1) * MAX_STRIDE + MAX_KERNEL)
+#define COARSE_FACTOR 4
 
 static inline packed_float4 loadIm2ColPatch(
     device const float *input,
@@ -109,13 +110,89 @@ kernel void im2Col(
     }
 }
 
-
-kernel void addBiasIm2Col(
-    device float *z [[ buffer(0) ]],
-    constant float *biases [[ buffer(1) ]],
-    constant uint &numKernals [[ buffer(2) ]],
+kernel void addBiasApplyReLUIm2Col(
+    device float *z [[ buffer (0) ]],
+    device float *a [[ buffer (1) ]],
+    constant float *biases [[ buffer(2) ]],
+    constant uint &numKernals [[ buffer(3) ]],
+    constant uint &size [[ buffer(4) ]],
+    constant uint &gridWidth [[ buffer(5 )]],
     uint gid [[ thread_position_in_grid ]]
 ) {
-    uint o = gid % numKernals;
-    z[gid] += biases[o];
+    uint idx = gid;
+
+    if (idx >= size) return;
+    float v0 = z[idx] + biases[idx % numKernals];
+    z[idx] = v0;
+    a[idx] = max(v0, 0.0f);
+
+    idx += gridWidth; 
+    if (idx >= size) return;
+    float v1 = z[idx] + biases[(idx) % numKernals];
+    z[idx] = v1;
+    a[idx] = max(v1, 0.0f);
+
+
+    idx += gridWidth; 
+    if (idx >= size) return;
+    float v2 = z[idx] + biases[(idx) % numKernals];
+    z[idx] = v2;
+    a[idx] = max(v2, 0.0f);
+
+ 
+    idx += gridWidth; 
+    if (idx >= size) return;
+    float v3 = z[idx] + biases[(idx) % numKernals];
+    z[idx] = v3;
+    a[idx] = max(v3, 0.0f);
+}
+
+kernel void col2Im(
+    device const float *grad [[ buffer(0) ]],
+    device atomic_float *dX [[ buffer(1) ]],
+    constant uint2 &gradDims [[ buffer(2) ]],
+    constant uint2 &kDims [[ buffer(3) ]],
+    constant uint4 &dxDims [[ buffer(4) ]],
+    constant uint &stride [[ buffer(5) ]],
+    constant uint2 &padding [[ buffer(6) ]],
+    uint3 gid [[ thread_position_in_grid ]]
+) {
+    uint gradRows = gradDims[0];
+    uint gradCols = gradDims[1];
+
+    uint numSamples = dxDims[0];
+    int dxRows = dxDims[1];
+    int dxCols = dxDims[2];
+    uint inDepth = dxDims[3];
+
+    uint kRows = kDims[0];
+    uint kCols = kDims[1];
+
+    uint padTop = padding[0];
+    uint padLeft = padding[1];
+
+    uint n = gid.y;
+
+    if (n >= numSamples)
+        return;
+
+    int dxRowStart = (gid.x / gradCols) * stride - padTop;
+    int dxColStart = (gid.x % gradCols) * stride - padLeft;
+    uint gradRowStart = (n * gradRows * gradCols + gid.x) * (kRows * kCols * inDepth);
+
+    for (uint d = 0; d < inDepth; d++) {
+        for (uint i = 0; i < kRows; i++){
+            int dxRow = dxRowStart + i;
+
+            for (uint j = 0; j < kCols; j++) {
+                int dxCol = dxColStart + j;
+
+                if (dxRow >= 0 && dxRow < dxRows && dxCol >= 0 && dxCol < dxCols) {
+                    uint gradIdx = gradRowStart + (i * kCols + j) * inDepth + d;
+                    uint dxIdx = ((n * dxRows + dxRow) * dxCols + dxCol) * inDepth + d;
+                    atomic_fetch_add_explicit(&dX[dxIdx], grad[gradIdx], memory_order_relaxed);
+                }
+            }
+        }
+    }
 }
