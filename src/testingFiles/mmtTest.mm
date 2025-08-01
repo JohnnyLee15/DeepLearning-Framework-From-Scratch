@@ -162,13 +162,24 @@
 //     @autoreleasepool {
 //         GpuEngine::init();
 
-//         // Note: For B^T, the dimensions are (N, K). So a "Wide" B matrix
-//         // (e.g., 256x1024) becomes a "Tall" B^T matrix (1024x256).
+//         printf("\n=== Standard Shapes ===\n");
 //         runMMT("Small 256",   256, 256, 256);
 //         runMMT("Medium 1024", 1024,1024,1024,20);
-//         runMMT("Tall A, Wide B^T",1024,256,1024,20); // A(1024x256) * B^T(256x1024) from B(1024x256)
-//         runMMT("Wide A, Tall B^T",256,1024,256,20);  // A(256x1024) * B^T(1024x256) from B(256x1024)
 //         runMMT("Big 4096",4096,4096,4096,5);
+
+//         printf("\n=== 'Weird' Shapes to Test Boundary Conditions ===\n");
+//         // The shape that caused the original Conv2D backprop error
+//         // A(3200, 27)^T * B(3200, 16) -> C(27, 16)
+//         runMMT("Conv2D Fail Case", 3200, 27, 16, 20);
+
+//         // Dimensions that are not multiples of tile sizes
+//         runMMT("Small Prime", 101, 53, 31);
+//         runMMT("Over Tile Size", 65, 33, 129);
+
+//         // Highly non-square ("skinny" or "fat") matrices
+//         runMMT("Skinny K", 4096, 7, 1024);
+//         runMMT("Skinny N", 4096, 1024, 5);
+//         runMMT("Skinny M", 13, 1024, 1024);
 
 //         printf("\n=== Matrix-multiply-transpose benchmark complete ===\n");
 //     }

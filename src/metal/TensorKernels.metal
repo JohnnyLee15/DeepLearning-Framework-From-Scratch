@@ -2,6 +2,7 @@
 using namespace metal;
 
 #define COARSE_FACTOR 4
+#define THREADS_PER_GROUP 256
 
 kernel void copy(
     device const float *in [[ buffer(0) ]],
@@ -250,6 +251,48 @@ kernel void reduceSumBias(
     }
 
     dB[k] = sum;
+}
+
+kernel void applyBiasGrad(
+    device const float *grad [[ buffer(0) ]],
+    device float *biases [[ buffer(1) ]],
+    constant uint4 &gradDims [[ buffer(2) ]],
+    constant uint &scaleFactor [[ buffer(3) ]],
+    uint gid [[ thread_position_in_grid ]],
+    uint tid [[ thread_position_in_threadgroup ]]
+ ) {
+    uint numSamples = gradDims[0];
+    uint gradRows = gradDims[1];
+    uint gradCols = gradDims[2];
+    uint numKernals = gradDims[3];
+
+    uint d = gid;
+    uint numElements = numSamples * gradRows * gradCols;
+    threadgroup float tile[THREADS_PER_GROUP];
+    float sum = 0.0f;
+
+    for (uint i = tid; i < numElements; i += THREADS_PER_GROUP) {
+        uint c = i % gradCols;
+        uint r = (i / gradCols) % gradRows;
+        uint n = i / (gradCols * gradRows);
+
+        uint gradIdx = ((n * gradRows + r) * gradCols + c) * numKernals + d;
+        sum += grad[gradIdx];
+    }
+
+    tile[tid] = sum;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    for (uint s = THREADS_PER_GROUP/2; s > 0; s/=2) {
+        if (tid < s) {
+            tile[tid] += tile[tid + s];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+
+    if (tid == 0) {
+        biases[d] += scaleFactor * tile[tid];
+    }
 }
 
 kernel void padAndUpsampleGrad(

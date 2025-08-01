@@ -151,9 +151,21 @@
 
 //         runMM("Small 256",   256, 256, 256);
 //         runMM("Medium 1024", 1024,1024,1024,20);
-//         runMM("Tall  1024x256·256x1024",1024,256,1024,20);
-//         runMM("Wide  256x1024·1024x256",256,1024,256,20);
-//         runMM("Big 4096x4096·4096x4096",4096,4096,4096,20);
+//         runMM("Big 4096",4096,4096,4096,5);
+
+//         printf("\n=== 'Weird' Shapes to Test Boundary Conditions ===\n");
+//         // The shape that caused the original Conv2D backprop error
+//         // A(3200, 27)^T * B(3200, 16) -> C(27, 16)
+//         runMM("Conv2D Fail Case", 3200, 27, 16, 20);
+
+//         // Dimensions that are not multiples of tile sizes
+//         runMM("Small Prime", 101, 53, 31);
+//         runMM("Over Tile Size", 65, 33, 129);
+
+//         // Highly non-square ("skinny" or "fat") matrices
+//         runMM("Skinny K", 4096, 7, 1024);
+//         runMM("Skinny N", 4096, 1024, 5);
+//         runMM("Skinny M", 13, 1024, 1024);
 
 //         printf("\n=== Matrix-multiply benchmark complete ===\n");
 //     }

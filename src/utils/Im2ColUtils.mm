@@ -41,7 +41,9 @@ void Im2ColUtils::im2Col(
     [encoder setBytes:&strideU length:sizeof(uint32_t) atIndex:6];
 
     MTLSize tgSize = MTLSizeMake(TILE_SIZE, TILE_SIZE, 1);
-    MTLSize gridSize = MTLSizeMake(win.outCols, win.outRows, inDims[0]);
+    uint paddedCols = ((win.outCols + TILE_SIZE - 1) / TILE_SIZE) * TILE_SIZE;
+    uint paddedRows = ((win.outRows + TILE_SIZE - 1) / TILE_SIZE) * TILE_SIZE;
+    MTLSize gridSize = MTLSizeMake(paddedCols, paddedRows, inDims[0]);
 
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgSize];
     [encoder endEncoding];

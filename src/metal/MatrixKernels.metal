@@ -13,23 +13,30 @@ using namespace metal;
 
 #define LOAD_MAT1( \
     mat1, mat1Tile, group_id, mat1Rows, mat1Cols, \
-    mat1TileStartCol, mat1TileStartRow, mat1Stride \
+    mat1TileStartCol, mat1TileStartRow, mat1Stride, t \
 ) { \
     for (uint i = 0; i < TILE_MAT1_ROWS; i += mat1Stride) { \
         uint mat1Row = group_id.y * TILE_MAT1_ROWS + i + mat1TileStartRow; \
         uint mat1Col = t * TILE_MAT1_COLS + mat1TileStartCol*4; \
+        uint baseIdx = mat1Row * mat1Cols + mat1Col; \
         \
-        if (mat1Row < mat1Rows && mat1Col < mat1Cols) { \
-            packed_float4 mat1Temp = *(device const float4*)&mat1[mat1Row * mat1Cols + mat1Col]; \
+        if (mat1Row < mat1Rows && mat1Col + 3 < mat1Cols) { \
+            packed_float4 mat1Temp = *(device const float4*)&mat1[baseIdx]; \
             mat1Tile[mat1TileStartCol * 4 + 0][i + mat1TileStartRow] = mat1Temp[0]; \
             mat1Tile[mat1TileStartCol * 4 + 1][i + mat1TileStartRow] = mat1Temp[1]; \
             mat1Tile[mat1TileStartCol * 4 + 2][i + mat1TileStartRow] = mat1Temp[2]; \
             mat1Tile[mat1TileStartCol * 4 + 3][i + mat1TileStartRow] = mat1Temp[3]; \
         \
         } else { \
-            mat1Tile[mat1TileStartCol * 4 + 0][i + mat1TileStartRow] = 0.0f; \
-            mat1Tile[mat1TileStartCol * 4 + 1][i + mat1TileStartRow] = 0.0f; \
-            mat1Tile[mat1TileStartCol * 4 + 2][i + mat1TileStartRow] = 0.0f; \
+            mat1Tile[mat1TileStartCol * 4 + 0][i + mat1TileStartRow] = \
+                (mat1Row < mat1Rows && mat1Col + 0 < mat1Cols) ? mat1[baseIdx + 0] : 0.0f; \
+            \
+            mat1Tile[mat1TileStartCol * 4 + 1][i + mat1TileStartRow] = \
+                (mat1Row < mat1Rows && mat1Col + 1 < mat1Cols) ? mat1[baseIdx + 1] : 0.0f; \
+            \
+            mat1Tile[mat1TileStartCol * 4 + 2][i + mat1TileStartRow] = \
+                (mat1Row < mat1Rows && mat1Col + 2 < mat1Cols) ? mat1[baseIdx + 2] : 0.0f; \
+            \
             mat1Tile[mat1TileStartCol * 4 + 3][i + mat1TileStartRow] = 0.0f; \
         } \
     } \
@@ -37,23 +44,30 @@ using namespace metal;
 
 #define LOAD_MAT2( \
     mat2, mat2Tile, group_id, mat1Cols, mat2Cols, \
-    mat2TileStartCol, mat2TileStartRow, mat2Stride \
+    mat2TileStartCol, mat2TileStartRow, mat2Stride, t \
 ) { \
     for (uint i = 0; i < TILE_MAT1_COLS; i += mat2Stride) { \
         uint mat2Row = t * TILE_MAT1_COLS + i + mat2TileStartRow; \
         uint mat2Col = group_id.x * TILE_MAT2_COLS + mat2TileStartCol*4; \
+        uint baseIdx = mat2Row * mat2Cols + mat2Col; \
         \
-        if (mat2Row < mat1Cols && mat2Col < mat2Cols) { \
-            packed_float4 mat2Temp = *(device const float4*)&mat2[mat2Row * mat2Cols + mat2Col]; \
+        if (mat2Row < mat1Cols && mat2Col + 3 < mat2Cols) { \
+            packed_float4 mat2Temp = *(device const float4*)&mat2[baseIdx]; \
             mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 0] = mat2Temp[0]; \
             mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 1] = mat2Temp[1]; \
             mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 2] = mat2Temp[2]; \
             mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 3] = mat2Temp[3]; \
         \
         } else { \
-            mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 0] = 0.0f; \
-            mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 1] = 0.0f; \
-            mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 2] = 0.0f; \
+            mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 0] = \
+                (mat2Row < mat1Cols && mat2Col + 0 < mat2Cols) ? mat2[baseIdx + 0] : 0.0f; \
+            \
+            mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 1] = \
+                (mat2Row < mat1Cols && mat2Col + 1 < mat2Cols) ? mat2[baseIdx + 1] : 0.0f; \
+            \
+            mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 2] = \
+                (mat2Row < mat1Cols && mat2Col + 2 < mat2Cols) ? mat2[baseIdx + 2] : 0.0f; \
+            \
             mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 3] = 0.0f; \
         } \
     } \
@@ -62,7 +76,7 @@ using namespace metal;
 #define LOAD_MAT2_T( \
     mat2, mat2Tile, mat1Cols, mat2Cols, \
     mat2TileRow, mat2TileCol, \
-    float4PerThread, threadNum, group_id \
+    float4PerThread, threadNum, group_id, t \
 ) { \
     for (uint i = 0; i < float4PerThread; i++) { \
         uint flatTile2Idx = threadNum + THREADS_PER_BLOCK * i; \
@@ -72,26 +86,34 @@ using namespace metal;
         \
         uint mat2Row = group_id.x * TILE_MAT2_COLS  + mat2TileRow; \
         uint mat2Col = t * TILE_MAT1_COLS + mat2TileCol; \
+        uint baseIdx = mat2Row * mat1Cols + mat2Col; \
         \
-        if (mat2Row < mat2Cols && mat2Col < mat1Cols) { \
-            packed_float4 mat2Temp = *(device const packed_float4*)&mat2[mat2Row * mat1Cols + mat2Col]; \
+        if (mat2Row < mat2Cols && mat2Col + 3 < mat1Cols) { \
+            packed_float4 mat2Temp = *(device const packed_float4*)&mat2[baseIdx]; \
             \
             mat2Tile[mat2TileCol + 0][mat2TileRow] = mat2Temp[0]; \
             mat2Tile[mat2TileCol + 1][mat2TileRow] = mat2Temp[1]; \
             mat2Tile[mat2TileCol + 2][mat2TileRow] = mat2Temp[2]; \
             mat2Tile[mat2TileCol + 3][mat2TileRow] = mat2Temp[3]; \
         } else { \
-            mat2Tile[mat2TileCol + 0][mat2TileRow] = 0.0f; \
-            mat2Tile[mat2TileCol + 1][mat2TileRow] = 0.0f; \
-            mat2Tile[mat2TileCol + 2][mat2TileRow] = 0.0f; \
+            mat2Tile[mat2TileCol + 0][mat2TileRow] = \
+                (mat2Row < mat2Cols && mat2Col + 0 < mat1Cols) ? mat2[baseIdx + 0] : 0.0f; \
+            \
+            mat2Tile[mat2TileCol + 1][mat2TileRow] = \
+                (mat2Row < mat2Cols && mat2Col + 1 < mat1Cols) ? mat2[baseIdx + 1] : 0.0f; \
+            \
+            mat2Tile[mat2TileCol + 2][mat2TileRow] = \
+                (mat2Row < mat2Cols && mat2Col + 2 < mat1Cols) ? mat2[baseIdx + 2] : 0.0f; \
+            \
             mat2Tile[mat2TileCol + 3][mat2TileRow] = 0.0f; \
         } \
     } \
 }
 
+
 #define LOAD_MAT1_T( \
     mat1, mat1Rows, mat1Cols, \
-    mat1TileStartRow, mat1TileStartCol, group_id \
+    mat1TileStartRow, mat1TileStartCol, group_id, t \
 ) { \
     for (uint i = 0; i < TILE_MAT1_COLS; i += mat1Stride) { \
         uint mat1TileRow = i + mat1TileStartRow; \
@@ -99,19 +121,26 @@ using namespace metal;
         \
         uint mat1Row = t * TILE_MAT1_COLS + mat1TileRow; \
         uint mat1Col = group_id.y * TILE_MAT1_ROWS + mat1TileCol; \
+        uint baseIdx = mat1Row * mat1Rows + mat1Col; \
         \
-        if (mat1Row < mat1Cols && mat1Col < mat1Rows) { \
-            packed_float4 mat1Temp = *(device const packed_float4*)&mat1[mat1Row * mat1Rows + mat1Col]; \
+        if (mat1Row < mat1Cols && mat1Col + 3 < mat1Rows) { \
+            packed_float4 mat1Temp = *(device const packed_float4*)&mat1[baseIdx]; \
             mat1Tile[mat1TileRow][mat1TileCol + 0] = mat1Temp[0]; \
             mat1Tile[mat1TileRow][mat1TileCol + 1] = mat1Temp[1]; \
             mat1Tile[mat1TileRow][mat1TileCol + 2] = mat1Temp[2]; \
             mat1Tile[mat1TileRow][mat1TileCol + 3] = mat1Temp[3]; \
         \
         } else { \
-            mat1Tile[mat1TileRow][mat1TileCol + 0] = 0.0f; \
-            mat1Tile[mat1TileRow][mat1TileCol + 1] = 0.0f; \
-            mat1Tile[mat1TileRow][mat1TileCol + 2] = 0.0f; \
-            mat1Tile[mat1TileRow][mat1TileCol + 3] = 0.0f; \
+            mat1Tile[mat1TileRow][mat1TileCol + 0] = \
+                (mat1Row < mat1Cols && mat1Col + 0 < mat1Rows) ? mat1[baseIdx + 0] : 0.0f; \
+            \
+            mat1Tile[mat1TileRow][mat1TileCol + 1] = \
+                (mat1Row < mat1Cols && mat1Col + 1 < mat1Rows) ? mat1[baseIdx + 1] : 0.0f; \
+            \
+            mat1Tile[mat1TileRow][mat1TileCol + 2] = \
+                (mat1Row < mat1Cols && mat1Col + 2 < mat1Rows) ? mat1[baseIdx + 2] : 0.0f; \
+            \
+            mat1Tile[mat1TileRow][mat1TileCol + 3]= 0.0f; \
         } \
     } \
 }
@@ -157,12 +186,12 @@ using namespace metal;
     for (uint t = 0; t < numTiles; t++) { \
         LOAD_MAT1( \
             mat1, mat1Tile, group_id, mat1Rows, mat1Cols, \
-            mat1TileStartCol, mat1TileStartRow, mat1Stride \
+            mat1TileStartCol, mat1TileStartRow, mat1Stride, t \
         ) \
         \
         LOAD_MAT2( \
             mat2, mat2Tile, group_id, mat1Cols, mat2Cols, \
-            mat2TileStartCol, mat2TileStartRow, mat2Stride \
+            mat2TileStartCol, mat2TileStartRow, mat2Stride, t \
         ) \
         \
         threadgroup_barrier(mem_flags::mem_threadgroup); \
@@ -194,13 +223,13 @@ using namespace metal;
     for (uint t = 0; t < numTiles; t++) { \
         LOAD_MAT1( \
             mat1, mat1Tile, group_id, mat1Rows, mat1Cols, \
-            mat1TileStartCol, mat1TileStartRow, mat1Stride \
+            mat1TileStartCol, mat1TileStartRow, mat1Stride, t \
         ) \
         \
         LOAD_MAT2_T( \
             mat2, mat2Tile, mat1Cols, mat2Cols, \
             mat2TileRow, mat2TileCol, \
-            float4PerThread, threadNum, group_id \
+            float4PerThread, threadNum, group_id, t \
         ) \
         threadgroup_barrier(mem_flags::mem_threadgroup); \
         \
@@ -233,12 +262,12 @@ using namespace metal;
     for (uint t = 0; t < numTiles; t++) { \
         LOAD_MAT1_T( \
             mat1, mat1Rows, mat1Cols, \
-            mat1TileStartRow, mat1TileStartCol, group_id \
+            mat1TileStartRow, mat1TileStartCol, group_id, t \
         ) \
         \
         LOAD_MAT2( \
             mat2, mat2Tile, group_id, mat1Cols, mat2Cols, \
-            mat2TileStartCol, mat2TileStartRow, mat2Stride \
+            mat2TileStartCol, mat2TileStartRow, mat2Stride, t \
         ) \
         \
         threadgroup_barrier(mem_flags::mem_threadgroup); \
@@ -270,13 +299,13 @@ using namespace metal;
     for (uint t = 0; t < numTiles; t++) { \
         LOAD_MAT1_T( \
             mat1, mat1Rows, mat1Cols, \
-            mat1TileStartRow, mat1TileStartCol, group_id \
+            mat1TileStartRow, mat1TileStartCol, group_id, t \
         ) \
         \
         LOAD_MAT2_T( \
             mat2, mat2Tile, mat1Cols, mat2Cols, \
             mat2TileRow, mat2TileCol, \
-            float4PerThread, threadNum, group_id \
+            float4PerThread, threadNum, group_id, t \
         ) \
         \
         threadgroup_barrier(mem_flags::mem_threadgroup); \
