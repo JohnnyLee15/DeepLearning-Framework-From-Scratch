@@ -489,6 +489,50 @@ kernel void mTm(
     }
 }
 
+kernel void applyKernelGrads(
+    device const float *mat1 [[ buffer(0) ]],
+    device const float *mat2 [[ buffer(1) ]],
+    device float *kernels [[ buffer(2) ]],
+    constant uint3 &dims [[ buffer(3) ]],
+    constant float &scaleFactor [[ buffer(4) ]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 gid [[thread_position_in_grid]],
+    uint2 group_id [[ threadgroup_position_in_grid ]]
+) {
+    uint mat1Rows = dims[0];
+    uint mat2Cols = dims[2];
+
+    uint threadNum = tid.y * THREADGROUP_WIDTH + tid.x;
+
+    uint row = COARSE_FACTOR_ROW * (threadNum / (TILE_MAT2_COLS/COARSE_FACTOR_COL));
+    uint col = COARSE_FACTOR_COL * (threadNum % (TILE_MAT2_COLS/COARSE_FACTOR_COL));
+
+    threadgroup float mat1Tile[TILE_MAT1_COLS][TILE_MAT1_ROWS];
+    threadgroup float mat2Tile[TILE_MAT1_COLS][TILE_MAT2_COLS];
+
+    float prodVals[COARSE_FACTOR_ROW][COARSE_FACTOR_COL] = {{0.0f}};
+    float regMat1[COARSE_FACTOR_ROW] = {0.0f};
+    float regMat2[COARSE_FACTOR_COL] = {0.0f};
+
+    MTM_LOAD_DATA(
+        mat1, mat2, 
+        mat1Tile, mat2Tile, 
+        prodVals, regMat1, regMat2, 
+        dims, threadNum, row, col, group_id 
+    );
+
+    for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+        for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+            uint prodRow = group_id.y * TILE_MAT1_ROWS + row + i;
+            uint prodCol = group_id.x * TILE_MAT2_COLS + col + j;
+
+            if (prodRow < mat1Rows && prodCol < mat2Cols) {
+                kernels[prodRow * mat2Cols + prodCol] +=  scaleFactor * prodVals[i][j];
+            }
+        }
+    }
+}
+
 kernel void mTmT(
     device const float *mat1 [[ buffer(0) ]],
     device const float *mat2 [[ buffer(1) ]],

@@ -302,6 +302,33 @@ void Tensor::reduceSumBiasGpu(
     [encoder endEncoding];
 }
 
+void Tensor::applyBiasGrad(
+    Tensor &biases,
+    float scaleFactor,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> gradBuf = getGpuData();
+    id<MTLBuffer> biasBuf = biases.getGpuData();
+    uint32_t gradDims[4] = {
+        (uint32_t) shape[0], (uint32_t) shape[1],  
+        (uint32_t) shape[2], (uint32_t) shape[3]
+    };
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getApplyBiasGradPipe()];
+
+    [encoder setBuffer:gradBuf offset:0 atIndex:0];
+    [encoder setBuffer:biasBuf offset:0 atIndex:1];
+    [encoder setBytes:&gradDims length:sizeof(gradDims)  atIndex:2];
+    [encoder setBytes:&scaleFactor length:sizeof(float)  atIndex:3];
+
+    MTLSize gridSize = MTLSizeMake(gradDims[3], 1, 1);
+    MTLSize threadSize = MTLSizeMake(NUM_THREADS, 1, 1);
+
+    [encoder dispatchThreadgroups:gridSize threadsPerThreadgroup:threadSize];
+    [encoder endEncoding];
+}
+
 void Tensor::padAndUpsampleGradGpu(
     Tensor &outGrad, 
     const WindowDims &winGrad, 

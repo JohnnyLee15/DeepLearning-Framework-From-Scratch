@@ -17,6 +17,7 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> matMatPipeline;
             static id<MTLComputePipelineState> mmBiasReLUPipeline;
+            static id<MTLComputePipelineState> applyKernelGradsPipeline;
             static id<MTLComputePipelineState> matMatTPipeline;
             static id<MTLComputePipelineState> matTMatPipeline;
             static id<MTLComputePipelineState> matTMatTPipeline;
@@ -43,6 +44,7 @@ class GpuEngine {
             static id<MTLComputePipelineState> fillIntPipeline;
             static id<MTLComputePipelineState> maxPool2dPipeline;
             static id<MTLComputePipelineState> reduceSumBiasPipeline;
+            static id<MTLComputePipelineState> applyBiasGradPipeline;
 
             static id<MTLComputePipelineState> conv2dForwardNaivePipeline;
             static id<MTLComputePipelineState> conv2dWeightsNaivePipeline;
@@ -80,6 +82,7 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> getMatMatPipe();
             static id<MTLComputePipelineState> getMMBiasReLUPipe();
+            static id<MTLComputePipelineState> getApplyKernelGradsPipe();
             static id<MTLComputePipelineState> getMatMatTPipe();
             static id<MTLComputePipelineState> getMatTMatPipe();
             static id<MTLComputePipelineState> getMatTMatTPipe();
@@ -104,6 +107,7 @@ class GpuEngine {
             static id<MTLComputePipelineState> getPadWindowInputPipe();
             static id<MTLComputePipelineState> getMaxPool2dPipe();
             static id<MTLComputePipelineState> getReduceSumBiasPipe();
+            static id<MTLComputePipelineState> getApplyBiasGradPipe();
 
             static id<MTLComputePipelineState> getConv2dForwardNaivePipe();
             static id<MTLComputePipelineState> getConv2dWeightsNaivePipe();

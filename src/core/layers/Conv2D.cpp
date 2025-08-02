@@ -245,15 +245,15 @@ Layer::Encodings Conv2D::getEncoding() const {
 }
 
 const Tensor& Conv2D::getDeltaWeights() const {
-    return dW;
+    return kernals;
 }
 
 const Tensor& Conv2D::getDeltaWeightsIm2Col() const {
-    return dwIm2Col;
+    return im2ColKBuf;
 }
 
 const Tensor& Conv2D::getDeltaBiases() const {
-    return dB;
+    return biases;
 }
 
 const Tensor& Conv2D::getDeltaInputs() const {

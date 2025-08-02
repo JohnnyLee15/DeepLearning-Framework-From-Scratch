@@ -100,6 +100,7 @@ class Tensor {
             const id<MTLBuffer> getGpuData() const;
             
             void reduceSumBiasGpu(Tensor&, id<MTLCommandBuffer>) const;
+            void applyBiasGrad(Tensor&, float, id<MTLCommandBuffer>) const;
 
             const Tensor& padIfNeededGpu(Tensor&, const WindowDims&, Tensor::Paddings, id<MTLCommandBuffer>, float padVal = 0.0f) const;
             void padWindowInputGpu(Tensor&, const WindowDims&, id<MTLCommandBuffer>) const;

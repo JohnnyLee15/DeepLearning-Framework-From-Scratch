@@ -35,6 +35,7 @@ class MatrixT {
         #ifdef __OBJC__
             void mTmGpu(const Matrix&, Tensor&, id<MTLCommandBuffer>) const;
             void mTmTGpu(const MatrixT&, Tensor&, id<MTLCommandBuffer>) const;
+            void applyKernelGrads(const Matrix&, Tensor&, float, id<MTLCommandBuffer>) const;
             
             id<MTLBuffer> getGpuData() const;
         #endif

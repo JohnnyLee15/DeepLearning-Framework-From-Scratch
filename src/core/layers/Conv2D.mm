@@ -30,13 +30,10 @@ void Conv2D::backpropGpu(
     float scaleFactor = -learningRate / input.getShape()[0];
 
     activation->backpropGpu(activations, grad, cmdBuf);
-
-    grad.reduceSumBiasGpu(dB, cmdBuf);
-    biases.applyGradGpu(dB, scaleFactor, cmdBuf);
+    grad.applyBiasGrad(biases, scaleFactor, cmdBuf);
 
     grad.reShapeInPlace(im2ColPreActShape);
-    im2ColInBuf.M().T().mTmGpu(grad, dwIm2Col, cmdBuf);
-    im2ColKBuf.applyGradGpu(dwIm2Col, scaleFactor, cmdBuf);
+    im2ColInBuf.M().T().applyKernelGrads(grad, im2ColKBuf, scaleFactor, cmdBuf);
 
     if (!isFirstLayer) {
         grad.M().mmTGpu(im2ColKBuf.M().T(), gradIm2ColBuf, cmdBuf);
@@ -45,4 +42,6 @@ void Conv2D::backpropGpu(
             kRows, kCols, stride, winIn.padTop, winIn.padLeft, cmdBuf
         );
     }
+
+    grad.reShapeInPlace(preActTensorShape);
 }

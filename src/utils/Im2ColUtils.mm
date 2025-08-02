@@ -41,11 +41,11 @@ void Im2ColUtils::im2Col(
     [encoder setBytes:&strideU length:sizeof(uint32_t) atIndex:6];
 
     MTLSize tgSize = MTLSizeMake(TILE_SIZE, TILE_SIZE, 1);
-    uint paddedCols = ((win.outCols + TILE_SIZE - 1) / TILE_SIZE) * TILE_SIZE;
-    uint paddedRows = ((win.outRows + TILE_SIZE - 1) / TILE_SIZE) * TILE_SIZE;
-    MTLSize gridSize = MTLSizeMake(paddedCols, paddedRows, inDims[0]);
+    NSUInteger numTgCols = (win.outCols + TILE_SIZE - 1) / TILE_SIZE;
+    NSUInteger numTgRows = (win.outRows + TILE_SIZE - 1) / TILE_SIZE;
+    MTLSize gridSize = MTLSizeMake(numTgCols, numTgRows, inDims[0]);
 
-    [encoder dispatchThreads:gridSize threadsPerThreadgroup:tgSize];
+    [encoder dispatchThreadgroups:gridSize threadsPerThreadgroup:tgSize];
     [encoder endEncoding];
 }
 
@@ -61,6 +61,7 @@ void Im2ColUtils::addBiasApplyReLUIm2Col(
 
     uint32_t numKernals = (uint32_t) z.getShape()[3];
     uint32_t size = (uint32_t) z.getSize();
+    uint32_t gridWidth = (size + COARSE_FACTOR - 1) / COARSE_FACTOR;
 
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
     [encoder setComputePipelineState:GpuEngine::getAddBiasApplyReLUIm2ColPipe()];
@@ -70,9 +71,10 @@ void Im2ColUtils::addBiasApplyReLUIm2Col(
     [encoder setBuffer:bBuf offset:0 atIndex:2];
     [encoder setBytes:&numKernals length:sizeof(uint32_t)  atIndex:3];
     [encoder setBytes:&size length:sizeof(uint32_t)  atIndex:4];
+    [encoder setBytes:&gridWidth length:sizeof(uint32_t) atIndex:5];
     
 
-    MTLSize grid = MTLSizeMake((size + COARSE_FACTOR - 1) / COARSE_FACTOR, 1, 1);
+    MTLSize grid = MTLSizeMake(gridWidth, 1, 1);
     MTLSize tg = MTLSizeMake(NUM_THREADS, 1, 1);
     [encoder dispatchThreads:grid threadsPerThreadgroup:tg];
     [encoder endEncoding];

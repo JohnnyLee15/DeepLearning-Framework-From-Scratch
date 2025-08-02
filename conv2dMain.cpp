@@ -39,12 +39,8 @@
 //     // Welcome Message
 //     ConsoleUtils::printTitle();
 
-//     // #ifdef __APPLE__
-//     //     GpuEngine::init();
-//     // #endif
-
 //     // Data Reading
-//     ImageTransform2D *transformer = new ImageTransform2D(128,128,1);
+//     ImageTransform2D *transformer = new ImageTransform2D(64,64,1);
 
 //     string trainPath = "DataFiles/chest_xray/train";
 //     vector<float> trainFeaturesRaw;
@@ -117,8 +113,8 @@
 
 //     cout << "DONE TEST" << endl;
 
-//     Tensor xTrain = Tensor(trainFeaturesRaw, {numTrainSamples, 128, 128, 1});
-//     Tensor xTest = Tensor(testFeaturesRaw, {numTestSamples, 128, 128, 1});
+//     Tensor xTrain = Tensor(trainFeaturesRaw, {numTrainSamples, 64, 64, 1});
+//     Tensor xTest = Tensor(testFeaturesRaw, {numTestSamples, 64, 64, 1});
 //     ImageData2D data;
 
 //     data.setTrainFeatures(xTrain);
@@ -133,9 +129,6 @@
 //     vector<Layer*> layers = {
 //         new Conv2D(16, 3, 3, 1, "same", new ReLU()),
 //         new Conv2D(16, 3, 3, 1, "same", new ReLU()),
-//         new MaxPooling2D(2, 2, 2, "none"),
-//         new Conv2D(64, 3, 3, 1, "same", new ReLU()),
-//         new Conv2D(64, 3, 3, 1, "same", new ReLU()),
 //         new MaxPooling2D(2, 2, 2, "none"),
 //         new Flatten(),
 //         new Dense(32, new ReLU()),

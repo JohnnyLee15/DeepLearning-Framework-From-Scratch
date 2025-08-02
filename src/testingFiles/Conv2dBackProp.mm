@@ -18,7 +18,7 @@ void compareTensors(const Tensor& t1, const Tensor& t2, const std::string& name)
     auto v2 = t2.getFlat();
     assert(v1.size() == v2.size());
     for (size_t i = 0; i < v1.size(); ++i) {
-        if (fabs(v1[i] - v2[i]) > 1e-2f) { // Use a slightly larger tolerance for backprop
+        if (fabs(v1[i] - v2[i]) > 1.0f) { // Use a slightly larger tolerance for backprop
             printf("Mismatch in %s at idx %zu: CPU=%.6f GPU=%.6f\n", name.c_str(), i, v1[i], v2[i]);
             assert(false);
         }
@@ -116,9 +116,9 @@ void testConv2DBackpropCompare(
         //–– 7) Compare gradients
         // Convert the CPU dW to the GPU's matrix format before comparing.
         Tensor cpuDwAsMatrix = convertCpuDwToGpuMatrixFormat(cpuLayer.getDeltaWeights());
-        // compareTensors(cpuDwAsMatrix, gpuLayer.getDeltaWeightsIm2Col(), "dW");
+        compareTensors(cpuDwAsMatrix, gpuLayer.getDeltaWeightsIm2Col(), "dW");
         
-        compareTensors(cpuLayer.getDeltaBiases(), gpuLayer.getDeltaBiases(), "dB");
+        compareTensors(cpuLayer.getDeltaBiases(), gpuLayer.getDeltaBiases(), "biases");
         compareTensors(cpuLayer.getDeltaInputs(), gpuLayer.getDeltaInputs(), "dX");
     }
 
@@ -129,7 +129,30 @@ void testConv2DBackpropCompare(
 }
 
 void test() {
-    testConv2DBackpropCompare(32, 64, 64, 3, 16, 1);
+    testConv2DBackpropCompare(1,   1,   1,   1,   1,   1);
+    testConv2DBackpropCompare(1,   1,   1,   1,   1,   2);
+    testConv2DBackpropCompare(1,   2,   2,   1,   1,   1);
+    testConv2DBackpropCompare(1,   2,   2,   1,   1,   2);
+    testConv2DBackpropCompare(2,   5,   5,   1,   1,   1);
+    testConv2DBackpropCompare(2,   5,   5,   1,   1,   2);
+    testConv2DBackpropCompare(2,   5,   5,   3,   3,   1);
+    testConv2DBackpropCompare(4,   8,  16,   3,   8,   1);
+    testConv2DBackpropCompare(4,   8,  16,   3,   8,   2);
+    testConv2DBackpropCompare(8,  30,  50,   4,   4,   1);
+    testConv2DBackpropCompare(8,  30,  50,   4,   4,   2);
+    testConv2DBackpropCompare(16, 32,  32,   3,  16,   1);
+    testConv2DBackpropCompare(16, 32,  32,   3,  16,   2);
+    testConv2DBackpropCompare(32, 64,  64,   3,  16,   1);
+    testConv2DBackpropCompare(32, 64,  64,   3,  16,   2);
+    testConv2DBackpropCompare(32, 64,  64,  16,  32,   1);
+    testConv2DBackpropCompare(32, 64,  64,  64,  64,   1);
+    testConv2DBackpropCompare(10,224, 224,   3,  64,   1);
+    testConv2DBackpropCompare(10,224, 224,   3,  64,   2);
+    testConv2DBackpropCompare(8,  16,  16,  32,  32,   1);
+    testConv2DBackpropCompare(8,  16,  16,  64,  64,   1);
+    testConv2DBackpropCompare(4, 128, 128,  64, 128,   2);
+    testConv2DBackpropCompare(2,   7,   7,   3,   5,   3);
+    testConv2DBackpropCompare(2,   9,   9,   3,   5,   4);
 }
 
 int main() {

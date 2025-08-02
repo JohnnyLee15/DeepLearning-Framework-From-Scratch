@@ -257,8 +257,8 @@ kernel void applyBiasGrad(
     device const float *grad [[ buffer(0) ]],
     device float *biases [[ buffer(1) ]],
     constant uint4 &gradDims [[ buffer(2) ]],
-    constant uint &scaleFactor [[ buffer(3) ]],
-    uint gid [[ thread_position_in_grid ]],
+    constant float &scaleFactor [[ buffer(3) ]],
+    uint group_id [[ threadgroup_position_in_grid ]],
     uint tid [[ thread_position_in_threadgroup ]]
  ) {
     uint numSamples = gradDims[0];
@@ -266,7 +266,7 @@ kernel void applyBiasGrad(
     uint gradCols = gradDims[2];
     uint numKernals = gradDims[3];
 
-    uint d = gid;
+    uint d = group_id;
     uint numElements = numSamples * gradRows * gradCols;
     threadgroup float tile[THREADS_PER_GROUP];
     float sum = 0.0f;
