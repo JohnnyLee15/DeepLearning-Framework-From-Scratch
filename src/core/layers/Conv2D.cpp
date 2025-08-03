@@ -154,7 +154,7 @@ vector<uint32_t> Conv2D::generateThreadSeeds() const {
     vector<uint32_t> seeds(numSeeds);
     random_device rd;
     for (size_t i = 0; i < numSeeds; i++) {
-        seeds[i] = i;
+        seeds[i] = rd();
     }
 
     return seeds;

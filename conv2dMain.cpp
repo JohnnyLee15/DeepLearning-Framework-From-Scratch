@@ -39,8 +39,12 @@
 //     // Welcome Message
 //     ConsoleUtils::printTitle();
 
+//     #ifdef __APPLE__
+//         GpuEngine::init();
+//     #endif
+
 //     // Data Reading
-//     ImageTransform2D *transformer = new ImageTransform2D(64,64,1);
+//     ImageTransform2D *transformer = new ImageTransform2D(128,128,1);
 
 //     string trainPath = "DataFiles/chest_xray/train";
 //     vector<float> trainFeaturesRaw;
@@ -113,8 +117,8 @@
 
 //     cout << "DONE TEST" << endl;
 
-//     Tensor xTrain = Tensor(trainFeaturesRaw, {numTrainSamples, 64, 64, 1});
-//     Tensor xTest = Tensor(testFeaturesRaw, {numTestSamples, 64, 64, 1});
+//     Tensor xTrain = Tensor(trainFeaturesRaw, {numTrainSamples, 128, 128, 1});
+//     Tensor xTest = Tensor(testFeaturesRaw, {numTestSamples, 128, 128, 1});
 //     ImageData2D data;
 
 //     data.setTrainFeatures(xTrain);
@@ -130,8 +134,21 @@
 //         new Conv2D(16, 3, 3, 1, "same", new ReLU()),
 //         new Conv2D(16, 3, 3, 1, "same", new ReLU()),
 //         new MaxPooling2D(2, 2, 2, "none"),
+//         new Conv2D(32, 3, 3, 1, "same", new ReLU()),
+//         new Conv2D(32, 3, 3, 1, "same", new ReLU()),
+//         new MaxPooling2D(2, 2, 2, "none"),
+//         new Conv2D(64, 3, 3, 1, "same", new ReLU()),
+//         new Conv2D(64, 3, 3, 1, "same", new ReLU()),
+//         new MaxPooling2D(2, 2, 2, "none"),
+//         new Conv2D(128, 3, 3, 1, "same", new ReLU()),
+//         new Conv2D(128, 3, 3, 1, "same", new ReLU()),
+//         new MaxPooling2D(2, 2, 2, "none"),
+//         new Conv2D(256, 3, 3, 1, "same", new ReLU()),
+//         new Conv2D(256, 3, 3, 1, "same", new ReLU()),
+//         new MaxPooling2D(2, 2, 2, "none"),
 //         new Flatten(),
-//         new Dense(32, new ReLU()),
+//         new Dense(256, new ReLU()),
+//         new Dense(128, new ReLU()),
 //         new Dense(2, new Softmax())
 //     };
 
@@ -141,9 +158,9 @@
 //     nn.fit(
 //         xTrain,
 //         yTrain,
-//         0.001,
-//         0.00001,
-//         15,
+//         0.0001,
+//         0.01,
+//         30,
 //         32,
 //         *metric
 //     );
