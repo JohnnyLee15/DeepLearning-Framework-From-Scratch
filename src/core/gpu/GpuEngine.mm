@@ -54,7 +54,7 @@ void GpuEngine::init() {
     cmdQueue = [gpuDevice newCommandQueue];
     initLib();
     initAllPipes();
-    usingGpu = true;
+    enableGpu();
 }
 
 void GpuEngine::initLib() {

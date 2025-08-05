@@ -15,26 +15,32 @@ ImageTransform2D::ImageTransform2D(int height, int width, int channels) :
 
 ImageTransform2D::ImageTransform2D() {}
 
-vector<float> ImageTransform2D::transform(
-    const unsigned char *input,
-    int origHeight,
-    int origWidth,
-    int origChannels
+Tensor ImageTransform2D::transform(
+    const vector<RawImage> &rawImages
 ) const {
-    vector<unsigned char> resized(height * width * channels);
-    stbir_resize_uint8(
-        input, origWidth, origHeight, 0,
-        resized.data(), width, height, 0,
-        channels
-    );
+    Tensor transformedImages = Tensor({
+        rawImages.size(), (size_t) height, (size_t) width, (size_t) channels
+    });
 
-    vector<float> normalized(height * width * channels);
-    size_t size = height * width * channels;
-    for (size_t i = 0; i < size; i++) {
-        normalized[i] = (float) resized[i] / MAX_COLOUR_VALUE;
+    vector<float> &imageFlat = transformedImages.getFlat();
+    size_t currIdx = 0;
+    for (const RawImage &image : rawImages) {
+        vector<unsigned char> resized(height * width * channels);
+        stbir_resize_uint8(
+            image.pixels.data(), image.width, image.height, 0,
+            resized.data(), width, height, 0,
+            channels
+        );
+
+        size_t size = height * width * channels;
+        for (size_t i = 0; i < size; i++) {
+            imageFlat[i + currIdx] = (float) resized[i] / MAX_COLOUR_VALUE;
+        }
+
+        currIdx += size;
     }
 
-    return normalized;
+    return transformedImages;
 }
 
 int ImageTransform2D::getHeight() const {

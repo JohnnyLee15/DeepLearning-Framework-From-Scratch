@@ -5,6 +5,9 @@
 #define TILE_SIZE 8
 #define NUM_THREADS 256
 #define COARSE_FACTOR 4
+#define MAX_KERNEL 7
+#define MAX_STRIDE 2
+#define PATCH_DIM ((TILE_SIZE - 1) * MAX_STRIDE + MAX_KERNEL)
 
 void Im2ColUtils::im2Col(
     const Tensor &input,
@@ -123,4 +126,12 @@ void Im2ColUtils::col2Im(
     MTLSize tg = MTLSizeMake(NUM_THREADS, 1, 1);
     [encoder dispatchThreads:grid threadsPerThreadgroup:tg];
     [encoder endEncoding];
+}
+
+size_t Im2ColUtils::getGpuFastSize() {
+    return PATCH_DIM;
+}
+
+size_t Im2ColUtils::getTileSize() {
+    return TILE_SIZE;
 }

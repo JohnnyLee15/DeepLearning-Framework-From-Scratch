@@ -6,26 +6,34 @@
 #include <vector>
 #include <fstream>
 
+struct RawImage {
+    vector<unsigned char> pixels;
+    size_t width;
+    size_t height;
+    size_t channels;
+};
+
 class ImageData2D : public Data {
     private:
         // Instance Variables
-        Tensor trainFeatures;
+        vector<RawImage> trainFeatures;
         vector<float> trainTargets;
 
-        Tensor testFeatures;
+        vector<RawImage> testFeatures;
         vector<float> testTargets;
 
         unordered_map<string, int> labelMap;
 
+        // Methods
+        void read(vector<RawImage>&, vector<float>&, const string&);
+
     public:
         // Methods
-        void setTrainFeatures(const Tensor&);
-        void setTestFeatures(const Tensor&);
-        void setTrainTargets(const vector<string>&);
-        void setTestTargets(const vector<string>&);
+        void readTrain(const string&);
+        void readTest(const string&);
 
-        const Tensor& getTrainFeatures() const override;
-        const Tensor& getTestFeatures() const override;;
+        const vector<RawImage>& getTrainFeatures() const;
+        const vector<RawImage>& getTestFeatures() const;
         const vector<float>& getTrainTargets() const override;;
         const vector<float>& getTestTargets() const override;;
 

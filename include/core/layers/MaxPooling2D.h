@@ -34,11 +34,12 @@ class MaxPooling2D : public Layer {
         void reShapeBatch(size_t);
 
     public:
-        // Constructor
+        // Constructors
         MaxPooling2D(size_t, size_t, size_t, const string&);
+        MaxPooling2D();
 
         // Methods
-        void build(const vector<size_t>&) override;
+        void build(const vector<size_t>&, bool isInference = false) override;
 
         void forward(const Tensor&) override;
         void backprop(const Tensor&, float, Tensor&, bool) override;

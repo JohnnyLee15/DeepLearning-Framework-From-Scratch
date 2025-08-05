@@ -12,6 +12,11 @@ using namespace std;
 
 class Conv2D : public Layer {
     private:
+        // Constants
+        static const size_t GPU_FAST;
+        static const size_t GPU_NAIVE;
+        static const size_t CPU;
+
         // Instance Variables
         size_t numKernals;
         size_t kRows;
@@ -27,7 +32,6 @@ class Conv2D : public Layer {
         vector<size_t> preActTensorShape;
         Tensor dB;
         Tensor dW;
-        Tensor dwIm2Col;
         Tensor dA;
         Tensor dX;
         Tensor gradIm2ColBuf;
@@ -39,7 +43,8 @@ class Conv2D : public Layer {
         Activation *activation;
         Tensor::Paddings padding;
         size_t stride;
-        bool isLoadedConv2D;
+        bool isInitParams;
+        size_t executionMode;
 
         // Methods
         void initKernals();
@@ -47,20 +52,26 @@ class Conv2D : public Layer {
         void initGradBuf();
         void initStride(size_t);
         void initParams(size_t);
+        void initExecutionMode(size_t, size_t);
+        void allocateGradientBuffers(size_t, size_t, size_t);
+        void allocateForwardBuffers(size_t, size_t, size_t);
         void checkBuildSize(const vector<size_t>&) const;
 
         void ensureGpu();
+        void ensureCpu();
 
         vector<uint32_t> generateThreadSeeds() const;
+        void loadActivation(ifstream&);
 
         void reShapeBatch(size_t);
 
     public:
-        // Constructor
+        // Constructors
         Conv2D(size_t, size_t, size_t, size_t, const string&, Activation*);
+        Conv2D();
 
         // Methods
-        void build(const vector<size_t>&) override;
+        void build(const vector<size_t>&, bool isInference = false) override;
 
         void forward(const Tensor&) override;
         void backprop(const Tensor&, float, Tensor&, bool) override;
@@ -74,14 +85,17 @@ class Conv2D : public Layer {
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
 
-        const Tensor& getDeltaWeights() const override;
-        const Tensor& getDeltaWeightsIm2Col() const override;
-        const Tensor& getDeltaBiases() const override;
+        const Tensor& getWeights() const override;
+        const Tensor& getBiases() const override;
         const Tensor& getDeltaInputs() const override;
 
         // GPU Interface
         #ifdef __APPLE__
             void forwardGpu(const Tensor&, GpuCommandBuffer) override;
+            void forwardGpuNaive(const Tensor&, GpuCommandBuffer);
+            void forwardGpuFast(const Tensor&, GpuCommandBuffer);
             void backpropGpu(const Tensor&, float, Tensor&, bool, GpuCommandBuffer) override;
+            void backpropGpuNaive(const Tensor&, float, Tensor&, bool, GpuCommandBuffer);
+            void backpropGpuFast(const Tensor&, float, Tensor&, bool, GpuCommandBuffer);
         #endif
 };

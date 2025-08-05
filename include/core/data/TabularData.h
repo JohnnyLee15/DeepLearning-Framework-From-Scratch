@@ -60,8 +60,8 @@ class TabularData : public Data {
         void readTrain(const string&, const string&);
         void readTest(const string&, const string&);
 
-        const Tensor& getTrainFeatures() const override;
-        const Tensor& getTestFeatures() const override;
+        const Tensor& getTrainFeatures() const;
+        const Tensor& getTestFeatures() const;
         const vector<float>& getTrainTargets() const override;
         const vector<float>& getTestTargets() const override;
 

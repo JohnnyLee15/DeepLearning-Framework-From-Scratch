@@ -11,6 +11,9 @@
 #include "core/losses/MSE.h"
 #include "core/losses/SoftmaxCrossEntropy.h"
 #include "core/layers/Dense.h"
+#include "core/layers/Conv2D.h"
+#include "core/layers/MaxPooling2D.h"
+#include "core/layers/Flatten.h"
 #include "core/gpu/GpuEngine.h"
 
 random_device NeuralNet::rd;
@@ -44,14 +47,14 @@ void NeuralNet::fit(
     ConsoleUtils::printSepLine();
 }
 
-void NeuralNet::build(size_t batchSize, const Tensor &features) {
+void NeuralNet::build(size_t batchSize, const Tensor &features, bool isInference) {
     size_t numLayers = layers.size();
     maxBatchSize = batchSize;
     vector<size_t> inShape = features.getShape();
     inShape[0] = maxBatchSize;
 
     for (size_t i = 0; i < numLayers; i++) {
-        layers[i]->build(inShape);
+        layers[i]->build(inShape, isInference);
         inShape = layers[i]->getBuildOutShape(inShape);
     }
 
@@ -150,17 +153,24 @@ void NeuralNet::backprop(Batch &batch, float learningRate) {
 }
 
 Tensor NeuralNet::predict(const Tensor &features) {
-    forwardPassInference(features);
+    build(features.getShape()[0], features, true);
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            forwardPassInferenceGpu(features);
+        #endif
+    } else {
+        forwardPassInference(features);
+    }
     return layers.back()->getOutput();
 }
 
 void NeuralNet::forwardPassInference(const Tensor& data) {
-    Tensor prevActivations = data;
+    const Tensor *prevActivations = &data;
     size_t numLayers = layers.size();
     
-    for (size_t j = 0; j < numLayers; j++) {
-        layers[j]->forward(prevActivations);
-        prevActivations = layers[j]->getOutput();
+    for (size_t j = 0; j < numLayers; j++) { 
+        layers[j]->forward(*prevActivations);
+        prevActivations = &layers[j]->getOutput();
     }
 }
 
@@ -222,7 +232,13 @@ void NeuralNet::loadLayer(ifstream &modelBin) {
     Layer *layer = nullptr;
     if (layerEncoding == Layer::Encodings::Dense) {
         layer = new Dense();
-    } else{
+    } else if (layerEncoding == Layer::Encodings::Conv2D) {
+        layer = new Conv2D();
+    } else if (layerEncoding == Layer::Encodings::MaxPooling2D) {
+        layer = new MaxPooling2D;
+    } else if (layerEncoding == Layer::Encodings::Flatten) {
+        layer = new Flatten();
+    } else {
         ConsoleUtils::fatalError(
             "Unsupported layer encoding \"" + to_string(layerEncoding) + "\"."
         );

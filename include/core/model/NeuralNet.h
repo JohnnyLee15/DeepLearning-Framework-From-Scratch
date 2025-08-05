@@ -29,7 +29,7 @@ class NeuralNet {
         static mt19937 generator;
 
         // Methods
-        void build(size_t, const Tensor&);
+        void build(size_t, const Tensor&, bool isInference = false);
 
         float runEpoch(const Tensor&, const vector<float>&, float, size_t, ProgressMetric&);
         void forwardPass(Batch&);
@@ -51,6 +51,7 @@ class NeuralNet {
             void fitBatchGpu(Batch&, float);
             void forwardPassGpu(Batch&, GpuCommandBuffer);
             void backpropGpu(Batch&, float, GpuCommandBuffer);
+            void forwardPassInferenceGpu(const Tensor&);
         #endif
 
     public:

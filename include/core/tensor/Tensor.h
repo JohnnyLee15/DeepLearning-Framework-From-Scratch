@@ -112,13 +112,9 @@ class Tensor {
             void copyGpu(Tensor&, id<MTLCommandBuffer>) const;
 
             void conv2dForwardGpu(const Tensor&, size_t, Tensor&, const Tensor&, id<MTLCommandBuffer>) const;
-            bool setConv2dForwardPipe(id<MTLComputeCommandEncoder>, uint32_t, uint32_t, uint32_t, uint32_t) const;
-            void setConv2dForwardThreads(id<MTLComputeCommandEncoder>, bool, uint32_t, uint32_t, uint32_t) const;
-
             void conv2dWeightsGpu(const Tensor&, size_t, size_t, size_t, size_t, Tensor&, id<MTLCommandBuffer>) const;
-    
             void conv2dInputGpu(const Tensor&, Tensor&, id<MTLCommandBuffer>) const;
-
+            
             void maxPool2dGradGpu(MetalBuffer&, Tensor&, id<MTLCommandBuffer>) const;
 
             void padAndUpsampleGradGpu(Tensor&, const WindowDims&, size_t, id<MTLCommandBuffer>) const;

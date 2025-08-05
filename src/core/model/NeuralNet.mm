@@ -43,3 +43,23 @@ void NeuralNet::backpropGpu(Batch &batch, float learningRate, GpuCommandBuffer c
         grad = &layers[i]->getOutputGradient();
     }
 }
+
+void NeuralNet::forwardPassInferenceGpu(const Tensor& data) {
+    Tensor dataCopy = data;
+    dataCopy.uploadToGpu();
+    const Tensor *prevActivations = &dataCopy;
+
+    size_t numLayers = layers.size();
+    id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue() commandBuffer];
+
+    for (size_t j = 0; j < numLayers; j++) { 
+        layers[j]->forwardGpu(*prevActivations, (GpuCommandBuffer) cmdBuf);
+        prevActivations = &layers[j]->getOutput();
+    }
+
+    [cmdBuf commit];
+    [cmdBuf waitUntilCompleted];
+
+    layers.back()->downloadOutputFromGpu();
+}
+

@@ -12,6 +12,8 @@ MaxPooling2D::MaxPooling2D(
     padding = Tensor::decodePadding(padIn);
 }
 
+MaxPooling2D::MaxPooling2D() {}
+
 void MaxPooling2D::checkBuildSize(const vector<size_t> &inShape) const {
     if (inShape.size() != 4) {
         ConsoleUtils::fatalError(
@@ -21,7 +23,7 @@ void MaxPooling2D::checkBuildSize(const vector<size_t> &inShape) const {
     }
 }
 
-void MaxPooling2D::build(const vector<size_t> &inShape) {
+void MaxPooling2D::build(const vector<size_t> &inShape, bool isInference) {
     checkBuildSize(inShape);
 
     Layer::build(inShape);
@@ -118,8 +120,42 @@ Tensor& MaxPooling2D::getOutputGradient() {
     return dX;
 }
 
-void MaxPooling2D::writeBin(ofstream &modelBin) const {}
-void MaxPooling2D::loadFromBin(ifstream &modelBin) {}
+void MaxPooling2D::writeBin(ofstream &modelBin) const {
+    Layer::writeBin(modelBin);
+
+    uint32_t kRowsWrite = (uint32_t) kRows;
+    uint32_t kColsWrite = (uint32_t) kCols;
+
+    modelBin.write((char*) &kRowsWrite, sizeof(uint32_t));
+    modelBin.write((char*) &kColsWrite, sizeof(uint32_t));
+
+    uint32_t strideWrite = (uint32_t) stride;
+    modelBin.write((char*) &strideWrite, sizeof(uint32_t));
+
+    uint32_t paddingWrite = (uint32_t) padding;
+    modelBin.write((char*) &paddingWrite, sizeof(uint32_t));
+
+}
+
+void MaxPooling2D::loadFromBin(ifstream &modelBin) {
+    uint32_t kRowsRead;
+    uint32_t kColsRead;
+
+    modelBin.read((char*) &kRowsRead, sizeof(uint32_t));
+    modelBin.read((char*) &kColsRead, sizeof(uint32_t));
+
+    kRows = kRowsRead;
+    kCols = kColsRead;
+
+    uint32_t strideRead;
+    modelBin.read((char*) &strideRead, sizeof(uint32_t));
+    stride = strideRead;
+
+    uint32_t paddingRead;
+    modelBin.read((char*) &paddingRead, sizeof(uint32_t));
+    padding = (Tensor::Paddings) paddingRead;
+}
+
 Layer::Encodings MaxPooling2D::getEncoding() const {
     return Layer::Encodings::MaxPooling2D;
 }

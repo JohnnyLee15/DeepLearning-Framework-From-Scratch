@@ -16,9 +16,9 @@
 const float Dense::HE_INT_GAIN = 2.0;
 
 Dense::Dense(size_t numNeurons,  Activation *activation) :
-    numNeurons(numNeurons), activation(activation), isLoadedDense(false) {}
+    numNeurons(numNeurons), activation(activation), isInitParams(false) {}
 
-Dense::Dense() : activation(nullptr), isLoadedDense(false) {}
+Dense::Dense() : activation(nullptr), isInitParams(false) {}
 
 void Dense::ensureGpu() {
     if (GpuEngine::isUsingGpu()) {
@@ -47,33 +47,19 @@ void Dense::checkBuildSize(const vector<size_t> &inShape) const {
     }
 }
 
-void Dense::initParams(size_t weightsPerNeuron) {
-    if (isLoadedDense) 
-        return;
-
-    weights = Tensor({numNeurons, weightsPerNeuron});
-    initWeights();
-    biases = activation->initBias(numNeurons);
-    
+void Dense::allocateForwardBuffers() {
+    preActivations = Tensor({getMaxBatchSize(), numNeurons});
+    activations = Tensor({getMaxBatchSize(), numNeurons});
 }
 
-void Dense::build(const vector<size_t> &inShape) {
-    checkBuildSize(inShape);
-
-    Layer::build(inShape);
-
-    size_t batchSize = getMaxBatchSize();
-    size_t weightsPerNeuron = inShape[1];
-
-    preActivations = Tensor({batchSize, numNeurons});
-    activations = Tensor({batchSize, numNeurons});
+void Dense::allocateGradientBuffers(size_t weightsPerNeuron, bool isInference) {
+    if (isInference)
+        return;
+        
     dB = Tensor({numNeurons});
     dW = Tensor({numNeurons, weightsPerNeuron});
-    dX = Tensor({batchSize, weightsPerNeuron});
-    dA = Tensor({batchSize, numNeurons});
-
-    initParams(weightsPerNeuron);
-    ensureGpu();
+    dX = Tensor({getMaxBatchSize(), weightsPerNeuron});
+    dA = Tensor({getMaxBatchSize(), numNeurons});
 }
 
 vector<uint32_t> Dense::generateThreadSeeds() const {
@@ -108,6 +94,31 @@ void Dense::initWeights() {
         }
     }
 }
+
+void Dense::initParams(size_t weightsPerNeuron) {
+    if (isInitParams) 
+        return;
+
+    weights = Tensor({numNeurons, weightsPerNeuron});
+    initWeights();
+    biases = activation->initBias(numNeurons);
+    ensureGpu();
+    isInitParams = true;
+}
+
+
+void Dense::build(const vector<size_t> &inShape, bool isInference) {
+    checkBuildSize(inShape);
+
+    Layer::build(inShape);
+
+    size_t weightsPerNeuron = inShape[1];
+
+    allocateForwardBuffers();
+    allocateGradientBuffers(weightsPerNeuron, isInference);
+    initParams(weightsPerNeuron);
+}
+
 
 vector<size_t> Dense::getBuildOutShape(const vector<size_t> &inShape) const {
     checkBuildSize(inShape);
@@ -170,7 +181,7 @@ void Dense::loadFromBin(ifstream &modelBin) {
     modelBin.read((char*) biases.getFlat().data(), biases.getSize() * sizeof(float));
     ensureGpu();
 
-    isLoadedDense = true;
+    isInitParams = true;
 }
 
 void Dense::reShapeBatch(size_t currBatchSize) {
@@ -178,8 +189,11 @@ void Dense::reShapeBatch(size_t currBatchSize) {
 
     preActivations.reShapeInPlace({currBatchSize, numNeurons});
     activations.reShapeInPlace({currBatchSize, numNeurons});
-    dX.reShapeInPlace({currBatchSize, weightsPerNeuron});
-    dA.reShapeInPlace({currBatchSize, numNeurons});
+
+    if (dX.getSize() > 0) {
+        dX.reShapeInPlace({currBatchSize, weightsPerNeuron});
+        dA.reShapeInPlace({currBatchSize, numNeurons});
+    }
 }
 
 void Dense::forward(const Tensor &prevActivations) {

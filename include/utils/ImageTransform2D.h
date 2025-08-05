@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <fstream>
+#include "core/data/ImageData2D.h"
 
 using namespace std;
 
@@ -16,7 +17,7 @@ class ImageTransform2D {
     public:
         ImageTransform2D(int, int, int);
         ImageTransform2D();
-        vector<float> transform(const unsigned char*, int, int, int) const;
+        Tensor transform(const vector<RawImage>&) const;
         int getHeight() const;
         int getWidth() const;
         int getChannels() const;

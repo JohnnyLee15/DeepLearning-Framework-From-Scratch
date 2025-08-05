@@ -67,6 +67,8 @@ class GpuEngine {
     public:
         // Static Methods
         static bool isUsingGpu();
+        static void disableGpu();
+        static void enableGpu();
 
         #ifdef __APPLE__
             static void init();

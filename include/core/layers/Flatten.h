@@ -19,7 +19,7 @@ class Flatten : public Layer {
 
     public:
         // Methods
-        void build(const vector<size_t>&) override;
+        void build(const vector<size_t>&, bool isInference = false) override;
 
         void forward(const Tensor&) override;
         void backprop(const Tensor&, float, Tensor&, bool) override;
@@ -29,9 +29,6 @@ class Flatten : public Layer {
 
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
         Layer::Encodings getEncoding() const override;
-
-        void writeBin(ofstream&) const override;
-        void loadFromBin(ifstream&) override;
 
         // GPU Interface
         #ifdef __APPLE__

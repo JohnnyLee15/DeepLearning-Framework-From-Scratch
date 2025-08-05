@@ -10,7 +10,6 @@ using namespace std;
 
 class Dense : public Layer {
     private:
-
         // Constants
         static const float HE_INT_GAIN;
 
@@ -27,7 +26,7 @@ class Dense : public Layer {
         Tensor biases;
 
         Activation *activation;
-        bool isLoadedDense;
+        bool isInitParams;
         
         // Methods
         void initWeights();
@@ -51,7 +50,9 @@ class Dense : public Layer {
         ~Dense();
 
         // Methods
-        void build(const vector<size_t>&) override;
+        void build(const vector<size_t>&, bool isInference = false) override;
+        void allocateGradientBuffers(size_t, bool);
+        void allocateForwardBuffers();
 
         void forward(const Tensor&) override;
         void backprop(const Tensor&, float, Tensor&, bool) override;

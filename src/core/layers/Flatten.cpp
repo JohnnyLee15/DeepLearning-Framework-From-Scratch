@@ -44,7 +44,7 @@ Tensor& Flatten::getOutputGradient() {
     return dX;
 }
 
-void Flatten::build(const vector<size_t> &givenShape) {
+void Flatten::build(const vector<size_t> &givenShape, bool isInference) {
     checkInputSize(givenShape);
     Layer::build(givenShape);
 
@@ -65,8 +65,6 @@ vector<size_t> Flatten::getBuildOutShape(const vector<size_t> &givenShape) const
     return outShape;
 }
 
-void Flatten::writeBin(ofstream &modelBin) const {}
-void Flatten::loadFromBin(ifstream &modelBin) {}
 Layer::Encodings Flatten::getEncoding() const {
     return Layer::Encodings::Flatten;
 }

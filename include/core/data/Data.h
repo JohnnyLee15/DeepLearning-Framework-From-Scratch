@@ -20,9 +20,6 @@ class Data {
         virtual ~Data() = default;
 
         // Methods
-        virtual const Tensor& getTrainFeatures() const = 0;
-        virtual const Tensor& getTestFeatures() const = 0;
-
         virtual const vector<float>& getTrainTargets() const = 0;
         virtual const vector<float>& getTestTargets() const = 0;
 

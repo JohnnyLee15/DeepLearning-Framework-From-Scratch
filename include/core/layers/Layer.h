@@ -12,7 +12,6 @@ class Layer {
     private:
         // Instance Variables
         size_t maxBatchSize;
-        bool isMaxBatchSet;
 
     public:
 
@@ -31,7 +30,7 @@ class Layer {
         virtual ~Layer() = default;
 
         // Methods
-        virtual void build(const vector<size_t>&) = 0;
+        virtual void build(const vector<size_t>&, bool isInference = false) = 0;
 
         virtual void forward(const Tensor&) = 0;
         virtual void backprop(const Tensor&, float, Tensor&, bool) = 0;
@@ -44,11 +43,10 @@ class Layer {
         size_t getMaxBatchSize() const;
         
         virtual void writeBin(ofstream&) const;
-        virtual void loadFromBin(ifstream&) = 0;
+        virtual void loadFromBin(ifstream&);
 
-        virtual const Tensor& getDeltaWeights() const;
-        virtual const Tensor& getDeltaWeightsIm2Col() const;
-        virtual const Tensor& getDeltaBiases() const;
+        virtual const Tensor& getWeights() const;
+        virtual const Tensor& getBiases() const;
         virtual const Tensor& getDeltaInputs() const;
 
         // GPU Interface
