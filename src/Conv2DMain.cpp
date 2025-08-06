@@ -85,7 +85,7 @@ int main() {
     nn->fit(
         xTrain,
         yTrain,
-        0.0001,
+        0.001,
         0.001,
         2,
         8,
