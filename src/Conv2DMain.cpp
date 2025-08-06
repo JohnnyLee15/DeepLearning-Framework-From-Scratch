@@ -39,7 +39,7 @@ int main() {
         GpuEngine::init();
     #endif
 
-    const size_t SIZE = 128;
+    const size_t SIZE = 256;
     const size_t CHANNELS = 1;
     const string trainPath = "DataFiles/chest_xray/train";
     const string testPath = "DataFiles/chest_xray/test";
@@ -54,7 +54,6 @@ int main() {
     Tensor xTest = transformer->transform(data->getTestFeatures());
     vector<float> yTrain = data->getTrainTargets();
     vector<float> yTest = data->getTestTargets();
-   
 
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
@@ -74,11 +73,6 @@ int main() {
         new Conv2D(128, 3, 3, 1, "same", new ReLU()),
         new Conv2D(256, 3, 3, 2, "same", new ReLU()),
 
-        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
-
-        new Conv2D(512, 3, 3, 2, "same", new ReLU()),
-
         new Flatten(),
         new Dense(256, new ReLU()),
         new Dense(128, new ReLU()),
@@ -91,10 +85,10 @@ int main() {
     nn->fit(
         xTrain,
         yTrain,
+        0.0001,
         0.001,
-        0.01,
-        30,
-        32,
+        2,
+        8,
         *metric
     );
 
@@ -110,9 +104,6 @@ int main() {
     // NeuralNet *nn = pipe.getModel();
 
     // data.readTest(testPath);
-
-    // Tensor xTest = transformer.transform(data.getTestFeatures());
-    // vector<float> yTest = data.getTestTargets();
 
     Tensor output = nn->predict(xTest);
     vector<float> predictions = TrainingUtils::getPredictions(output);

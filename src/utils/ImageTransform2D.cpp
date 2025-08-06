@@ -7,6 +7,7 @@
 
 #include "utils/ImageTransform2D.h"
 #include "utils/ConsoleUtils.h"
+#include <iostream>
 
 const float ImageTransform2D::MAX_COLOUR_VALUE = 255.0;
 
@@ -15,9 +16,9 @@ ImageTransform2D::ImageTransform2D(int height, int width, int channels) :
 
 ImageTransform2D::ImageTransform2D() {}
 
-Tensor ImageTransform2D::transform(
-    const vector<RawImage> &rawImages
-) const {
+Tensor ImageTransform2D::transform(const vector<RawImage> &rawImages) const {
+    cout << endl << "🎨 Transforming " << rawImages.size() << " images." << endl;
+    ConsoleUtils::loadMessage("Resizing & Normalizing images.");
     Tensor transformedImages = Tensor({
         rawImages.size(), (size_t) height, (size_t) width, (size_t) channels
     });
@@ -39,7 +40,8 @@ Tensor ImageTransform2D::transform(
 
         currIdx += size;
     }
-
+    ConsoleUtils::completeMessage();
+    ConsoleUtils::printSepLine();
     return transformedImages;
 }
 

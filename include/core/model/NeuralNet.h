@@ -16,6 +16,8 @@ using namespace std;
 
 class NeuralNet {
     private:
+        // Constants
+        static const size_t INFERENCE_BATCH_SIZE;
 
         // Instance Variables
         vector<Layer*> layers;
@@ -32,11 +34,10 @@ class NeuralNet {
         void build(size_t, const Tensor&, bool isInference = false);
 
         float runEpoch(const Tensor&, const vector<float>&, float, size_t, ProgressMetric&);
-        void forwardPass(Batch&);
-        void forwardPassInference(const Tensor&);
-        void backprop(Batch&, float);
+        void forwardPass(const Tensor&);
+        void backprop(const Batch&, float);
         
-        void fitBatch(Batch&, float);
+        void fitBatch(const Batch&, float);
         Batch makeBatch(size_t, size_t, const Tensor&, const vector<float>&, const vector<size_t>&) const;
 
         void loadLoss(ifstream&);
@@ -46,12 +47,15 @@ class NeuralNet {
 
         void reShapeDL(size_t);
 
+        Tensor makeInferenceBatch(size_t, size_t, size_t, const Tensor&) const;
+        void forwardPassInference(const Tensor&);
+        void cpyBatchToOutput(size_t, size_t, size_t, size_t, const Tensor&, Tensor&) const;
         // GPU Interface
         #ifdef __APPLE__
-            void fitBatchGpu(Batch&, float);
-            void forwardPassGpu(Batch&, GpuCommandBuffer);
-            void backpropGpu(Batch&, float, GpuCommandBuffer);
-            void forwardPassInferenceGpu(const Tensor&);
+            void fitBatchGpu(const Batch&, float);
+            void forwardPassGpu(const Tensor&, GpuCommandBuffer);
+            void backpropGpu(const Batch&, float, GpuCommandBuffer);
+            void forwardPassGpuSync(const Tensor&);
         #endif
 
     public:

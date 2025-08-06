@@ -79,18 +79,18 @@ kernel void padWindowInput(
 
 kernel void conv2dForwardNaive(
     device const float *input [[ buffer(0) ]],
-    device const float *kernals [[ buffer(1) ]],
+    device const float *kernels [[ buffer(1) ]],
     device const float *biases [[ buffer(2) ]],
     device float *output [[ buffer(3) ]],
     constant uint4 &inputDims [[ buffer(4) ]],
-    constant uint4 &kernalDims [[ buffer(5) ]],
+    constant uint4 &kernelDims [[ buffer(5) ]],
     constant uint4 &outputDims [[ buffer(6) ]],
     constant uint &stride [[ buffer(7) ]],
     uint3 gid [[ thread_position_in_grid ]]
 ) {
-    uint numKernals = kernalDims[0];
-    uint kRows = kernalDims[1];
-    uint kCols = kernalDims[2];
+    uint numKernels = kernelDims[0];
+    uint kRows = kernelDims[1];
+    uint kCols = kernelDims[2];
 
     uint numSamples = inputDims[0];
     uint inRows = inputDims[1];
@@ -100,10 +100,10 @@ kernel void conv2dForwardNaive(
     uint outRows = outputDims[1];
     uint outCols = outputDims[2];
 
-    uint n = gid.z / numKernals;
+    uint n = gid.z / numKernels;
     uint r = gid.y;
     uint c = gid.x;
-    uint o = gid.z % numKernals;
+    uint o = gid.z % numKernels;
 
     if (n >= numSamples || r >= outRows || c >= outCols)
         return;
@@ -118,11 +118,11 @@ kernel void conv2dForwardNaive(
             for (uint d = 0; d < inDepth; d++) {
                 uint kIdx = baseK + d;
                 uint inIdx = baseI + d;
-                val += (input[inIdx] * kernals[kIdx]);
+                val += (input[inIdx] * kernels[kIdx]);
             }
         }
     }
-    uint outIdx = ((n * outRows + r) * outCols + c) * numKernals + o;
+    uint outIdx = ((n * outRows + r) * outCols + c) * numKernels + o;
     output[outIdx] = val;
 }
 
@@ -195,7 +195,7 @@ kernel void conv2dWeightsNaive(
     uint gradRows = gradDims[0];
     uint gradCols = gradDims[1];
 
-    uint numKernals = kDims[0];
+    uint numKernels = kDims[0];
     uint kRows = kDims[1];
     uint kCols = kDims[2];
 
@@ -204,7 +204,7 @@ kernel void conv2dWeightsNaive(
     uint j = gid.x;
     uint d = gid.z % inDepth;
 
-    if (k >= numKernals || i >= kRows || j >= kCols)
+    if (k >= numKernels || i >= kRows || j >= kCols)
         return;
 
     float val = 0.0f;
@@ -214,7 +214,7 @@ kernel void conv2dWeightsNaive(
             for (uint c = 0; c < gradCols; c++) {
                 uint inCol = c*stride + j;
                 uint inIdx = ((n * inRows + inRow) * inCols + inCol) * inDepth + d;
-                uint gradIdx = ((n * gradRows + r) * gradCols + c) * numKernals + k;
+                uint gradIdx = ((n * gradRows + r) * gradCols + c) * numKernels + k;
                 val += (input[inIdx] * grad[gradIdx]);
             }
         }
@@ -233,18 +233,18 @@ kernel void reduceSumBias(
     uint numSamples = gradDims[0];
     uint gradRows = gradDims[1];
     uint gradCols = gradDims[2];
-    uint numKernals = gradDims[3];
+    uint numKernels = gradDims[3];
 
     uint k = gid;
 
-    if (k >= numKernals)
+    if (k >= numKernels)
         return;
 
     float sum = 0.0f;
     for (uint n = 0; n < numSamples; n++) {
         for (uint r = 0; r < gradRows; r++) {
             for (uint c = 0; c < gradCols; c++) {
-                uint gradIdx = ((n * gradRows + r) * gradCols + c) * numKernals + k;
+                uint gradIdx = ((n * gradRows + r) * gradCols + c) * numKernels + k;
                 sum += grad[gradIdx];
             }
         }
@@ -264,7 +264,7 @@ kernel void applyBiasGrad(
     uint numSamples = gradDims[0];
     uint gradRows = gradDims[1];
     uint gradCols = gradDims[2];
-    uint numKernals = gradDims[3];
+    uint numKernels = gradDims[3];
 
     uint d = group_id;
     uint numElements = numSamples * gradRows * gradCols;
@@ -276,7 +276,7 @@ kernel void applyBiasGrad(
         uint r = (i / gradCols) % gradRows;
         uint n = i / (gradCols * gradRows);
 
-        uint gradIdx = ((n * gradRows + r) * gradCols + c) * numKernals + d;
+        uint gradIdx = ((n * gradRows + r) * gradCols + c) * numKernels + d;
         sum += grad[gradIdx];
     }
 
@@ -311,7 +311,7 @@ kernel void padAndUpsampleGrad(
     uint numSamples = gradDims[0];
     uint gradRows = gradDims[1];
     uint gradCols = gradDims[2];
-    uint numKernals = gradDims[3];
+    uint numKernels = gradDims[3];
 
     if (n >= numSamples || r >= gradRows || c >= gradCols)
         return;
@@ -325,10 +325,10 @@ kernel void padAndUpsampleGrad(
     uint upRow = r * stride + padTop;
     uint upCol = c * stride + padLeft;
 
-    uint baseIn = ((n * gradRows + r) * gradCols + c) * numKernals;
-    uint baseUp = ((n * outRows + upRow) * outCols + upCol) * numKernals;
+    uint baseIn = ((n * gradRows + r) * gradCols + c) * numKernels;
+    uint baseUp = ((n * outRows + upRow) * outCols + upCol) * numKernels;
 
-    for (uint d = 0; d < numKernals; d++) {
+    for (uint d = 0; d < numKernels; d++) {
         uint inIdx = baseIn + d;
         uint upIdx = baseUp + d;
         output[upIdx] = grad[inIdx];
@@ -337,7 +337,7 @@ kernel void padAndUpsampleGrad(
 
 kernel void conv2dInputNaive(
     device const float *grad [[ buffer(0) ]],
-    device const float *kernals [[ buffer (1) ]],
+    device const float *kernels [[ buffer (1) ]],
     device float *dX [[ buffer(2) ]],
     constant uint4 &gradDims [[ buffer(3) ]],
     constant uint4 &kDims [[ buffer(4) ]],
@@ -347,7 +347,7 @@ kernel void conv2dInputNaive(
     uint numSamples = gradDims[0];
     uint gradRows = gradDims[1];
     uint gradCols = gradDims[2];
-    uint numKernals = gradDims[3];
+    uint numKernels = gradDims[3];
 
     uint kRows = kDims[1];
     uint kCols = kDims[2];
@@ -373,10 +373,10 @@ kernel void conv2dInputNaive(
             uint gradCol = c + j;
             uint flipJ = kCols - 1 - j;
 
-            for (uint k = 0; k < numKernals; k++) {
+            for (uint k = 0; k < numKernels; k++) {
                 uint kIdx = ((k * kRows + flipI) * kCols + flipJ) * inDepth + d;
-                uint gradIdx = ((n * gradRows + gradRow) * gradCols + gradCol) * numKernals + k;
-                val += kernals[kIdx] * grad[gradIdx];
+                uint gradIdx = ((n * gradRows + gradRow) * gradCols + gradCol) * numKernels + k;
+                val += kernels[kIdx] * grad[gradIdx];
             }
         }
     }

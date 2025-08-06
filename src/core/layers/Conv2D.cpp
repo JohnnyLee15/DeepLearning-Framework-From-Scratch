@@ -14,20 +14,18 @@ const size_t Conv2D::GPU_NAIVE = 1;
 const size_t Conv2D::CPU = 2;
 
 Conv2D::Conv2D(
-    size_t numKernals, 
+    size_t numKernels, 
     size_t kRows, 
     size_t kCols, 
     size_t strideIn,
     const string &padIn, 
     Activation *activation
-) : numKernals(numKernals), kRows(kRows), kCols(kCols), 
-    activation(activation), isInitParams(false) {
+) : numKernels(numKernels), kRows(kRows), kCols(kCols), activation(activation){
     initStride(strideIn);
-    initExecutionMode(kRows, kCols);
     padding = Tensor::decodePadding(padIn);
 }
 
-Conv2D::Conv2D() : activation(nullptr), isInitParams(false) {}
+Conv2D::Conv2D() : activation(nullptr) {}
 
 void Conv2D::initStride(size_t strideIn) {
     if (strideIn == 0) {
@@ -56,19 +54,9 @@ void Conv2D::initExecutionMode(size_t kRows, size_t kCols) {
 void Conv2D::ensureGpu() {
     if (GpuEngine::isUsingGpu()) {
         #ifdef __APPLE__
-            im2ColKBuf.uploadToGpu();
-            kernals.uploadToGpu();
+            fastKernels.uploadToGpu();
+            kernels.uploadToGpu();
             biases.uploadToGpu();
-        #endif
-    }
-}
-
-void Conv2D::ensureCpu() {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __APPLE__
-            im2ColKBuf.downloadFromGpu();
-            kernals.downloadFromGpu();
-            biases.downloadFromGpu();
         #endif
     }
 }
@@ -96,7 +84,7 @@ void Conv2D::initGradBuf() {
         gradCols = stride * (gradCols - 1) + 1;
     }
 
-    winGrad = Tensor({getMaxBatchSize(), gradRows, gradCols, numKernals}).computeGradWindow(
+    winGrad = Tensor({getMaxBatchSize(), gradRows, gradCols, numKernels}).computeGradWindow(
         kRows, kCols, paddedInput.getShape()[1], 
         paddedInput.getShape()[2], stride, winIn
     );
@@ -104,7 +92,7 @@ void Conv2D::initGradBuf() {
     gradRows += winGrad.padRows;
     gradCols += winGrad.padCols;
 
-    gradBuf = Tensor({getMaxBatchSize(), gradRows, gradCols, numKernals});
+    gradBuf = Tensor({getMaxBatchSize(), gradRows, gradCols, numKernels});
 }
 
 vector<uint32_t> Conv2D::generateThreadSeeds() const {
@@ -118,18 +106,17 @@ vector<uint32_t> Conv2D::generateThreadSeeds() const {
     return seeds;
 }
 
-void Conv2D::initFlatKernals() {
-    if (executionMode != GPU_FAST) 
+void Conv2D::unflattenKernels() {
+    if (executionMode != GPU_FAST)
         return;
 
-    size_t inDepth = kernals.getShape()[3];
-
-    im2ColKBuf = Tensor({kRows * kCols * inDepth, numKernals});
-    vector<float> &kColFlat = im2ColKBuf.getFlat();
-    const vector<float> kFlat = kernals.getFlat();
+    size_t inDepth = fastKernels.getShape()[0] / (kRows * kCols);
+    kernels = Tensor({numKernels, kRows, kCols, inDepth});
+    vector<float> &kFlat = kernels.getFlat();
+    const vector<float> &kColFlat = fastKernels.getFlat();
 
     #pragma omp parallel for collapse(4)
-    for (size_t o = 0; o < numKernals; o++) {
+    for (size_t o = 0; o < numKernels; o++) {
         for (size_t i = 0; i < kRows; i++) {
             for (size_t j = 0; j < kCols; j++) {
                 for (size_t d  = 0; d < inDepth; d++) {
@@ -137,20 +124,50 @@ void Conv2D::initFlatKernals() {
                     size_t row = (i * kCols + j) * inDepth + d;
                     size_t col = o;
 
-                    kColFlat[row * numKernals + col] = kFlat[kIdx];
+                    kFlat[kIdx] = kColFlat[row * numKernels + col];
+                }
+            }
+        }
+    }
+}
+
+void Conv2D::flattenKernels() {
+    if (executionMode != GPU_FAST || fastKernels.getSize() != 0) 
+        return;
+
+    size_t inDepth = kernels.getShape()[3];
+
+    fastKernels = Tensor({kRows * kCols * inDepth, numKernels});
+    vector<float> &kColFlat = fastKernels.getFlat();
+    const vector<float> kFlat = kernels.getFlat();
+
+    #pragma omp parallel for collapse(4)
+    for (size_t o = 0; o < numKernels; o++) {
+        for (size_t i = 0; i < kRows; i++) {
+            for (size_t j = 0; j < kCols; j++) {
+                for (size_t d  = 0; d < inDepth; d++) {
+                    size_t kIdx = ((o * kRows + i) * kCols + j) * inDepth + d;
+                    size_t row = (i * kCols + j) * inDepth + d;
+                    size_t col = o;
+
+                    kColFlat[row * numKernels + col] = kFlat[kIdx];
                 }
             }
         }
     }
 
-    kernals = Tensor();
+    kernels = Tensor();
 }
 
-void Conv2D::initKernals() {
-    const vector<size_t> &kernalsShape = kernals.getShape();
-    size_t size = kernals.getSize();
-    float std = sqrt(2.0/(kernalsShape[1] * kernalsShape[2] * kernalsShape[3]));
-    vector<float> &kernalsFlat = kernals.getFlat();
+void Conv2D::initKernels(size_t inDepth) {
+    if (kernels.getSize() != 0 || fastKernels.getSize() != 0)
+        return;
+
+    kernels = Tensor({numKernels, kRows, kCols, inDepth});
+    const vector<size_t> &kernelsShape = kernels.getShape();
+    size_t size = kernels.getSize();
+    float std = sqrt(2.0/(kernelsShape[1] * kernelsShape[2] * kernelsShape[3]));
+    vector<float> &kernelsFlat = kernels.getFlat();
     vector<uint32_t> seeds = generateThreadSeeds();
 
     #pragma omp parallel
@@ -161,46 +178,48 @@ void Conv2D::initKernals() {
 
         #pragma omp for
         for (size_t i = 0; i < size; i++) {
-            kernalsFlat[i] = distribution(generator);
+            kernelsFlat[i] = distribution(generator);
         }
     }
-    initFlatKernals();
+}
+
+void Conv2D::initBiases() {
+    if (biases.getSize() !=  0)
+        return;
+
+    biases = activation->initBias(numKernels);
 }
 
 void Conv2D::initParams(size_t inDepth) {
-    if (isInitParams)
-        return;
-    
-    kernals = Tensor({numKernals, kRows, kCols, inDepth});
-    initKernals();
-    biases = activation->initBias(numKernals);
+    initKernels(inDepth);
+    flattenKernels();
+    initBiases();
     ensureGpu();
-    isInitParams = true;
 }
 
 void Conv2D::allocateForwardBuffers(size_t inRows, size_t inCols, size_t inDepth) {
     paddedInput = Tensor({getMaxBatchSize(), inRows + winIn.padRows, inCols + winIn.padCols, inDepth});
 
     if (executionMode != GPU_FAST) {
-        preActivations = Tensor({getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernals});
+        preActivations = Tensor({getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernels});
 
     } else {
         im2ColInBuf = Tensor({getMaxBatchSize() * winIn.outRows * winIn.outCols, kRows * kCols * inDepth});
-        preActTensorShape = {getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernals};
-        im2ColPreActShape = {getMaxBatchSize() * winIn.outRows * winIn.outCols, numKernals};
+        preActTensorShape = {getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernels};
+        im2ColPreActShape = {getMaxBatchSize() * winIn.outRows * winIn.outCols, numKernels};
     }
 
-    activations = Tensor({getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernals});
+    activations = Tensor({getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernels});
 }
 
 void Conv2D::allocateGradientBuffers(size_t inRows, size_t inCols, size_t inDepth) {
     if (executionMode == CPU) {
-        dB = Tensor({numKernals});
+        dB = Tensor({numKernels});
     }
     
     if (executionMode != GPU_FAST) {
-        dW = Tensor({numKernals, kRows, kCols, inDepth});
-        dA = Tensor({getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernals});
+        dW = Tensor({numKernels, kRows, kCols, inDepth});
+        dA = Tensor({getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernels});
     }
 
     dX = Tensor({getMaxBatchSize(), inRows, inCols, inDepth});
@@ -209,11 +228,13 @@ void Conv2D::allocateGradientBuffers(size_t inRows, size_t inCols, size_t inDept
 void Conv2D::build(const vector<size_t> &inShape, bool isInference) {
     checkBuildSize(inShape);
 
+    initExecutionMode(kRows, kCols);
+
     Layer::build(inShape);
     size_t inRows = inShape[1];
     size_t inCols = inShape[2];
     size_t inDepth = inShape[3];
-
+    
     winIn = Tensor({inShape}).computeInputWindow(kRows, kCols, padding, stride);
     allocateForwardBuffers(inRows, inCols, inDepth);
     allocateGradientBuffers(inRows, inCols, inDepth);
@@ -223,7 +244,7 @@ void Conv2D::build(const vector<size_t> &inShape, bool isInference) {
 
 vector<size_t> Conv2D::getBuildOutShape(const vector<size_t> &inShape) const {
     checkBuildSize(inShape);
-    return {getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernals};
+    return {getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernels};
 }
 
 void Conv2D::reShapeBatch(size_t currBatchSize) {
@@ -238,7 +259,7 @@ void Conv2D::reShapeBatch(size_t currBatchSize) {
     size_t inPadCols = inPadShape[2];
 
     paddedInput.reShapeInPlace({currBatchSize, inPadRows, inPadCols, inDepth});
-    activations.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernals});
+    activations.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
     dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});
 
     if (executionMode != GPU_FAST) {
@@ -246,14 +267,14 @@ void Conv2D::reShapeBatch(size_t currBatchSize) {
         size_t gradRows = gradShape[1];
         size_t gradCols = gradShape[2];
 
-        preActivations.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernals});
-        dA.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernals});
-        gradBuf.reShapeInPlace({currBatchSize, gradRows, gradCols, numKernals});
+        preActivations.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
+        dA.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
+        gradBuf.reShapeInPlace({currBatchSize, gradRows, gradCols, numKernels});
 
     } else {
         im2ColInBuf.reShapeInPlace({currBatchSize * winIn.outRows * winIn.outCols, kRows * kCols * inDepth});
-        im2ColPreActShape = {currBatchSize * winIn.outRows * winIn.outCols, numKernals};
-        preActTensorShape = {currBatchSize, winIn.outRows, winIn.outCols, numKernals};
+        im2ColPreActShape = {currBatchSize * winIn.outRows * winIn.outCols, numKernels};
+        preActTensorShape = {currBatchSize, winIn.outRows, winIn.outCols, numKernels};
         gradIm2ColBuf.reShapeInPlace(im2ColInBuf.getShape());
     }
 }
@@ -264,7 +285,7 @@ void Conv2D::forward(const Tensor &input) {
     }
 
     const Tensor &inputFwd = input.padIfNeeded(paddedInput, winIn, padding);
-    inputFwd.conv2dForward(kernals, stride, preActivations, biases);
+    inputFwd.conv2dForward(kernels, stride, preActivations, biases);
     activation->activate(preActivations, activations);
 }
 
@@ -280,15 +301,15 @@ void Conv2D::backprop(
     grad.hadamard(dA);
 
     const Tensor &inputBwd = input.padIfNeeded(paddedInput, winIn, padding);
-    inputBwd.conv2dWeights(grad, numKernals, kRows, kCols, stride, dW);
+    inputBwd.conv2dWeights(grad, numKernels, kRows, kCols, stride, dW);
     grad.reduceSumBias(dB);
 
-    kernals.applyGrad(dW, scaleFactor);
+    kernels.applyGrad(dW, scaleFactor);
     biases.applyGrad(dB, scaleFactor);
 
     if (!isFirstLayer) {
         grad.padAndUpsampleGrad(gradBuf, winGrad, stride);
-        gradBuf.conv2dInput(kernals, dX);
+        gradBuf.conv2dInput(kernels, dX);
     }
 }
 
@@ -300,40 +321,38 @@ Tensor& Conv2D::getOutputGradient() {
     return dX;
 }
 
-void Conv2D::writeBin(ofstream &modelBin) const {
-    const_cast<Conv2D*>(this)->ensureCpu();
-    
-    Layer::writeBin(modelBin);
+void Conv2D::syncBuffers() {
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            kernels.downloadFromGpu();
+            fastKernels.downloadFromGpu();
+            biases.downloadFromGpu();
+            unflattenKernels();
+        #endif
+    }
+}
 
+void Conv2D::writeBinInternal(ofstream &modelBin) const {
     uint32_t activationEncoding = activation->getEncoding();
     modelBin.write((char*) &activationEncoding, sizeof(uint32_t));
 
-    uint32_t numKernalsWrite = (uint32_t) numKernals;
+    uint32_t numKernelsWrite = (uint32_t) numKernels;
     uint32_t kRowsWrite = (uint32_t) kRows;
     uint32_t kColsWrite = (uint32_t) kCols;
     uint32_t inDepthWrite = (uint32_t) paddedInput.getShape()[3];
 
-    modelBin.write((char*) &numKernalsWrite, sizeof(uint32_t));
+    modelBin.write((char*) &numKernelsWrite, sizeof(uint32_t));
     modelBin.write((char*) &kRowsWrite, sizeof(uint32_t));
     modelBin.write((char*) &kColsWrite, sizeof(uint32_t));
     modelBin.write((char*) &inDepthWrite, sizeof(uint32_t));
-
-    uint32_t executionModeWrite = (uint32_t) executionMode;
-    modelBin.write((char*) &executionModeWrite, sizeof(uint32_t));
 
     uint32_t strideWrite = (uint32_t) stride;
     modelBin.write((char*) &strideWrite, sizeof(uint32_t));
     
     uint32_t paddingWrite = (uint32_t) padding;
     modelBin.write((char*) &paddingWrite, sizeof(uint32_t));
-
-
-    if (executionMode == GPU_FAST) {
-        modelBin.write((char*) im2ColKBuf.getFlat().data(), im2ColKBuf.getSize() * sizeof(float));
-    } else {
-        modelBin.write((char*) kernals.getFlat().data(), kernals.getSize() * sizeof(float));
-    }
-
+    
+    modelBin.write((char*) kernels.getFlat().data(), kernels.getSize() * sizeof(float));
     modelBin.write((char*) biases.getFlat().data(), biases.getSize() * sizeof(float));
 }
 
@@ -357,26 +376,20 @@ void Conv2D::loadActivation(ifstream &modelBin) {
 void Conv2D::loadFromBin(ifstream &modelBin) {
     loadActivation(modelBin);
 
-    uint32_t numKernalsRead;
+    uint32_t numKernelsRead;
     uint32_t kRowsRead;
     uint32_t kColsRead;
     uint32_t inDepthRead;
 
-    modelBin.read((char*) &numKernalsRead, sizeof(uint32_t));
+    modelBin.read((char*) &numKernelsRead, sizeof(uint32_t));
     modelBin.read((char*) &kRowsRead, sizeof(uint32_t));
     modelBin.read((char*) &kColsRead, sizeof(uint32_t));
     modelBin.read((char*) &inDepthRead, sizeof(uint32_t));
 
-    numKernals = numKernalsRead;
+    numKernels = numKernelsRead;
     kRows = kRowsRead;
     kCols = kColsRead;
     size_t inDepth = inDepthRead;
-
-    biases = Tensor({numKernals});
-
-    uint32_t executionModeRead;
-    modelBin.read((char*) &executionModeRead, sizeof(uint32_t));
-    executionMode = executionModeRead;
 
     uint32_t strideRead;
     modelBin.read((char*) &strideRead, sizeof(uint32_t));
@@ -386,17 +399,12 @@ void Conv2D::loadFromBin(ifstream &modelBin) {
     modelBin.read((char*) &paddingRead, sizeof(uint32_t));
     padding = (Tensor::Paddings) paddingRead;
 
-    if (executionMode == GPU_FAST) {
-        im2ColKBuf = Tensor({kRows * kCols * inDepth, numKernals});
-        modelBin.read((char*) im2ColKBuf.getFlat().data(), sizeof(float) * im2ColKBuf.getSize());
-    } else {
-        kernals = Tensor({numKernals, kRows, kCols, inDepth});
-        modelBin.read((char*) kernals.getFlat().data(), sizeof(float) * kernals.getSize());
-    }
-
-    modelBin.read((char*) biases.getFlat().data(), sizeof(float) * numKernals);
+    kernels = Tensor({numKernels, kRows, kCols, inDepth});
+    modelBin.read((char*) kernels.getFlat().data(), sizeof(float) * kernels.getSize());
+    
+    biases = Tensor({numKernels});
+    modelBin.read((char*) biases.getFlat().data(), sizeof(float) * numKernels);
     ensureGpu();
-    isInitParams = true;
 }
 
 Layer::Encodings Conv2D::getEncoding() const {
@@ -405,10 +413,10 @@ Layer::Encodings Conv2D::getEncoding() const {
 
 const Tensor& Conv2D::getWeights() const {
     if (executionMode == GPU_FAST) {
-        return im2ColKBuf;
+        return fastKernels;
     }
     
-    return kernals;
+    return kernels;
 }
 
 const Tensor& Conv2D::getBiases() const {

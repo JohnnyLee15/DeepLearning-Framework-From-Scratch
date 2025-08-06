@@ -26,6 +26,9 @@ class ImageData2D : public Data {
 
         // Methods
         void read(vector<RawImage>&, vector<float>&, const string&);
+        void scanDirectory(vector<string>&, vector<string>&, const string&) const;
+        void extractImages(vector<RawImage>&, const vector<string>&) const;
+        void extractLabels(vector<float>&, const vector<string>&);
 
     public:
         // Methods

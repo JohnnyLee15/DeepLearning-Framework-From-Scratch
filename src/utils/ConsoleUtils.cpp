@@ -89,8 +89,8 @@ string ConsoleUtils::centerText(const string& text, size_t width) {
 
 void ConsoleUtils::printTitle() {
     cout << TITLE_LINE << endl;
-    cout << centerText("🧠 MLP NEURAL NETWORK", WIDTH) << endl;
-    cout << centerText("Lightweight C++ Neural Network", WIDTH) << endl;
+    cout << centerText("🧠 C++ NEURAL NETWORK TOOLKIT", WIDTH) << endl;
+    cout << centerText("MLP & CNN For Classification & Regression", WIDTH) << endl;
     cout << TITLE_LINE << endl;
 }
 

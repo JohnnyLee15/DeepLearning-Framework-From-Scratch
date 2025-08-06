@@ -18,14 +18,14 @@ class Conv2D : public Layer {
         static const size_t CPU;
 
         // Instance Variables
-        size_t numKernals;
+        size_t numKernels;
         size_t kRows;
         size_t kCols;
 
         Tensor paddedInput;
         Tensor im2ColInBuf;
-        Tensor kernals;
-        Tensor im2ColKBuf;
+        Tensor kernels;
+        Tensor fastKernels;
         Tensor activations;
         Tensor preActivations;
         vector<size_t> im2ColPreActShape;
@@ -43,12 +43,13 @@ class Conv2D : public Layer {
         Activation *activation;
         Tensor::Paddings padding;
         size_t stride;
-        bool isInitParams;
         size_t executionMode;
 
         // Methods
-        void initKernals();
-        void initFlatKernals();
+        void initKernels(size_t);
+        void initBiases();
+        void flattenKernels();
+        void unflattenKernels();
         void initGradBuf();
         void initStride(size_t);
         void initParams(size_t);
@@ -58,10 +59,11 @@ class Conv2D : public Layer {
         void checkBuildSize(const vector<size_t>&) const;
 
         void ensureGpu();
-        void ensureCpu();
+        void syncBuffers() override;
 
         vector<uint32_t> generateThreadSeeds() const;
         void loadActivation(ifstream&);
+        void writeBinInternal(ofstream&) const override;
 
         void reShapeBatch(size_t);
 
@@ -82,7 +84,6 @@ class Conv2D : public Layer {
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
         Layer::Encodings getEncoding() const override;
 
-        void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
 
         const Tensor& getWeights() const override;

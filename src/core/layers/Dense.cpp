@@ -16,24 +16,15 @@
 const float Dense::HE_INT_GAIN = 2.0;
 
 Dense::Dense(size_t numNeurons,  Activation *activation) :
-    numNeurons(numNeurons), activation(activation), isInitParams(false) {}
+    numNeurons(numNeurons), activation(activation) {}
 
-Dense::Dense() : activation(nullptr), isInitParams(false) {}
+Dense::Dense() : activation(nullptr) {}
 
 void Dense::ensureGpu() {
     if (GpuEngine::isUsingGpu()) {
         #ifdef __APPLE__
             weights.uploadToGpu();
             biases.uploadToGpu();
-        #endif
-    }
-}
-
-void Dense::ensureCpu() {
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __APPLE__
-            weights.downloadFromGpu();
-            biases.downloadFromGpu();
         #endif
     }
 }
@@ -73,14 +64,15 @@ vector<uint32_t> Dense::generateThreadSeeds() const {
     return seeds;
 }
 
-void Dense::initWeights() {
-    size_t numRows = weights.M().getNumRows();
-    size_t numCols = weights.M().getNumCols();
+void Dense::initWeights(size_t weightsPerNeuron) {
+    if (weights.getSize() != 0)
+        return;
 
-    size_t size = numRows * numCols;
-    float std = sqrt(HE_INT_GAIN/numCols);
+    weights = Tensor({numNeurons, weightsPerNeuron});
+    float std = sqrt(HE_INT_GAIN/weightsPerNeuron);
     vector<float> &weightsFlat = weights.getFlat();
     vector<uint32_t> seeds = generateThreadSeeds();
+    size_t size = weights.getSize();
 
     #pragma omp parallel
     {
@@ -95,15 +87,17 @@ void Dense::initWeights() {
     }
 }
 
-void Dense::initParams(size_t weightsPerNeuron) {
-    if (isInitParams) 
+void Dense::initBiases() {
+    if (biases.getSize() != 0)
         return;
 
-    weights = Tensor({numNeurons, weightsPerNeuron});
-    initWeights();
     biases = activation->initBias(numNeurons);
+}
+
+void Dense::initParams(size_t weightsPerNeuron) {
+    initWeights(weightsPerNeuron);
+    initBiases();
     ensureGpu();
-    isInitParams = true;
 }
 
 
@@ -125,11 +119,16 @@ vector<size_t> Dense::getBuildOutShape(const vector<size_t> &inShape) const {
     return {getMaxBatchSize(), numNeurons};
 }
 
-void Dense::writeBin(ofstream& modelBin) const {
-    const_cast<Dense*>(this)->ensureCpu();
-    
-    Layer::writeBin(modelBin);
+void Dense::syncBuffers() {
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            weights.downloadFromGpu();
+            biases.downloadFromGpu();
+        #endif
+    }
+}
 
+void Dense::writeBinInternal(ofstream& modelBin) const {
     uint32_t activationEncoding = activation->getEncoding();
     modelBin.write((char*) &activationEncoding, sizeof(uint32_t));
 
@@ -180,8 +179,6 @@ void Dense::loadFromBin(ifstream &modelBin) {
     modelBin.read((char*) weights.getFlat().data(), numWeights * sizeof(float));
     modelBin.read((char*) biases.getFlat().data(), biases.getSize() * sizeof(float));
     ensureGpu();
-
-    isInitParams = true;
 }
 
 void Dense::reShapeBatch(size_t currBatchSize) {

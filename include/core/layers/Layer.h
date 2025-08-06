@@ -13,6 +13,9 @@ class Layer {
         // Instance Variables
         size_t maxBatchSize;
 
+        virtual void syncBuffers();
+        virtual void writeBinInternal(ofstream&) const = 0;
+
     public:
 
         // Enums
@@ -42,7 +45,7 @@ class Layer {
         virtual Encodings getEncoding() const = 0;
         size_t getMaxBatchSize() const;
         
-        virtual void writeBin(ofstream&) const;
+        virtual void writeBin(ofstream&);
         virtual void loadFromBin(ifstream&);
 
         virtual const Tensor& getWeights() const;

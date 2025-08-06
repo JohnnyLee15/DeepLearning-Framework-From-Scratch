@@ -120,9 +120,7 @@ Tensor& MaxPooling2D::getOutputGradient() {
     return dX;
 }
 
-void MaxPooling2D::writeBin(ofstream &modelBin) const {
-    Layer::writeBin(modelBin);
-
+void MaxPooling2D::writeBinInternal(ofstream &modelBin) const {
     uint32_t kRowsWrite = (uint32_t) kRows;
     uint32_t kColsWrite = (uint32_t) kCols;
 

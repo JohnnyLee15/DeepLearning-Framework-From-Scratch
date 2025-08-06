@@ -4,6 +4,7 @@
 #include "core/activations/Activation.h"
 #include "core/tensor/Matrix.h"
 #include "core/gpu/GpuEngine.h"
+#include <cstring>
 
 Batch::Batch(size_t numLayers, size_t batchSize) :
     batchSize(batchSize),
@@ -39,22 +40,21 @@ void Batch::setBatch(
     vector<size_t> batchShape = trainShape;
     batchShape[0] = batchSize;
     data = Tensor(batchShape);
-    size_t batchDims = batchShape.size();
-    size_t elementSize = 1;
-    for (size_t i = 1; i < batchDims; i++) {
-        elementSize *= batchShape[i];
-    }
+    
+    size_t elementSize = data.getSize() / batchSize;
 
     vector<float> &batchFlat = data.getFlat();
     vector<float> &targetsFlat = targets.getFlat();
     const vector<float> &trainFlat = train.getFlat();
+    
     #pragma omp parallel for
     for (size_t i = 0; i < batchSize; i++) {
         size_t rdIdx = indices[i];
-        for (size_t j = 0; j < elementSize; j++) {
-            batchFlat[i*elementSize + j] = trainFlat[rdIdx * elementSize + j];
-        }
-
+        memcpy(
+            batchFlat.data() + (i * elementSize), 
+            trainFlat.data() + (rdIdx * elementSize), 
+            elementSize * sizeof(float)
+        );
         targetsFlat[i] = trainLabels[rdIdx];
     }
     ensureGpu();

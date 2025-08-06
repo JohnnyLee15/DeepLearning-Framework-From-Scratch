@@ -33,6 +33,8 @@ class MaxPooling2D : public Layer {
 
         void reShapeBatch(size_t);
 
+        void writeBinInternal(ofstream&) const override;
+
     public:
         // Constructors
         MaxPooling2D(size_t, size_t, size_t, const string&);
@@ -50,7 +52,6 @@ class MaxPooling2D : public Layer {
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
         Layer::Encodings getEncoding() const override;
 
-        void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
 
         // GPU Interface

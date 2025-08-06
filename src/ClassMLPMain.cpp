@@ -36,57 +36,57 @@
 //         GpuEngine::init();
 //     #endif
 
-//     // // Data Reading
-//     // TabularData *data = new TabularData("classification");
-//     // data->readTrain("DataFiles/MNIST/mnist_train.csv", "label");
-//     // data->readTest("DataFiles/MNIST/mnist_test.csv", "label");
+//     // Data Reading
+//     TabularData *data = new TabularData("classification");
+//     data->readTrain("DataFiles/MNIST/mnist_train.csv", "label");
+//     data->readTest("DataFiles/MNIST/mnist_test.csv", "label");
 
-//     // Scalar *scalar = new Greyscale();
-//     // scalar->fit(data->getTrainFeatures());
+//     Scalar *scalar = new Greyscale();
+//     scalar->fit(data->getTrainFeatures());
     
-//     // Tensor xTrain = scalar->transform(data->getTrainFeatures());
-//     // const vector<float> &yTrain = data->getTrainTargets();
+//     Tensor xTrain = scalar->transform(data->getTrainFeatures());
+//     const vector<float> &yTrain = data->getTrainTargets();
 
-//     // Loss *loss = new SoftmaxCrossEntropy();
-//     // vector<Layer*> layers = {
-//     //     new Dense(256, new ReLU()),
-//     //     new Dense(128, new ReLU()),
-//     //     new Dense(10, new Softmax())
-//     // };
+//     Loss *loss = new SoftmaxCrossEntropy();
+//     vector<Layer*> layers = {
+//         new Dense(256, new ReLU()),
+//         new Dense(128, new ReLU()),
+//         new Dense(10, new Softmax())
+//     };
 
-//     // NeuralNet *nn = new NeuralNet(layers, loss);
-//     // ProgressMetric *metric = new ProgressAccuracy(data->getNumTrainSamples());
+//     NeuralNet *nn = new NeuralNet(layers, loss);
+//     ProgressMetric *metric = new ProgressAccuracy(data->getNumTrainSamples());
 
-//     // nn->fit(
-//     //     xTrain,
-//     //     yTrain,
-//     //     0.01,
-//     //     0.01,
-//     //     2,
-//     //     32,
-//     //     *metric
-//     // );
+//     nn->fit(
+//         xTrain,
+//         yTrain,
+//         0.01,
+//         0.01,
+//         5,
+//         32,
+//         *metric
+//     );
 
-//     // Pipeline pipe;
-//     // pipe.setData(data);
-//     // pipe.setFeatureScalar(scalar);
-//     // pipe.setModel(nn);
+//     Pipeline pipe;
+//     pipe.setData(data);
+//     pipe.setFeatureScalar(scalar);
+//     pipe.setModel(nn);
 
-//     // pipe.saveToBin("model");
+//     pipe.saveToBin("modelMLP");
 
-//     // Tensor xTest = scalar->transform(data->getTestFeatures());
-//     // const vector<float> &yTest = data->getTestTargets();
+//     Tensor xTest = scalar->transform(data->getTestFeatures());
+//     const vector<float> &yTest = data->getTestTargets();
 
 
-//     Pipeline pipe = Pipeline::loadFromBin("model");
-//     NeuralNet *nn = pipe.getModel();
-//     TabularData data = *dynamic_cast<TabularData*>(pipe.getData());
-//     Scalar *scalar = pipe.getFeatureScalar();
+//     // Pipeline pipe = Pipeline::loadFromBin("model");
+//     // NeuralNet *nn = pipe.getModel();
+//     // TabularData data = *dynamic_cast<TabularData*>(pipe.getData());
+//     // Scalar *scalar = pipe.getFeatureScalar();
     
-//     data.readTest("DataFiles/MNIST/mnist_test.csv", "label");
+//     // data.readTest("DataFiles/MNIST/mnist_test.csv", "label");
 
-//     Tensor xTest = scalar->transform(data.getTestFeatures());
-//     vector<float> yTest = data.getTestTargets();
+//     // Tensor xTest = scalar->transform(data.getTestFeatures());
+//     // vector<float> yTest = data.getTestTargets();
 
 //     Tensor output = nn->predict(xTest);
 //     vector<float> predictions = TrainingUtils::getPredictions(output);

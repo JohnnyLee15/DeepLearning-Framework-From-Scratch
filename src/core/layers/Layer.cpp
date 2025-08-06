@@ -3,9 +3,14 @@
 
 Layer::Layer() : maxBatchSize(0) {}
 
-void Layer::writeBin(ofstream &modelBin) const {
+void Layer::syncBuffers() {}
+
+void Layer::writeBin(ofstream &modelBin) {
     uint32_t layerEncoding = getEncoding();
     modelBin.write((char*) &layerEncoding, sizeof(uint32_t));
+    
+    syncBuffers();
+    writeBinInternal(modelBin);
 }
 
 void Layer::loadFromBin(ifstream &modeBin) {}

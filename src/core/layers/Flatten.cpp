@@ -65,6 +65,8 @@ vector<size_t> Flatten::getBuildOutShape(const vector<size_t> &givenShape) const
     return outShape;
 }
 
+void Flatten::writeBinInternal(ofstream &modelBin) const {}
+
 Layer::Encodings Flatten::getEncoding() const {
     return Layer::Encodings::Flatten;
 }

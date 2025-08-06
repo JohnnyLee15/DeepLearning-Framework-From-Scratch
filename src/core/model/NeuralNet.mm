@@ -3,9 +3,9 @@
 #include "core/losses/Loss.h"
 #include "core/gpu/GpuEngine.h"
 
-void NeuralNet::fitBatchGpu(Batch &batch, float learningRate) {
+void NeuralNet::fitBatchGpu(const Batch &batch, float learningRate) {
     id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue() commandBuffer];
-    forwardPassGpu(batch, (GpuCommandBuffer) cmdBuf);
+    forwardPassGpu(batch.getData(), (GpuCommandBuffer) cmdBuf);
     backpropGpu(batch, learningRate, (GpuCommandBuffer) cmdBuf);
     [cmdBuf commit];
     [cmdBuf waitUntilCompleted];
@@ -13,8 +13,8 @@ void NeuralNet::fitBatchGpu(Batch &batch, float learningRate) {
     layers.back()->downloadOutputFromGpu();
 }
 
-void NeuralNet::forwardPassGpu(Batch &batch, GpuCommandBuffer cmdBuf) {
-    const Tensor *prevActivations = &batch.getData();
+void NeuralNet::forwardPassGpu(const Tensor &batch, GpuCommandBuffer cmdBuf) {
+    const Tensor *prevActivations = &batch;
     size_t numLayers = layers.size();
 
     for (size_t j = 0; j < numLayers; j++) {
@@ -23,7 +23,7 @@ void NeuralNet::forwardPassGpu(Batch &batch, GpuCommandBuffer cmdBuf) {
     }
 }
 
-void NeuralNet::backpropGpu(Batch &batch, float learningRate, GpuCommandBuffer cmdBuf) {
+void NeuralNet::backpropGpu(const Batch &batch, float learningRate, GpuCommandBuffer cmdBuf) {
     if (batch.getSize() != dL.getShape()[0]) {
         reShapeDL(batch.getSize());
     }
@@ -44,22 +44,15 @@ void NeuralNet::backpropGpu(Batch &batch, float learningRate, GpuCommandBuffer c
     }
 }
 
-void NeuralNet::forwardPassInferenceGpu(const Tensor& data) {
-    Tensor dataCopy = data;
-    dataCopy.uploadToGpu();
-    const Tensor *prevActivations = &dataCopy;
-
-    size_t numLayers = layers.size();
+void NeuralNet::forwardPassGpuSync(const Tensor& batch) {
+    Tensor batchCopy = batch;
+    batchCopy.uploadToGpu();
+    
     id<MTLCommandBuffer> cmdBuf = [GpuEngine::getCmdQueue() commandBuffer];
-
-    for (size_t j = 0; j < numLayers; j++) { 
-        layers[j]->forwardGpu(*prevActivations, (GpuCommandBuffer) cmdBuf);
-        prevActivations = &layers[j]->getOutput();
-    }
+    forwardPassGpu(batchCopy, (GpuCommandBuffer) cmdBuf);
 
     [cmdBuf commit];
     [cmdBuf waitUntilCompleted];
-
     layers.back()->downloadOutputFromGpu();
 }
 

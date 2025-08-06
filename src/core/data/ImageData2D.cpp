@@ -5,58 +5,87 @@
 #include "core/data/ImageData2D.h"
 #include "utils/TargetEncoder.h"
 #include "utils/ConsoleUtils.h"
+#include <iostream>
+#include "utils/CsvUtils.h"
 
 using namespace std;
 namespace fs = filesystem;
+
+void ImageData2D::scanDirectory(
+    vector<string> &paths,
+    vector<string> &labels,
+    const string &path
+) const {
+    ConsoleUtils::loadMessage("Scanning Image Directories.");
+    for (const auto &labelDir : fs::directory_iterator(path)) {
+        string label = labelDir.path().filename().string();
+        for (const auto &image : fs::directory_iterator(labelDir.path())) {
+            string imgPath = image.path().string();
+            paths.push_back(imgPath);
+            labels.push_back(label);
+        }
+    }
+    ConsoleUtils::completeMessage();
+}
+
+void ImageData2D::extractImages(vector<RawImage> &features, const vector<string> &paths) const{
+    ConsoleUtils::loadMessage("Extracting Images.");
+    features.reserve(paths.size());
+    for (const string &imgPath : paths) {
+        int w, h, c;
+        unsigned char *input = stbi_load(
+            imgPath.c_str(),
+            &w, &h, &c,
+            0
+        );
+
+        if (!input) {
+            ConsoleUtils::fatalError("Could not load image: " + imgPath);
+        }
+
+        RawImage rawImage;
+        rawImage.width = w;
+        rawImage.height = h;
+        rawImage.channels = c;
+        rawImage.pixels.assign(input, input + (w*h*c));
+
+        features.push_back(rawImage);
+
+        stbi_image_free(input);
+    }
+    ConsoleUtils::completeMessage();
+}
+
+void ImageData2D::extractLabels(vector<float> &targets, const vector<string> &labels) {
+    ConsoleUtils::loadMessage("Extracting Targets.");
+    if (labelMap.empty()) {
+        labelMap = TargetEncoder::createLabelMap(labels);
+    }
+
+    targets = TargetEncoder::getClassificationTarget(labels, labelMap);
+    ConsoleUtils::completeMessage();
+}
 
 void ImageData2D::read(
     vector<RawImage> &features, 
     vector<float> &targets, 
     const string &path
 ) {
-    vector<string> rawTargets;
-
-    for (const auto &labelDir : fs::directory_iterator(path)) {
-        string label = labelDir.path().filename().string();
-        for (const auto &image : fs::directory_iterator(labelDir.path())) {
-            string imgPath = image.path().string();
-
-            int w, h, c;
-            unsigned char *input = stbi_load(
-                imgPath.c_str(),
-                &w, &h, &c,
-                0
-            );
-
-            if (!input) {
-                ConsoleUtils::fatalError("Could not load image: " + imgPath);
-            }
-
-            RawImage rawImage;
-            rawImage.width = w;
-            rawImage.height = h;
-            rawImage.channels = c;
-            rawImage.pixels.assign(input, input + (w*h*c));
-
-            features.push_back(rawImage);
-            rawTargets.push_back(label);
-
-            stbi_image_free(input);
-        }
-    }
-
-    if (labelMap.empty()) {
-        labelMap = TargetEncoder::createLabelMap(rawTargets);
-    }
-
-    targets = TargetEncoder::getClassificationTarget(rawTargets, labelMap);
+    vector<string> paths;
+    vector<string> labels;
+    scanDirectory(paths, labels, path);
+    extractImages(features, paths);
+    extractLabels(targets, labels);
+    ConsoleUtils::printSepLine();
 }
 
 void ImageData2D::readTrain(const string &path) {
+    cout << endl << "📥 Loading training data from: \"" << CsvUtils::trimFilePath(path) << "\"." << endl;
     read(trainFeatures, trainTargets, path);
 }
 
 void ImageData2D::readTest(const string &path) {
+    cout << endl << "📥 Loading testing data from: \"" << CsvUtils::trimFilePath(path) << "\"." << endl;
     read(testFeatures, testTargets, path);
 }
 

@@ -15,6 +15,9 @@
 #include "core/layers/MaxPooling2D.h"
 #include "core/layers/Flatten.h"
 #include "core/gpu/GpuEngine.h"
+#include <cstring>
+
+const size_t NeuralNet::INFERENCE_BATCH_SIZE = 128;
 
 random_device NeuralNet::rd;
 mt19937 NeuralNet::generator(NeuralNet::rd());
@@ -89,13 +92,13 @@ float NeuralNet::runEpoch(
     return metric.getTotalLoss()/targets.size();
 }
 
-void NeuralNet::fitBatch(Batch &batch, float learningRate) {
+void NeuralNet::fitBatch(const Batch &batch, float learningRate) {
     if (GpuEngine::isUsingGpu()) {
         #ifdef __APPLE__
             fitBatchGpu(batch, learningRate);
         #endif
     } else {
-        forwardPass(batch);
+        forwardPass(batch.getData());
         backprop(batch, learningRate);
     }
 }
@@ -115,8 +118,8 @@ Batch NeuralNet::makeBatch(
     return batch;
 }
 
-void NeuralNet::forwardPass(Batch &batch) {
-    const Tensor *prevActivations = &batch.getData();
+void NeuralNet::forwardPass(const Tensor &batch) {
+    const Tensor *prevActivations = &batch;
     size_t numLayers = layers.size();
 
     for (size_t j = 0; j < numLayers; j++) {
@@ -131,7 +134,7 @@ void NeuralNet::reShapeDL(size_t currBatchSize) {
     dL.reShapeInPlace(lossShape);
 }
 
-void NeuralNet::backprop(Batch &batch, float learningRate) {
+void NeuralNet::backprop(const Batch &batch, float learningRate) {
     if (batch.getSize() != dL.getShape()[0]) {
         reShapeDL(batch.getSize());
     }
@@ -152,26 +155,73 @@ void NeuralNet::backprop(Batch &batch, float learningRate) {
     }
 }
 
-Tensor NeuralNet::predict(const Tensor &features) {
-    build(features.getShape()[0], features, true);
-    if (GpuEngine::isUsingGpu()) {
-        #ifdef __APPLE__
-            forwardPassInferenceGpu(features);
-        #endif
-    } else {
-        forwardPassInference(features);
-    }
-    return layers.back()->getOutput();
+Tensor NeuralNet::makeInferenceBatch(
+    size_t start,
+    size_t batchSize,
+    size_t sampleFloats,
+    const Tensor &features
+) const {
+    vector<size_t> batchShape = features.getShape();
+    batchShape[0] = batchSize;
+    Tensor batch = Tensor(batchShape);
+
+    size_t sampleStartFloat = start * sampleFloats;
+    size_t bytes = batchSize * sampleFloats * sizeof(float);
+    memcpy(batch.getFlat().data(), features.getFlat().data() + sampleStartFloat, bytes);
+
+    return batch;
 }
 
-void NeuralNet::forwardPassInference(const Tensor& data) {
-    const Tensor *prevActivations = &data;
-    size_t numLayers = layers.size();
-    
-    for (size_t j = 0; j < numLayers; j++) { 
-        layers[j]->forward(*prevActivations);
-        prevActivations = &layers[j]->getOutput();
+void NeuralNet::forwardPassInference(const Tensor &batch) {
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            forwardPassGpuSync(batch);
+        #endif
+    } else {
+        forwardPass(batch);
     }
+}
+
+void NeuralNet::cpyBatchToOutput(
+    size_t start,
+    size_t batchSize,
+    size_t batchIdx,
+    size_t numSamples,
+    const Tensor &batch,
+    Tensor &output
+) const {
+    const Tensor &endLayerOutput = layers.back()->getOutput();
+    if (batchIdx == 0){
+        vector<size_t> outputShape = endLayerOutput.getShape();
+        outputShape[0] = numSamples;
+        output = Tensor(outputShape);
+    }
+
+    size_t outputFloats = endLayerOutput.getSize() / batchSize;
+    size_t outputStartFloat = start * outputFloats;
+    size_t outBytes = batchSize * outputFloats * sizeof(float);
+    memcpy(output.getFlat().data() + (outputStartFloat), endLayerOutput.getFlat().data(), outBytes);
+}
+
+Tensor NeuralNet::predict(const Tensor &features) {
+    build(INFERENCE_BATCH_SIZE, features, true);
+
+    size_t numSamples = features.getShape()[0];
+    size_t numBatches = (numSamples + INFERENCE_BATCH_SIZE - 1) / INFERENCE_BATCH_SIZE;
+    size_t sampleFloats = features.getSize() / numSamples;
+
+    Tensor output;
+    for (size_t i = 0; i < numBatches; i++) {
+        size_t start = i * INFERENCE_BATCH_SIZE;
+        size_t end = min((i + 1) * INFERENCE_BATCH_SIZE, numSamples);
+        size_t batchSize = end - start;
+
+        Tensor batch = makeInferenceBatch(start, batchSize, sampleFloats, features);
+        forwardPassInference(batch);
+        cpyBatchToOutput(start, batchSize, i, numSamples, batch, output);
+    }
+
+    return output;
 }
 
 vector<size_t> NeuralNet::generateShuffledIndices(const Tensor &features) const {

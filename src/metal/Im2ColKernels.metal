@@ -114,7 +114,7 @@ kernel void addBiasApplyReLUIm2Col(
     device float *z [[ buffer (0) ]],
     device float *a [[ buffer (1) ]],
     constant float *biases [[ buffer(2) ]],
-    constant uint &numKernals [[ buffer(3) ]],
+    constant uint &numKernels [[ buffer(3) ]],
     constant uint &size [[ buffer(4) ]],
     constant uint &gridWidth [[ buffer(5 )]],
     uint gid [[ thread_position_in_grid ]]
@@ -122,27 +122,27 @@ kernel void addBiasApplyReLUIm2Col(
     uint idx = gid;
 
     if (idx >= size) return;
-    float v0 = z[idx] + biases[idx % numKernals];
+    float v0 = z[idx] + biases[idx % numKernels];
     z[idx] = v0;
     a[idx] = max(v0, 0.0f);
 
     idx += gridWidth; 
     if (idx >= size) return;
-    float v1 = z[idx] + biases[(idx) % numKernals];
+    float v1 = z[idx] + biases[(idx) % numKernels];
     z[idx] = v1;
     a[idx] = max(v1, 0.0f);
 
 
     idx += gridWidth; 
     if (idx >= size) return;
-    float v2 = z[idx] + biases[(idx) % numKernals];
+    float v2 = z[idx] + biases[(idx) % numKernels];
     z[idx] = v2;
     a[idx] = max(v2, 0.0f);
 
  
     idx += gridWidth; 
     if (idx >= size) return;
-    float v3 = z[idx] + biases[(idx) % numKernals];
+    float v3 = z[idx] + biases[(idx) % numKernels];
     z[idx] = v3;
     a[idx] = max(v3, 0.0f);
 }

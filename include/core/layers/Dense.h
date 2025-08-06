@@ -26,18 +26,19 @@ class Dense : public Layer {
         Tensor biases;
 
         Activation *activation;
-        bool isInitParams;
         
         // Methods
-        void initWeights();
+        void initBiases();
+        void initWeights(size_t);
         void initParams(size_t);
         void checkBuildSize(const vector<size_t>&) const;
         
         void ensureGpu();
-        void ensureCpu();
+        void syncBuffers() override;
 
         vector<uint32_t> generateThreadSeeds() const;
         void loadActivation(ifstream&);
+        void writeBinInternal(ofstream&) const override;
 
         void reShapeBatch(size_t);
         
@@ -63,7 +64,6 @@ class Dense : public Layer {
         Layer::Encodings getEncoding() const override;
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
 
-        void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
 
         // GPU Interface
