@@ -1,3 +1,4 @@
 DataFiles/
 **/.DS_Store
 .vscode
+*.o
