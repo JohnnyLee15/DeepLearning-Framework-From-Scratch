@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #ifdef __OBJC__
     #import <Metal/Metal.h> 
 #endif
@@ -16,6 +18,7 @@ class MetalBuffer {
         MetalBuffer();
         MetalBuffer(const void*, size_t);
         MetalBuffer(size_t);
+        MetalBuffer(const MetalBuffer&);
 
         // Destructor
         ~MetalBuffer();

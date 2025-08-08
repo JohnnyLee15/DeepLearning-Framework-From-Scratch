@@ -208,3 +208,7 @@ void Minmax::loadFromBin(ifstream &modelBin) {
 uint32_t Minmax::getEncoding() const {
     return Scalar::Encodings::Minmax;
 }
+
+Scalar* Minmax::clone() const {
+    return new Minmax(*this);
+}

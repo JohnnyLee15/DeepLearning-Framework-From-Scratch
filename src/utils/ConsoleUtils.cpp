@@ -98,7 +98,11 @@ void ConsoleUtils::printSepLine() {
     cout << SEP_LINE << endl;
 }
 
-void ConsoleUtils::printSuccess(const string &message) {
+void ConsoleUtils::printSuccess(const string &message, bool newLine) {
+    if (newLine) {
+        cout << endl;
+    }
+    
     cout << "[" << GREEN << COMPLETE << RESET_COLOUR << "] " << message << endl;
 }
 

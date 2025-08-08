@@ -25,9 +25,7 @@ void Conv2D::forwardGpu(const Tensor &input, GpuCommandBuffer cmdBufVoid) {
 void Conv2D::forwardGpuFast(const Tensor &input, GpuCommandBuffer cmdBufVoid) {
     id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>)cmdBufVoid;
     Im2ColUtils::im2Col(input, im2ColInBuf, kRows, kCols, stride, winIn, cmdBuf);
-    preActivations.reShapeInPlace(im2ColPreActShape);
     im2ColInBuf.M().mmBiasReLU(fastKernels, activations, biases, cmdBuf);
-    preActivations.reShapeInPlace(preActTensorShape);
 }
 
 void Conv2D::forwardGpuNaive(const Tensor &input, GpuCommandBuffer cmdBufVoid) {

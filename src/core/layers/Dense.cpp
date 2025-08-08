@@ -20,6 +20,19 @@ Dense::Dense(size_t numNeurons,  Activation *activation) :
 
 Dense::Dense() : activation(nullptr) {}
 
+Dense::Dense(const Dense& other)
+    : numNeurons(other.numNeurons),
+      activations(other.activations),
+      preActivations(other.preActivations),
+      weights(other.weights),
+      dB(other.dB),
+      dW(other.dW),
+      dX(other.dX),
+      dA(other.dA),
+      biases(other.biases),
+      activation(other.activation ? other.activation->clone() : nullptr)
+{}
+
 void Dense::ensureGpu() {
     if (GpuEngine::isUsingGpu()) {
         #ifdef __APPLE__
@@ -51,6 +64,16 @@ void Dense::allocateGradientBuffers(size_t weightsPerNeuron, bool isInference) {
     dW = Tensor({numNeurons, weightsPerNeuron});
     dX = Tensor({getMaxBatchSize(), weightsPerNeuron});
     dA = Tensor({getMaxBatchSize(), numNeurons});
+}
+
+void Dense::deallocateGradientBuffers(bool isInference) {
+    if (!isInference)
+        return;
+
+    dB = Tensor();
+    dW = Tensor();
+    dA = Tensor();
+    dX = Tensor();
 }
 
 vector<uint32_t> Dense::generateThreadSeeds() const {
@@ -94,7 +117,10 @@ void Dense::initBiases() {
     biases = activation->initBias(numNeurons);
 }
 
-void Dense::initParams(size_t weightsPerNeuron) {
+void Dense::initParams(size_t weightsPerNeuron, bool isInference) {
+    if (isInference)
+        return;
+
     initWeights(weightsPerNeuron);
     initBiases();
     ensureGpu();
@@ -110,7 +136,8 @@ void Dense::build(const vector<size_t> &inShape, bool isInference) {
 
     allocateForwardBuffers();
     allocateGradientBuffers(weightsPerNeuron, isInference);
-    initParams(weightsPerNeuron);
+    initParams(weightsPerNeuron, isInference);
+    deallocateGradientBuffers(isInference);
 }
 
 
@@ -243,4 +270,8 @@ Dense::~Dense() {
 
 Layer::Encodings Dense::getEncoding() const {
     return Layer::Encodings::Dense;
+}
+
+Layer* Dense::clone() const {
+    return new Dense(*this);
 }

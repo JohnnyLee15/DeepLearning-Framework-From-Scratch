@@ -69,10 +69,12 @@ class GpuEngine {
         static bool isUsingGpu();
         static void disableGpu();
         static void enableGpu();
+        static void init();
 
         #ifdef __APPLE__
-            static void init();
+            static void initInternal();
         #endif
+
 
         #ifdef __OBJC__
             static id<MTLDevice> getGpuDevice();

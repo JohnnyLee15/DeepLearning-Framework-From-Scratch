@@ -73,15 +73,15 @@
 
 //     for (size_t t = 0; t < 10; t++) {
 //         //–– 1) Setup a conv layer (same as forward test)
-//         size_t kH     = 8, kW     = 3;
+//         size_t kH     = 1, kW     = 2;
 //         vector<size_t> inShape = {N, H, W, C_in};
 
 //         GpuEngine::disableGpu();
-//         Conv2D cpuLayer(C_out, kH, kW, stride, "Same", new ReLU());
+//         Conv2D cpuLayer(C_out, kH, kW, stride, "None", new ReLU());
 //         cpuLayer.build(inShape);
 
 //         GpuEngine::enableGpu();
-//         Conv2D gpuLayer(C_out, kH, kW, stride, "same", new ReLU());
+//         Conv2D gpuLayer(C_out, kH, kW, stride, "None", new ReLU());
 //         gpuLayer.build(inShape);
 
 //         //–– 2) Random input and upstream gradient
@@ -144,8 +144,8 @@
 // }
 
 // void test() {
-//     testConv2DBackpropCompare(1,   1,   1,   1,   1,   2);
-//     testConv2DBackpropCompare(1,   1,   1,   1,   1,   2);
+//     testConv2DBackpropCompare(1,   1,   2,   1,   1,   2);
+//     testConv2DBackpropCompare(1,   1,   2,   1,   1,   2);
 //     testConv2DBackpropCompare(1,   2,   2,   1,   1,   2);
 //     testConv2DBackpropCompare(1,   2,   2,   1,   1,   2);
 //     testConv2DBackpropCompare(2,   5,   5,   1,   1,   2);

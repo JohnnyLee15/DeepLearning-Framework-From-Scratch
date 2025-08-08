@@ -28,4 +28,6 @@ class Data {
 
         virtual void writeBin(ofstream&) const;
         virtual void loadFromBin(ifstream&) = 0;
+
+        virtual Data* clone() const = 0;
 };

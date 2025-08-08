@@ -17,5 +17,7 @@ class Greyscale : public Scalar {
         vector<float> reverseTransform(const vector<float>&) const override;
 
         uint32_t getEncoding() const override;
+
+        Scalar* clone() const override;
 };
 

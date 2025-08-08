@@ -28,6 +28,6 @@ void Flatten::backpropGpu(
     (void)isFirstLayer;
 
     id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>) cmdBufVoid;
-    grad.copyGpu(dX,cmdBuf);
+    grad.copyGpu(dX, cmdBuf);
     dX.reShapeInPlace(inShape);
 }

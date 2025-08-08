@@ -28,16 +28,19 @@ void MaxPooling2D::build(const vector<size_t> &inShape, bool isInference) {
 
     Layer::build(inShape);
 
-    size_t batchSize = inShape[0];
     size_t inRows = inShape[1];
     size_t inCols = inShape[2];
     size_t inDepth = inShape[3];
 
     winIn = Tensor({inShape}).computeInputWindow(kRows, kCols, padding, stride);
 
-    paddedInput = Tensor({batchSize, inRows + winIn.padRows, inCols + winIn.padCols, inDepth});
-    pooledOutput = Tensor({batchSize, winIn.outRows, winIn.outCols, inDepth});
-    dX = Tensor(inShape);
+    paddedInput = Tensor({getMaxBatchSize(), inRows + winIn.padRows, inCols + winIn.padCols, inDepth});
+    pooledOutput = Tensor({getMaxBatchSize(), winIn.outRows, winIn.outCols, inDepth});
+
+    if (!isInference) {
+        dX = Tensor({getMaxBatchSize(), inRows, inCols, inDepth});
+    }
+    
     initMaxIndices();
 }
 
@@ -72,22 +75,24 @@ vector<size_t> MaxPooling2D::getBuildOutShape(const vector<size_t> &inShape) con
 
 void MaxPooling2D::reShapeBatch(size_t currBatchSize) {
     vector<size_t> outShape = pooledOutput.getShape();
-    vector<size_t> inShape = dX.getShape();
     vector<size_t> inPadShape = paddedInput.getShape();
 
     size_t outRows = outShape[1];
     size_t outCols = outShape[2];
 
-    size_t inRows = inShape[1];
-    size_t inCols = inShape[2];
-    size_t inDepth = inShape[3];
-
     size_t inPadRows = inPadShape[1];
     size_t inPadCols = inPadShape[2];
+    size_t inDepth = inPadShape[3];
 
     paddedInput.reShapeInPlace({currBatchSize, inPadRows, inPadCols, inDepth});
     pooledOutput.reShapeInPlace({currBatchSize, outRows, outCols, inDepth});
-    dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});
+
+    if (dX.getSize() > 0) {
+        vector<size_t> inShape = dX.getShape();
+        size_t inRows = inShape[1];
+        size_t inCols = inShape[2];
+        dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});
+    }
 }
 
 void MaxPooling2D::forward(const Tensor &input) {
@@ -96,8 +101,8 @@ void MaxPooling2D::forward(const Tensor &input) {
         reShapeBatch(input.getShape()[0]);
     }
 
-    const Tensor &inputFwd = input.padIfNeeded(paddedInput, winIn, padding, -numeric_limits<float>::max());
-    inputFwd.maxPool2d(maxIndices, kRows, kCols, stride, pooledOutput);
+    const Tensor &inputFwd = input.padIfNeeded(paddedInput, winIn, padding, numeric_limits<float>::lowest());
+    inputFwd.maxPool2d(maxIndices, kRows, kCols, stride, pooledOutput, winIn);
 }
 
 void MaxPooling2D::backprop(
@@ -156,4 +161,8 @@ void MaxPooling2D::loadFromBin(ifstream &modelBin) {
 
 Layer::Encodings MaxPooling2D::getEncoding() const {
     return Layer::Encodings::MaxPooling2D;
+}
+
+Layer* MaxPooling2D::clone() const {
+    return new MaxPooling2D(*this);
 }

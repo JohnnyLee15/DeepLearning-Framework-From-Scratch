@@ -16,7 +16,17 @@ Pipeline::Pipeline() :
     targetScalar(nullptr), 
     model(nullptr),
     imageTransformer(nullptr),
-    isLoadedPipeline(false) {}
+    isLoadedPipeline(false) 
+{}
+
+Pipeline::Pipeline(const Pipeline &other) 
+    : data(other.data ? other.data->clone() : nullptr),
+      featureScalar(other.featureScalar ? other.featureScalar->clone() : nullptr),
+      targetScalar(other.targetScalar ? other.targetScalar->clone() : nullptr),
+      model(other.model ? other.model->clone() : nullptr),
+      imageTransformer(other.imageTransformer ? other.imageTransformer->clone() : nullptr),
+      isLoadedPipeline(other.isLoadedPipeline)
+{}
 
 Pipeline::~Pipeline() {
     delete model;

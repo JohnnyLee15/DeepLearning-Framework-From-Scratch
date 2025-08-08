@@ -4,8 +4,8 @@
 #include "core/tensor/Tensor.h"
 
 class Im2ColUtils{
-   
     public:
+        // Methods
         static size_t getGpuFastSize();
         static size_t getTileSize();
 

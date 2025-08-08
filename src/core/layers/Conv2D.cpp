@@ -27,6 +27,33 @@ Conv2D::Conv2D(
 
 Conv2D::Conv2D() : activation(nullptr) {}
 
+Conv2D::Conv2D(const Conv2D &other) 
+    : numKernels(other.numKernels),
+      kRows(other.kRows),
+      kCols(other.kCols),
+      paddedInput(other.paddedInput),
+      im2ColInBuf(other.im2ColInBuf),
+      kernels(other.kernels),
+      fastKernels(other.fastKernels),
+      activations(other.activations),
+      preActivations(other.preActivations),
+      im2ColPreActShape(other.im2ColPreActShape),
+      preActTensorShape(other.preActTensorShape),
+      dB(other.dB),
+      dW(other.dW),
+      dA(other.dA),
+      dX(other.dX),
+      gradIm2ColBuf(other.gradIm2ColBuf),
+      gradBuf(other.gradBuf),
+      biases(other.biases),
+      winIn(other.winIn),
+      winGrad(other.winGrad),
+      activation(other.activation ? other.activation->clone() : nullptr),
+      padding(other.padding),
+      stride(other.stride),
+      executionMode(other.executionMode) 
+{}
+
 void Conv2D::initStride(size_t strideIn) {
     if (strideIn == 0) {
         ConsoleUtils::fatalError(
@@ -70,7 +97,10 @@ void Conv2D::checkBuildSize(const vector<size_t> &inShape) const {
     }
 }
 
-void Conv2D::initGradBuf() {
+void Conv2D::initGradBuf(bool isInference) {
+    if (isInference) 
+        return;
+
     if (executionMode == GPU_FAST) {
         gradIm2ColBuf = Tensor(im2ColInBuf.getShape());
         return;
@@ -212,7 +242,15 @@ void Conv2D::allocateForwardBuffers(size_t inRows, size_t inCols, size_t inDepth
     activations = Tensor({getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernels});
 }
 
-void Conv2D::allocateGradientBuffers(size_t inRows, size_t inCols, size_t inDepth) {
+void Conv2D::allocateGradientBuffers(
+    size_t inRows, 
+    size_t inCols, 
+    size_t inDepth, 
+    bool isInference
+) {
+    if (isInference)
+        return;
+
     if (executionMode == CPU) {
         dB = Tensor({numKernels});
     }
@@ -223,6 +261,16 @@ void Conv2D::allocateGradientBuffers(size_t inRows, size_t inCols, size_t inDept
     }
 
     dX = Tensor({getMaxBatchSize(), inRows, inCols, inDepth});
+}
+
+void Conv2D::deallocateGradientBuffers(bool isInference) {
+    if (!isInference)
+        return;
+
+    dB = Tensor();
+    dW = Tensor();
+    dA = Tensor();
+    dX = Tensor();
 }
 
 void Conv2D::build(const vector<size_t> &inShape, bool isInference) {
@@ -237,9 +285,10 @@ void Conv2D::build(const vector<size_t> &inShape, bool isInference) {
     
     winIn = Tensor({inShape}).computeInputWindow(kRows, kCols, padding, stride);
     allocateForwardBuffers(inRows, inCols, inDepth);
-    allocateGradientBuffers(inRows, inCols, inDepth);
-    initGradBuf();
+    allocateGradientBuffers(inRows, inCols, inDepth, isInference);
+    initGradBuf(isInference);
     initParams(inDepth);
+    deallocateGradientBuffers(isInference);
 }
 
 vector<size_t> Conv2D::getBuildOutShape(const vector<size_t> &inShape) const {
@@ -247,36 +296,55 @@ vector<size_t> Conv2D::getBuildOutShape(const vector<size_t> &inShape) const {
     return {getMaxBatchSize(), winIn.outRows, winIn.outCols, numKernels};
 }
 
-void Conv2D::reShapeBatch(size_t currBatchSize) {
-    const vector<size_t> &inShape = dX.getShape();
-    const vector<size_t> &inPadShape = paddedInput.getShape();
+void Conv2D::reShapeGpuFastBuffers(size_t currBatchSize, size_t inDepth) {
+    if (executionMode != GPU_FAST)
+        return;
+    
+    im2ColInBuf.reShapeInPlace({currBatchSize * winIn.outRows * winIn.outCols, kRows * kCols * inDepth});
+    im2ColPreActShape = {currBatchSize * winIn.outRows * winIn.outCols, numKernels};
+    preActTensorShape = {currBatchSize, winIn.outRows, winIn.outCols, numKernels};
 
-    size_t inRows = inShape[1];
-    size_t inCols = inShape[2];
-    size_t inDepth = inShape[3];
+    if (gradIm2ColBuf.getSize() > 0) {
+        gradIm2ColBuf.reShapeInPlace(im2ColInBuf.getShape());
+    }
+}
 
-    size_t inPadRows = inPadShape[1];
-    size_t inPadCols = inPadShape[2];
+void Conv2D::reShapeCpuBuffers(size_t currBatchSize, size_t inDepth) {
+    if (executionMode == GPU_FAST)
+        return;
 
-    paddedInput.reShapeInPlace({currBatchSize, inPadRows, inPadCols, inDepth});
-    activations.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
-    dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});
+    preActivations.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
 
-    if (executionMode != GPU_FAST) {
+    if (gradBuf.getSize() > 0) {
         const vector<size_t> &gradShape = gradBuf.getShape();
         size_t gradRows = gradShape[1];
         size_t gradCols = gradShape[2];
-
-        preActivations.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
-        dA.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
         gradBuf.reShapeInPlace({currBatchSize, gradRows, gradCols, numKernels});
-
-    } else {
-        im2ColInBuf.reShapeInPlace({currBatchSize * winIn.outRows * winIn.outCols, kRows * kCols * inDepth});
-        im2ColPreActShape = {currBatchSize * winIn.outRows * winIn.outCols, numKernels};
-        preActTensorShape = {currBatchSize, winIn.outRows, winIn.outCols, numKernels};
-        gradIm2ColBuf.reShapeInPlace(im2ColInBuf.getShape());
     }
+    
+    if (dX.getSize() > 0) {
+        const vector<size_t> &inShape = dX.getShape();
+        size_t inRows = inShape[1];
+        size_t inCols = inShape[2];
+        dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});        
+    }
+
+    if (dA.getSize() > 0) {
+        dA.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
+    }
+}
+
+void Conv2D::reShapeBatch(size_t currBatchSize) {
+    const vector<size_t> &inPadShape = paddedInput.getShape();
+    size_t inPadRows = inPadShape[1];
+    size_t inPadCols = inPadShape[2];
+    size_t inDepth = inPadShape[3];
+
+    paddedInput.reShapeInPlace({currBatchSize, inPadRows, inPadCols, inDepth});
+    activations.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
+
+    reShapeCpuBuffers(currBatchSize, inDepth);
+    reShapeGpuFastBuffers(currBatchSize, inDepth);
 }
 
 void Conv2D::forward(const Tensor &input) {
@@ -425,4 +493,8 @@ const Tensor& Conv2D::getBiases() const {
 
 const Tensor& Conv2D::getDeltaInputs() const {
     return dX;
+}
+
+Layer* Conv2D::clone() const {
+    return new Conv2D(*this);
 }

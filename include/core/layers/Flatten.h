@@ -31,6 +31,8 @@ class Flatten : public Layer {
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
         Layer::Encodings getEncoding() const override;
 
+        Layer* clone() const override;
+
         // GPU Interface
         #ifdef __APPLE__
             void forwardGpu(const Tensor&, GpuCommandBuffer) override;

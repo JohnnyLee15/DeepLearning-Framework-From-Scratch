@@ -374,3 +374,7 @@ void TabularData::loadFromBin(ifstream &modelBin) {
         }
     }
 }
+
+Data* TabularData::clone() const {
+    return new TabularData(*this);
+}

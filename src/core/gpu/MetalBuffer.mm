@@ -3,24 +3,27 @@
 
 MetalBuffer::MetalBuffer() : buffer(nil) {}
 
-MetalBuffer::MetalBuffer(const void *host, size_t numBytes) {
+MetalBuffer::MetalBuffer(const void *host, size_t numBytes) : buffer(nil) {
     buffer = [GpuEngine::getGpuDevice()
         newBufferWithBytes:host
         length:numBytes
         options:MTLResourceStorageModeShared];
 }
 
-MetalBuffer::MetalBuffer(size_t numBytes) {
+MetalBuffer::MetalBuffer(size_t numBytes) : buffer(nil) {
     buffer = [GpuEngine::getGpuDevice()
         newBufferWithLength:numBytes
         options:MTLResourceStorageModeShared];
 }
 
+MetalBuffer::MetalBuffer(const MetalBuffer &other) : buffer(nil) {
+    buffer = [other.buffer retain];
+}
+
 MetalBuffer& MetalBuffer::operator=(const MetalBuffer &other) {
-    if (this != &other) {
-        [buffer release];
-        buffer = [other.buffer retain];
-    }
+    id<MTLBuffer> newBuffer = [other.buffer retain];
+    [buffer release];
+    buffer = newBuffer;
     return *this;
 }
 

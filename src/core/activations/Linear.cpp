@@ -34,3 +34,7 @@ void Linear::calculateGradient(const Tensor &z, Tensor &dZ) const {
 Activation::Encodings Linear::getEncoding() const {
     return Activation::Encodings::Linear;
 }
+
+Activation* Linear::clone() const {
+    return new Linear(*this);
+}

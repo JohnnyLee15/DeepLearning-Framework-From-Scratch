@@ -52,6 +52,8 @@ class Layer {
         virtual const Tensor& getBiases() const;
         virtual const Tensor& getDeltaInputs() const;
 
+        virtual Layer* clone() const = 0;
+
         // GPU Interface
         #ifdef __APPLE__
             virtual void forwardGpu(const Tensor&, GpuCommandBuffer);

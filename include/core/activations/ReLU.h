@@ -16,6 +16,8 @@ class ReLU : public Activation {
         
         Activation::Encodings getEncoding() const override;
 
+        Activation* clone() const override;
+
         // GPU Interface
         #ifdef __APPLE__
             void activateGpu(const Tensor&, Tensor&, GpuCommandBuffer) const override;

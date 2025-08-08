@@ -27,4 +27,6 @@ class Minmax : public Scalar {
         uint32_t getEncoding() const override;
 
         void reset() override;
+
+        Scalar* clone() const override;
 };

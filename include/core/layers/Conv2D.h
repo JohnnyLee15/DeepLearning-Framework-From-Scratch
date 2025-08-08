@@ -48,14 +48,18 @@ class Conv2D : public Layer {
         // Methods
         void initKernels(size_t);
         void initBiases();
-        void flattenKernels();
-        void unflattenKernels();
-        void initGradBuf();
+        void initGradBuf(bool);
         void initStride(size_t);
         void initParams(size_t);
         void initExecutionMode(size_t, size_t);
-        void allocateGradientBuffers(size_t, size_t, size_t);
+
+        void flattenKernels();
+        void unflattenKernels();
+
+        void allocateGradientBuffers(size_t, size_t, size_t, bool);
         void allocateForwardBuffers(size_t, size_t, size_t);
+        void deallocateGradientBuffers(bool);
+        
         void checkBuildSize(const vector<size_t>&) const;
 
         void ensureGpu();
@@ -66,11 +70,14 @@ class Conv2D : public Layer {
         void writeBinInternal(ofstream&) const override;
 
         void reShapeBatch(size_t);
+        void reShapeGpuFastBuffers(size_t, size_t);
+        void reShapeCpuBuffers(size_t, size_t);
 
     public:
         // Constructors
         Conv2D(size_t, size_t, size_t, size_t, const string&, Activation*);
         Conv2D();
+        Conv2D(const Conv2D&);
 
         // Methods
         void build(const vector<size_t>&, bool isInference = false) override;
@@ -89,6 +96,8 @@ class Conv2D : public Layer {
         const Tensor& getWeights() const override;
         const Tensor& getBiases() const override;
         const Tensor& getDeltaInputs() const override;
+
+        Layer* clone() const override;
 
         // GPU Interface
         #ifdef __APPLE__

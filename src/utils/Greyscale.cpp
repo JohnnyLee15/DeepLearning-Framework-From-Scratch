@@ -64,3 +64,7 @@ vector<float> Greyscale::reverseTransform(const vector<float> &data) const {
 uint32_t Greyscale::getEncoding() const {
     return Scalar::Encodings::Greyscale;
 }
+
+Scalar* Greyscale::clone() const {
+    return new Greyscale(*this);
+}

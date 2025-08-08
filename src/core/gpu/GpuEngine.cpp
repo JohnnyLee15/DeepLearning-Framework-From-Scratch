@@ -7,9 +7,20 @@ bool GpuEngine::isUsingGpu() {
 }
 
 void GpuEngine::disableGpu() {
-    usingGpu = false;
+    #ifdef __APPLE__
+        usingGpu = false;
+    #endif
 }
 
 void GpuEngine::enableGpu() {
-    usingGpu = true;
+    #ifdef __APPLE__
+        usingGpu = true;
+    #endif
+}
+
+void GpuEngine::init() {
+    #ifdef __APPLE__
+        initInternal();
+        enableGpu();
+    #endif
 }

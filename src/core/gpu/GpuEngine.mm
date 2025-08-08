@@ -49,12 +49,11 @@ id<MTLComputePipelineState> GpuEngine::padAndUpsampleGradPipeline  = nil;
 
 id<MTLComputePipelineState> GpuEngine::maxPool2dGradPipeline  = nil;
 
-void GpuEngine::init() {
+void GpuEngine::initInternal() {
     gpuDevice = MTLCreateSystemDefaultDevice();
     cmdQueue = [gpuDevice newCommandQueue];
     initLib();
     initAllPipes();
-    enableGpu();
 }
 
 void GpuEngine::initLib() {

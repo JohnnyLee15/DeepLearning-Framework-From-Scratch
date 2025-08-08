@@ -25,6 +25,8 @@ class Loss {
         virtual float formatLoss(float) const;
         virtual uint32_t getEncoding() const = 0;
 
+        virtual Loss* clone() const = 0;
+
         // GPU Interface
         #ifdef __APPLE__
              virtual void calculateGradientGpu(const Tensor&, const Tensor&, Tensor&, GpuCommandBuffer) const = 0;

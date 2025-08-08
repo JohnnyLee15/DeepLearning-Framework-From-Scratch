@@ -30,7 +30,7 @@ class Dense : public Layer {
         // Methods
         void initBiases();
         void initWeights(size_t);
-        void initParams(size_t);
+        void initParams(size_t, bool);
         void checkBuildSize(const vector<size_t>&) const;
         
         void ensureGpu();
@@ -46,6 +46,7 @@ class Dense : public Layer {
         // Constructors
         Dense(size_t, Activation*);
         Dense();
+        Dense(const Dense&);
 
         // Destructor
         ~Dense();
@@ -54,6 +55,7 @@ class Dense : public Layer {
         void build(const vector<size_t>&, bool isInference = false) override;
         void allocateGradientBuffers(size_t, bool);
         void allocateForwardBuffers();
+        void deallocateGradientBuffers(bool);
 
         void forward(const Tensor&) override;
         void backprop(const Tensor&, float, Tensor&, bool) override;
@@ -65,6 +67,8 @@ class Dense : public Layer {
         vector<size_t> getBuildOutShape(const vector<size_t>&) const override;
 
         void loadFromBin(ifstream&) override;
+
+        Layer* clone() const override;
 
         // GPU Interface
         #ifdef __APPLE__

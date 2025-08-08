@@ -134,6 +134,7 @@ kernel void maxPool2d(
     constant uint2 &outDims [[ buffer(4) ]],
     constant uint2 &kDims [[ buffer(5) ]],
     constant uint &stride [[ buffer(6) ]],
+    constant uint4 &padding [[ buffer(7) ]],
     uint3 gid [[ thread_position_in_grid ]]
 ) {
     uint numSamples = inDims[0];
@@ -143,6 +144,14 @@ kernel void maxPool2d(
 
     uint outRows = outDims[0];
     uint outCols = outDims[1];
+
+    uint padRows = padding[0];
+    uint padCols = padding[1];
+    uint padTop = padding[2];
+    uint padLeft = padding[3];
+
+    uint origRows = inRows - padRows;
+    uint origCols = inCols - padCols;
 
     uint kRows = kDims[0];
     uint kCols = kDims[1];
@@ -160,11 +169,15 @@ kernel void maxPool2d(
 
     for (uint i = 0; i < kRows; i++) {
         uint inRow = r * stride + i;
+        uint origRow = inRow - padTop;
+
         for (uint j = 0; j < kCols; j++) {
             uint inCol = c * stride + j;
-            uint idx = (((n * inRows + inRow) * inCols + inCol) * depth) + d;
+            uint origCol = inCol - padLeft;
+            uint padIdx = (((n * inRows + inRow) * inCols + inCol) * depth) + d;
+            uint idx = ((n * origRows + origRow) * origCols + origCol) * depth + d;
 
-            float val = input[idx];
+            float val = input[padIdx];
             if (val > maxVal) {
                 maxVal = val;
                 maxIdx = idx;

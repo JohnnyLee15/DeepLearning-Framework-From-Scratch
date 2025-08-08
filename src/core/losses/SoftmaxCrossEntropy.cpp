@@ -76,3 +76,8 @@ void SoftmaxCrossEntropy::checkInvalidGradientCall() {
         "with SoftmaxCrossEntropy to ensure correct gradient computation."
     );
 }
+
+Loss* SoftmaxCrossEntropy::clone() const {
+    return new SoftmaxCrossEntropy(*this);
+}
+

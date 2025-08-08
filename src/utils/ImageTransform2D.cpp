@@ -77,3 +77,7 @@ void ImageTransform2D::loadFromBin(ifstream &modelBin) {
     width = w;
     channels = c;
 }
+
+ImageTransform2D* ImageTransform2D::clone() const {
+    return new ImageTransform2D(*this);
+}

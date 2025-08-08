@@ -54,6 +54,8 @@ class MaxPooling2D : public Layer {
 
         void loadFromBin(ifstream&) override;
 
+        Layer* clone() const override;
+
         // GPU Interface
         #ifdef __APPLE__
             void forwardGpu(const Tensor&, GpuCommandBuffer) override;

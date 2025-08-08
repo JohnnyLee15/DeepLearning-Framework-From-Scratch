@@ -12,6 +12,8 @@ class MSE : public Loss {
 
         uint32_t getEncoding() const override;
 
+        Loss* clone() const override;
+
         // GPU Interface
         #ifdef __APPLE__
             void calculateGradientGpu(const Tensor&, const Tensor&, Tensor&, GpuCommandBuffer) const override;

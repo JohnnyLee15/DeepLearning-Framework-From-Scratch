@@ -42,7 +42,7 @@ class ConsoleUtils {
         static void completeMessage();
         static void printTitle();
         static void printSepLine();
-        static void printSuccess(const string&);
+        static void printSuccess(const string&, bool newLine = false);
         static void printWarning(const string&);
         static void printError(const string&);
 

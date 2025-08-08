@@ -26,9 +26,7 @@ class Tensor {
         vector<float> data;
         
         // GPU Instance Variables
-        #ifdef __APPLE__
-            MetalBuffer dataGpu;
-        #endif
+        MetalBuffer dataGpu;
 
         // Methods
         void ensureGpu();
@@ -73,7 +71,7 @@ class Tensor {
         void conv2dInput(const Tensor&, Tensor&) const;
         void padWindowInput(Tensor&, const WindowDims&, float) const;
         void padAndUpsampleGrad(Tensor&, const WindowDims&, size_t) const;
-        void maxPool2d(vector<size_t>&, size_t, size_t, size_t, Tensor&) const;
+        void maxPool2d(vector<size_t>&, size_t, size_t, size_t, Tensor&, const WindowDims&) const;
         void maxPool2dGrad(const vector<size_t>&, Tensor&) const;
 
         void hadamard(const Tensor&);
@@ -104,7 +102,7 @@ class Tensor {
 
             const Tensor& padIfNeededGpu(Tensor&, const WindowDims&, Tensor::Paddings, id<MTLCommandBuffer>, float padVal = 0.0f) const;
             void padWindowInputGpu(Tensor&, const WindowDims&, id<MTLCommandBuffer>) const;
-            void maxPool2dGpu(MetalBuffer&, size_t, size_t, size_t, Tensor&, id<MTLCommandBuffer>) const;
+            void maxPool2dGpu(MetalBuffer&, size_t, size_t, size_t, Tensor&, id<MTLCommandBuffer>, const WindowDims&) const;
 
             void hadamardGpu(const Tensor&, id<MTLCommandBuffer>);
             void applyGradGpu(const Tensor&, float, id<MTLCommandBuffer>);

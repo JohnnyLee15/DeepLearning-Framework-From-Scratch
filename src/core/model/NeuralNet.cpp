@@ -17,7 +17,7 @@
 #include "core/gpu/GpuEngine.h"
 #include <cstring>
 
-const size_t NeuralNet::INFERENCE_BATCH_SIZE = 128;
+const size_t NeuralNet::INFERENCE_BATCH_SIZE = 8;
 
 random_device NeuralNet::rd;
 mt19937 NeuralNet::generator(NeuralNet::rd());
@@ -26,6 +26,22 @@ NeuralNet::NeuralNet(vector<Layer*> layers, Loss *loss) :
     layers(layers), loss(loss) {}
 
 NeuralNet::NeuralNet() : loss(nullptr) {}
+
+NeuralNet::NeuralNet(const NeuralNet &other)
+    : avgLosses(other.avgLosses),
+      loss(other.loss ? other.loss->clone() : nullptr),
+      maxBatchSize(other.maxBatchSize),
+      dL(other.dL)
+{
+    layers.reserve(other.layers.size());
+    for (const Layer *layer : other.layers) {
+        layers.push_back(layer->clone());
+    }
+}
+
+NeuralNet* NeuralNet::clone() const {
+    return new NeuralNet(*this);
+}
 
 void NeuralNet::fit(
     const Tensor &features,
@@ -61,9 +77,15 @@ void NeuralNet::build(size_t batchSize, const Tensor &features, bool isInference
         inShape = layers[i]->getBuildOutShape(inShape);
     }
 
-    vector<size_t> lossShape = layers.back()->getOutput().getShape();
-    lossShape[0] = maxBatchSize;
-    dL = Tensor(lossShape);
+    if (!isInference) {
+        vector<size_t> lossShape = layers.back()->getOutput().getShape();
+        lossShape[0] = maxBatchSize;
+        dL = Tensor(lossShape);
+
+    } else {
+        dL = Tensor();
+    }
+
 }
 
 float NeuralNet::runEpoch(
@@ -129,6 +151,9 @@ void NeuralNet::forwardPass(const Tensor &batch) {
 }
 
 void NeuralNet::reShapeDL(size_t currBatchSize) {
+    if (dL.getSize() == 0)
+        return;
+
     vector<size_t> lossShape = layers.back()->getOutput().getShape();
     lossShape[0] = currBatchSize;
     dL.reShapeInPlace(lossShape);

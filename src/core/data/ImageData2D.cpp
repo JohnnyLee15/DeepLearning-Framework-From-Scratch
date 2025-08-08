@@ -145,3 +145,7 @@ void ImageData2D::loadFromBin(ifstream &modelBin) {
         labelMap[key] = value;
     }
 }
+
+Data* ImageData2D::clone() const {
+    return new ImageData2D(*this);
+}

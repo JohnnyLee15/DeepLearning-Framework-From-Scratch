@@ -58,6 +58,10 @@ void Flatten::build(const vector<size_t> &givenShape, bool isInference) {
 
     outShape = {getMaxBatchSize(), flatSize};
     output = Tensor(outShape);
+
+    if (isInference) {
+        dX = Tensor();
+    }
 }
 
 vector<size_t> Flatten::getBuildOutShape(const vector<size_t> &givenShape) const {
@@ -69,4 +73,8 @@ void Flatten::writeBinInternal(ofstream &modelBin) const {}
 
 Layer::Encodings Flatten::getEncoding() const {
     return Layer::Encodings::Flatten;
+}
+
+Layer* Flatten::clone() const {
+    return new Flatten(*this);
 }

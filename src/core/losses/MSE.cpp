@@ -45,3 +45,7 @@ uint32_t MSE::getEncoding() const {
     return Loss::Encodings::MSE;
 }
 
+Loss* MSE::clone() const {
+    return new MSE(*this);
+}
+

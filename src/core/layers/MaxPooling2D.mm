@@ -13,7 +13,7 @@ void MaxPooling2D::forwardGpu(const Tensor &input, GpuCommandBuffer cmdBufVoid) 
 
     GpuEngine::fillInt(maxIndicesGpu.getBuffer(), (uint32_t) pooledOutput.getSize(), cmdBuf, UINT_MAX);
     const Tensor &inputFwd = input.padIfNeededGpu(paddedInput, winIn, padding, cmdBuf, -FLT_MAX);
-    inputFwd.maxPool2dGpu(maxIndicesGpu, kRows, kCols, stride, pooledOutput, cmdBuf);
+    inputFwd.maxPool2dGpu(maxIndicesGpu, kRows, kCols, stride, pooledOutput, cmdBuf, winIn);
 }
 
 void MaxPooling2D::backpropGpu(

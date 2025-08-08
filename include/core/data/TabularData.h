@@ -73,4 +73,6 @@ class TabularData : public Data {
 
         void writeBin(ofstream&) const override;
         void loadFromBin(ifstream&) override;
+
+        Data* clone() const override;
 };

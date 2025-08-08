@@ -46,3 +46,7 @@ void ReLU::calculateGradient(const Tensor &z, Tensor &dZ) const {
 Activation::Encodings ReLU::getEncoding() const {
     return Activation::Encodings::ReLU;
 }
+
+Activation* ReLU::clone() const {
+    return new ReLU(*this);
+}

@@ -29,6 +29,8 @@ class Activation {
 
         virtual bool isFused() const;
         virtual Encodings getEncoding() const = 0;
+
+        virtual Activation* clone() const = 0;
         
         // GPU Interface
         #ifdef __APPLE__

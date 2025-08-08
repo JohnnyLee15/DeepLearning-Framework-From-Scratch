@@ -37,7 +37,7 @@ void BinUtils::savePipeline(const Pipeline &pipe, const string &filename) {
 
     if (shouldWrite) {
         writeToBin(pipe, fileToWrite);
-        ConsoleUtils::printSuccess("Model saved successfully as \"" + fileToWrite + "\".");
+        ConsoleUtils::printSuccess("Model saved successfully as \"" + fileToWrite + "\".", true);
     }
 
     ConsoleUtils::printSepLine();
@@ -145,7 +145,7 @@ Pipeline BinUtils::loadPipeline(const string &filename) {
         );
     }
 
-    ConsoleUtils::printSuccess("Model successfully loaded from \"" + fullFilename + "\".");
+    ConsoleUtils::printSuccess("Model successfully loaded from \"" + fullFilename + "\".", true);
     ConsoleUtils::printSepLine();
     return pipe;
 }

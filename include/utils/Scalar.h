@@ -33,6 +33,8 @@ class Scalar {
         
         void checkFitted() const;
 
+        virtual Scalar* clone() const = 0;
+
         // Enums
         enum Encodings : uint32_t {
             Greyscale,

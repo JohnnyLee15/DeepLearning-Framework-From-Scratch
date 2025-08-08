@@ -34,6 +34,7 @@ class Pipeline {
     public:
         // Constructor
         Pipeline();
+        Pipeline(const Pipeline&);
 
         // Destructor
         ~Pipeline();

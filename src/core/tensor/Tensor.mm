@@ -204,7 +204,8 @@ void Tensor::maxPool2dGpu(
     size_t kCols,
     size_t stride,
     Tensor &pooledOutput, 
-    id<MTLCommandBuffer> cmdBuf
+    id<MTLCommandBuffer> cmdBuf,
+    const WindowDims &winIn
 ) const {
     id<MTLBuffer> inBuf = getGpuData();
     id<MTLBuffer> indBuf = maxIndices.getBuffer();
@@ -214,6 +215,10 @@ void Tensor::maxPool2dGpu(
     uint32_t outDims[2] = {(uint32_t) pooledOutput.shape[1], (uint32_t) pooledOutput.shape[2]};
     uint32_t kDims[2] = {(uint32_t) kRows, (uint32_t) kCols};
     uint32_t strideU = (uint32_t) stride;
+    uint32_t padding[4] = {
+        (uint32_t) winIn.padRows, (uint32_t) winIn.padCols, 
+        (uint32_t) winIn.padTop, (uint32_t) winIn.padLeft
+    };
 
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
     [encoder setComputePipelineState:GpuEngine::getMaxPool2dPipe()];
@@ -226,6 +231,7 @@ void Tensor::maxPool2dGpu(
     [encoder setBytes:&outDims length:sizeof(outDims)   atIndex:4];
     [encoder setBytes:&kDims length:sizeof(kDims) atIndex:5];
     [encoder setBytes:&strideU length:sizeof(uint32_t) atIndex:6];
+    [encoder setBytes:&padding length:sizeof(padding) atIndex:7];
 
     MTLSize gridSize = MTLSizeMake(outDims[1], outDims[0], inDims[0] * inDims[3]);
     MTLSize tgSize = MTLSizeMake(TILE_SIZE, TILE_SIZE, 1);

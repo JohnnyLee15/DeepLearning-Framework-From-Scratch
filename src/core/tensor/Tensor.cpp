@@ -46,9 +46,8 @@ Tensor::Tensor(const vector<float> &data, const vector<size_t> &shape) :
 }
 
 Tensor::Tensor(const Tensor &other) :
-    shape(other.shape), data(other.data) {
-    ensureGpu();
-}
+    shape(other.shape), data(other.data), dataGpu(other.dataGpu) {}
+
 Tensor::Tensor() {}
 
 Tensor& Tensor::operator =(const Tensor &other) {
@@ -157,27 +156,41 @@ WindowDims Tensor::computeInputWindow(
     Tensor::Paddings padding,
     size_t stride
 ) const {
-    // Add error checking
-
-    WindowDims window;
+    WindowDims win;
     if (padding == Paddings::NONE) {
-        window.outRows = (shape[1] - kRows)/stride + 1;
-        window.outCols = (shape[2] - kCols)/stride + 1;
-        window.padRows = 0;
-        window.padCols = 0;
-        window.padTop = 0;
-        window.padLeft = 0;
+
+        if (shape[1] < kRows || shape[2] < kCols) {
+            string errorMessage = "Convolution error (padding='none'): Kernel (" +
+                to_string(kRows) + "x" + to_string(kCols) + ") cannot be larger than input image (" +
+                to_string(shape[1]) + "x" + to_string(shape[2]) + ").";
+
+            ConsoleUtils::fatalError(errorMessage);
+        }
+
+        win.outRows = (shape[1] - kRows)/stride + 1;
+        win.outCols = (shape[2] - kCols)/stride + 1;
+        win.padRows = 0;
+        win.padCols = 0;
+        win.padTop = 0;
+        win.padLeft = 0;
 
     } else {
-        window.outRows = (shape[1] + stride  - 1)/stride;
-        window.outCols = (shape[2] + stride  - 1)/stride;
-        window.padRows = kRows + stride * (window.outRows - 1) - shape[1];
-        window.padCols = kCols + stride * (window.outCols - 1) - shape[2];
-        window.padTop = window.padRows/2;
-        window.padLeft = window.padCols/2;
+        win.outRows = (shape[1] + stride  - 1)/stride;
+        win.outCols = (shape[2] + stride  - 1)/stride;
+
+        long scaleRows = (long) stride * ((long) win.outRows - 1);
+        long scaleCols = (long) stride * ((long) win.outCols - 1);
+        long padRows = (long) kRows + scaleRows - (long) shape[1];
+        long padCols = (long) kCols + scaleCols - (long) shape[2];
+
+        win.padRows = (padRows < 0) ? 0 : padRows;
+        win.padCols = (padCols < 0) ? 0 : padCols;
+
+        win.padTop = win.padRows/2;
+        win.padLeft = win.padCols/2;
     } 
 
-    return window;
+    return win;
 }
 
 WindowDims Tensor::computeGradWindow(
@@ -312,16 +325,17 @@ void Tensor::maxPool2d(
     size_t kRows,
     size_t kCols,
     size_t stride,
-    Tensor &pooledOutput
+    Tensor &pooledOutput,
+    const WindowDims &winIn
 ) const {
     // Add error checking
     size_t batchSize = shape[0];
     size_t inRows = shape[1];
     size_t inCols = shape[2];
     size_t inDepth = shape[3];
-
-    size_t outRows = pooledOutput.shape[1];
-    size_t outCols = pooledOutput.shape[2];
+    
+    size_t origRows = inRows - winIn.padRows;
+    size_t origCols = inCols - winIn.padCols;
 
     maxIndices.assign(pooledOutput.getSize(), SIZE_MAX);
 
@@ -330,26 +344,31 @@ void Tensor::maxPool2d(
 
     #pragma omp parallel for collapse(4)
     for (size_t b = 0; b < batchSize; b++) {
-        for (size_t r = 0; r < outRows; r++) {
-            for (size_t c = 0; c < outCols; c++) {
+        for (size_t r = 0; r < winIn.outRows; r++) {
+            for (size_t c = 0; c < winIn.outCols; c++) {
                 for (size_t d = 0; d < inDepth; d++) {
 
-                    float maxVal = -numeric_limits<float>::max();
+                    float maxVal = numeric_limits<float>::lowest();
                     size_t maxIdx = SIZE_MAX;
                     for (size_t i = 0; i < kRows; i++) {
                         size_t inRow = r * stride + i;
+                        size_t origRow = inRow - winIn.padTop;
+
                         for (size_t j = 0; j < kCols; j++) {
                             size_t inCol = c * stride + j;
-                            size_t idx = (((b * inRows + inRow) * inCols + inCol) * inDepth) + d;
+                            size_t origCol = inCol - winIn.padLeft;
+                            size_t padIdx = (((b * inRows + inRow) * inCols + inCol) * inDepth) + d;
+                            size_t idx = ((b * origRows + origRow) * origCols + origCol) * inDepth + d;
 
-                            if (inFlat[idx] > maxVal) {
-                                maxVal = inFlat[idx];
+                            float val = inFlat[padIdx];
+                            if (val > maxVal) {
+                                maxVal = val;
                                 maxIdx = idx;
                             }
                         }
                     }
 
-                    size_t outIdx = (((b * outRows + r) * outCols + c) * inDepth) + d;
+                    size_t outIdx = (((b * winIn.outRows + r) * winIn.outCols + c) * inDepth) + d;
                     outFlat[outIdx] = maxVal;
                     maxIndices[outIdx] = maxIdx;
                 }
@@ -544,7 +563,7 @@ void Tensor::maxPool2dGrad(
     const vector<float> &gradFlat = getFlat();
     
     size_t gradSize = getSize();
-    
+
     #pragma omp parallel for
     for (size_t i = 0; i < gradSize; i++) {
         #pragma omp atomic

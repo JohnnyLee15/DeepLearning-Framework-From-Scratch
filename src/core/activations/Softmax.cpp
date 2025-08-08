@@ -83,3 +83,7 @@ bool Softmax::isFused() const {
 Activation::Encodings Softmax::getEncoding() const {
     return Activation::Encodings::Softmax;
 }
+
+Activation* Softmax::clone() const {
+    return new Softmax(*this);
+}

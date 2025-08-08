@@ -50,6 +50,7 @@ class NeuralNet {
         Tensor makeInferenceBatch(size_t, size_t, size_t, const Tensor&) const;
         void forwardPassInference(const Tensor&);
         void cpyBatchToOutput(size_t, size_t, size_t, size_t, const Tensor&, Tensor&) const;
+
         // GPU Interface
         #ifdef __APPLE__
             void fitBatchGpu(const Batch&, float);
@@ -62,9 +63,10 @@ class NeuralNet {
         // Constructors
         NeuralNet(vector<Layer*>, Loss*);
         NeuralNet();
+        NeuralNet(const NeuralNet&);
 
         // Destructor
-         ~NeuralNet();
+        ~NeuralNet();
 
         //Methods
         void fit(const Tensor&, const vector<float>&, float, float, size_t, size_t, ProgressMetric&);
@@ -72,4 +74,6 @@ class NeuralNet {
 
         void writeBin(ofstream&) const;
         void loadFromBin(ifstream&);
+
+        NeuralNet* clone() const;
 };
