@@ -42,7 +42,8 @@ id<MTLComputePipelineState> GpuEngine::conv2dWeightsNaivePipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::conv2dInputNaivePipeline  = nil;
 
 id<MTLComputePipelineState> GpuEngine::im2ColPipeline  = nil;
-id<MTLComputePipelineState> GpuEngine::col2ImPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::col2ImSlowPipeline  = nil;
+id<MTLComputePipelineState> GpuEngine::col2ImFastPipeline  = nil;
 id<MTLComputePipelineState> GpuEngine::addBiasApplyReLUIm2ColPipeline  = nil;
 
 id<MTLComputePipelineState> GpuEngine::padAndUpsampleGradPipeline  = nil;
@@ -123,7 +124,8 @@ void GpuEngine::initAllPipes() {
     initPipe("conv2dInputNaive", conv2dInputNaivePipeline);
 
     initPipe("im2Col", im2ColPipeline);
-    initPipe("col2Im", col2ImPipeline);
+    initPipe("col2ImSlow", col2ImSlowPipeline);
+    initPipe("col2ImFast", col2ImFastPipeline);
     initPipe("addBiasApplyReLUIm2Col", addBiasApplyReLUIm2ColPipeline);
 
     initPipe("padAndUpsampleGrad", padAndUpsampleGradPipeline);
@@ -202,7 +204,8 @@ id<MTLComputePipelineState> GpuEngine::getConv2dWeightsNaivePipe() { return conv
 id<MTLComputePipelineState> GpuEngine::getConv2dInputNaivePipe() { return conv2dInputNaivePipeline; }
 
 id<MTLComputePipelineState> GpuEngine::getIm2ColPipe() { return im2ColPipeline; }
-id<MTLComputePipelineState> GpuEngine::getCol2ImPipe() { return col2ImPipeline; }
+id<MTLComputePipelineState> GpuEngine::getCol2ImSlowPipe() { return col2ImSlowPipeline; }
+id<MTLComputePipelineState> GpuEngine::getCol2ImFastPipe() { return col2ImFastPipeline; }
 id<MTLComputePipelineState> GpuEngine::getAddBiasApplyReLUIm2ColPipe() { return addBiasApplyReLUIm2ColPipeline; }
 
 id<MTLComputePipelineState> GpuEngine::getMaxPool2dGradPipe() { return maxPool2dGradPipeline; }

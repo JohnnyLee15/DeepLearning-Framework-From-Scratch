@@ -3,6 +3,7 @@
 #include "core/gpu/GpuEngine.h"
 
 #define TILE_SIZE 8
+#define MEDIUM_TILE 16
 #define NUM_THREADS 256
 #define COARSE_FACTOR 4
 #define MAX_KERNEL 7
@@ -112,7 +113,20 @@ void Im2ColUtils::col2Im(
     uint32_t strideU = (uint32_t) stride;
 
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
-    [encoder setComputePipelineState:GpuEngine::getCol2ImPipe()];
+
+    bool fast = false;
+    if (dxDims[3] % 4 == 0) fast = true;
+
+    MTLSize grid;
+    if (fast) {       
+        [encoder setComputePipelineState:GpuEngine::getCol2ImFastPipe()];
+        grid = MTLSizeMake(dxDims[2], dxDims[1], dxDims[0] * (dxDims[3] / 4));
+        
+    } else {
+        [encoder setComputePipelineState:GpuEngine::getCol2ImSlowPipe()];
+        grid = MTLSizeMake(dxDims[2], dxDims[1], dxDims[0] * dxDims[3]);
+    }
+    MTLSize tg = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
 
     [encoder setBuffer:gradBuf offset:0 atIndex:0];
     [encoder setBuffer:dxBuf offset:0 atIndex:1];
@@ -122,8 +136,6 @@ void Im2ColUtils::col2Im(
     [encoder setBytes:&strideU length:sizeof(uint32_t)  atIndex:5];
     [encoder setBytes:&padding length:sizeof(padding)  atIndex:6];
 
-    MTLSize grid = MTLSizeMake(gradDims[0] * gradDims[1], dxDims[0], 1);
-    MTLSize tg = MTLSizeMake(NUM_THREADS, 1, 1);
     [encoder dispatchThreads:grid threadsPerThreadgroup:tg];
     [encoder endEncoding];
 }

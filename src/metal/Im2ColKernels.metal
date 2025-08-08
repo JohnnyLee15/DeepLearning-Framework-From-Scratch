@@ -8,7 +8,7 @@ using namespace metal;
 #define PATCH_DIM ((TILE_SIZE - 1) * MAX_STRIDE + MAX_KERNEL)
 #define COARSE_FACTOR 4
 
-static inline packed_float4 loadIm2ColPatch(
+static inline float4 loadIm2ColPatch(
     device const float *input,
     uint inRow,
     uint inRows,
@@ -19,19 +19,19 @@ static inline packed_float4 loadIm2ColPatch(
     uint n
 ) {
     if (inRow >= inRows || inCol >= inCols || baseChan >= inDepth) {
-        return packed_float4(0.0f);
+        return float4(0.0f);
     }
 
     uint inIdx = (((n * inRows + inRow) * inCols + inCol) * inDepth) + baseChan;
     if (baseChan + 3 < inDepth) {
-        return *((device packed_float4*)&input[inIdx]);
+        return *((device float4*)&input[inIdx]);
     } 
 
     float v0 = (baseChan < inDepth) ? input[inIdx] : 0.0f;
     float v1 = (baseChan + 1 < inDepth) ? input[inIdx + 1] : 0.0f;
     float v2 = (baseChan + 2 < inDepth) ? input[inIdx + 2] : 0.0f;
     float v3 = (baseChan + 3 < inDepth) ? input[inIdx + 3] : 0.0f;
-    return packed_float4(v0, v1, v2, v3);
+    return float4(v0, v1, v2, v3);
 }
 
 
@@ -74,7 +74,7 @@ kernel void im2Col(
 
     bool inBounds = (n < numSamples) && (r < outRows) && (c < outCols);
 
-    threadgroup packed_float4 patch[PATCH_DIM][PATCH_DIM];
+    threadgroup float4 patch[PATCH_DIM][PATCH_DIM];
 
     for (uint p = 0; p < numSlices; p++) {
         uint baseChan = p*CHANNEL_SLICE;
@@ -94,7 +94,7 @@ kernel void im2Col(
         if (inBounds) {
             for (uint i = 0; i < kRows; i++) {
                 for (uint j = 0; j < kCols; j++) {
-                    packed_float4 vec = patch[pRow + i][pCol + j];
+                    float4 vec = patch[pRow + i][pCol + j];
                     uint flatCol = (i * kCols + j) * inDepth + baseChan;
                     uint baseOutIdx = flatRow * flatCols + flatCol;
 
@@ -147,9 +147,9 @@ kernel void addBiasApplyReLUIm2Col(
     a[idx] = max(v3, 0.0f);
 }
 
-kernel void col2Im(
+kernel void col2ImSlow(
     device const float *grad [[ buffer(0) ]],
-    device atomic_float *dX [[ buffer(1) ]],
+    device float *dX [[ buffer(1) ]],
     constant uint2 &gradDims [[ buffer(2) ]],
     constant uint2 &kDims [[ buffer(3) ]],
     constant uint4 &dxDims [[ buffer(4) ]],
@@ -161,8 +161,8 @@ kernel void col2Im(
     uint gradCols = gradDims[1];
 
     uint numSamples = dxDims[0];
-    int dxRows = dxDims[1];
-    int dxCols = dxDims[2];
+    uint dxRows = dxDims[1];
+    uint dxCols = dxDims[2];
     uint inDepth = dxDims[3];
 
     uint kRows = kDims[0];
@@ -171,28 +171,99 @@ kernel void col2Im(
     uint padTop = padding[0];
     uint padLeft = padding[1];
 
-    uint n = gid.y;
+    uint dxCol = gid.x;
+    uint dxRow = gid.y;
+    uint n = gid.z / inDepth;
+    uint d = gid.z % inDepth;
 
-    if (n >= numSamples)
+    int rowBase = (int) dxRow + (int) padTop;
+    int colBase = (int) dxCol + (int) padLeft;
+    uint gradStride = kRows * kCols * inDepth;
+    
+    if (dxRow >= dxRows || dxCol >= dxCols || n >= numSamples)
         return;
 
-    int dxRowStart = (gid.x / gradCols) * stride - padTop;
-    int dxColStart = (gid.x % gradCols) * stride - padLeft;
-    uint gradRowStart = (n * gradRows * gradCols + gid.x) * (kRows * kCols * inDepth);
+    float val = 0.0f;
 
-    for (uint d = 0; d < inDepth; d++) {
-        for (uint i = 0; i < kRows; i++){
-            int dxRow = dxRowStart + i;
+    for (uint i = 0; i < kRows; i++) {
+        int tempRow = rowBase - (int) i;
+        if (tempRow < 0 || (tempRow % (int) stride != 0)) continue;
+        uint gradRow = tempRow / stride;
+        if (gradRow >= gradRows) continue;
 
-            for (uint j = 0; j < kCols; j++) {
-                int dxCol = dxColStart + j;
-
-                if (dxRow >= 0 && dxRow < dxRows && dxCol >= 0 && dxCol < dxCols) {
-                    uint gradIdx = gradRowStart + (i * kCols + j) * inDepth + d;
-                    uint dxIdx = ((n * dxRows + dxRow) * dxCols + dxCol) * inDepth + d;
-                    atomic_fetch_add_explicit(&dX[dxIdx], grad[gradIdx], memory_order_relaxed);
-                }
-            }
+        for (uint j = 0; j < kCols; j++) {
+            int tempCol = colBase - (int) j;
+            if (tempCol < 0 || (tempCol % (int) stride != 0)) continue;
+            uint gradCol = tempCol / stride;
+            if (gradCol >= gradCols) continue;
+            
+            uint row = (n * gradRows + gradRow) * gradCols + gradCol;
+            uint col = (i * kCols + j) * inDepth + d;
+            val += grad[row * gradStride + col];
         }
     }
+
+    uint idx = ((n * dxRows + dxRow) * dxCols + dxCol) * inDepth + d;
+    dX[idx] = val;
+}
+
+kernel void col2ImFast(
+    device const float *grad [[ buffer(0) ]],
+    device float *dX [[ buffer(1) ]],
+    constant uint2 &gradDims [[ buffer(2) ]],
+    constant uint2 &kDims [[ buffer(3) ]],
+    constant uint4 &dxDims [[ buffer(4) ]],
+    constant uint &stride [[ buffer(5) ]],
+    constant uint2 &padding [[ buffer(6) ]],
+    uint3 gid [[ thread_position_in_grid ]]
+) {
+    uint gradRows = gradDims[0];
+    uint gradCols = gradDims[1];
+
+    uint numSamples = dxDims[0];
+    uint dxRows = dxDims[1];
+    uint dxCols = dxDims[2];
+    uint inDepth = dxDims[3];
+
+    uint kRows = kDims[0];
+    uint kCols = kDims[1];
+
+    uint padTop = padding[0];
+    uint padLeft = padding[1];
+
+    uint dxCol = gid.x;
+    uint dxRow = gid.y;
+    uint n = gid.z / (inDepth / 4);
+    uint dPack = gid.z % (inDepth / 4);
+    uint d = dPack * 4;
+
+    int rowBase = (int) dxRow + (int) padTop;
+    int colBase = (int) dxCol + (int) padLeft;
+    uint gradStride = kRows * kCols * inDepth;
+    
+    if (dxRow >= dxRows || dxCol >= dxCols || n >= numSamples)
+        return;
+
+    float4 val = float4(0.0f);
+
+    for (uint i = 0; i < kRows; i++) {
+        int tempRow = rowBase - (int) i;
+        if (tempRow < 0 || (tempRow % (int) stride != 0)) continue;
+        uint gradRow = tempRow / stride;
+        if (gradRow >= gradRows) continue;
+
+        for (uint j = 0; j < kCols; j++) {
+            int tempCol = colBase - (int) j;
+            if (tempCol < 0 || (tempCol % (int) stride != 0)) continue;
+            uint gradCol = tempCol / stride;
+            if (gradCol >= gradCols) continue;
+            
+            uint row = (n * gradRows + gradRow) * gradCols + gradCol;
+            uint col = (i * kCols + j) * inDepth + d;
+            val += *(device const float4*)&grad[row * gradStride + col];
+        }
+    }
+
+    uint idx = ((n * dxRows + dxRow) * dxCols + dxCol) * inDepth + d;
+    *(device float4*)&dX[idx] = val;
 }

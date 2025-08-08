@@ -52,7 +52,8 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> im2ColPipeline;
             static id<MTLComputePipelineState> addBiasApplyReLUIm2ColPipeline;
-            static id<MTLComputePipelineState> col2ImPipeline;
+            static id<MTLComputePipelineState> col2ImSlowPipeline;
+            static id<MTLComputePipelineState> col2ImFastPipeline;
 
             static id<MTLComputePipelineState> padAndUpsampleGradPipeline;
 
@@ -118,7 +119,8 @@ class GpuEngine {
             static id<MTLComputePipelineState> getConv2dInputNaivePipe();
 
             static id<MTLComputePipelineState> getIm2ColPipe();
-            static id<MTLComputePipelineState> getCol2ImPipe();
+            static id<MTLComputePipelineState> getCol2ImSlowPipe();
+            static id<MTLComputePipelineState> getCol2ImFastPipe();
             static id<MTLComputePipelineState> getAddBiasApplyReLUIm2ColPipe();
 
             static id<MTLComputePipelineState> getMaxPool2dGradPipe();

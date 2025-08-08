@@ -21,7 +21,7 @@ using namespace metal;
         uint baseIdx = mat1Row * mat1Cols + mat1Col; \
         \
         if (mat1Row < mat1Rows && mat1Col + 3 < mat1Cols) { \
-            packed_float4 mat1Temp = *(device const float4*)&mat1[baseIdx]; \
+            float4 mat1Temp = *(device const float4*)&mat1[baseIdx]; \
             mat1Tile[mat1TileStartCol * 4 + 0][i + mat1TileStartRow] = mat1Temp[0]; \
             mat1Tile[mat1TileStartCol * 4 + 1][i + mat1TileStartRow] = mat1Temp[1]; \
             mat1Tile[mat1TileStartCol * 4 + 2][i + mat1TileStartRow] = mat1Temp[2]; \
@@ -52,7 +52,7 @@ using namespace metal;
         uint baseIdx = mat2Row * mat2Cols + mat2Col; \
         \
         if (mat2Row < mat1Cols && mat2Col + 3 < mat2Cols) { \
-            packed_float4 mat2Temp = *(device const float4*)&mat2[baseIdx]; \
+            float4 mat2Temp = *(device const float4*)&mat2[baseIdx]; \
             mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 0] = mat2Temp[0]; \
             mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 1] = mat2Temp[1]; \
             mat2Tile[i + mat2TileStartRow][mat2TileStartCol * 4 + 2] = mat2Temp[2]; \
@@ -89,7 +89,7 @@ using namespace metal;
         uint baseIdx = mat2Row * mat1Cols + mat2Col; \
         \
         if (mat2Row < mat2Cols && mat2Col + 3 < mat1Cols) { \
-            packed_float4 mat2Temp = *(device const packed_float4*)&mat2[baseIdx]; \
+            float4 mat2Temp = *(device const float4*)&mat2[baseIdx]; \
             \
             mat2Tile[mat2TileCol + 0][mat2TileRow] = mat2Temp[0]; \
             mat2Tile[mat2TileCol + 1][mat2TileRow] = mat2Temp[1]; \
@@ -124,7 +124,7 @@ using namespace metal;
         uint baseIdx = mat1Row * mat1Rows + mat1Col; \
         \
         if (mat1Row < mat1Cols && mat1Col + 3 < mat1Rows) { \
-            packed_float4 mat1Temp = *(device const packed_float4*)&mat1[baseIdx]; \
+            float4 mat1Temp = *(device const float4*)&mat1[baseIdx]; \
             mat1Tile[mat1TileRow][mat1TileCol + 0] = mat1Temp[0]; \
             mat1Tile[mat1TileRow][mat1TileCol + 1] = mat1Temp[1]; \
             mat1Tile[mat1TileRow][mat1TileCol + 2] = mat1Temp[2]; \
