@@ -35,6 +35,7 @@
 //     // Initialize Gpu if on Mac (Safe to call on non-Mac, it just won't do anything)
 //     GpuEngine::init();
 
+//     // Data Paths
 //     const string trainPath = "DataFiles/MNIST/mnist_train.csv";
 //     const string testPath = "DataFiles/MNIST/mnist_test.csv";
 
@@ -61,13 +62,13 @@
 //     // Training Model
 //     ProgressMetric *metric = new ProgressAccuracy(data->getNumTrainSamples());
 //     nn->fit(
-//         xTrain,
-//         yTrain,
-//         0.0001,
-//         0.0001,
-//         5,
-//         1024,
-//         *metric
+//         xTrain,  // Features
+//         yTrain,  // Targets
+//         0.0001,  // Learning rate
+//         0.0001,  // Learning rate decay
+//         2,       // Number of epochs
+//         32,      // Batch Size
+//         *metric  // Progress metric
 //     );
 
 //     // Saving Model

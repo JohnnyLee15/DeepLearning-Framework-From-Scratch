@@ -10,7 +10,7 @@ CXXFLAGS := -std=c++17 \
 LDFLAGS := -fopenmp
 
 # Source files: always .cpp
-CPP_SRC := $(shell find src -name '*.cpp')
+CPP_SRC := $(shell find src tests -name '*.cpp')
 CPP_OBJ := $(CPP_SRC:.cpp=.o)
 
 # macOS specifics
@@ -28,7 +28,7 @@ ifeq ($(UNAME_S), Darwin)
 
 	# Add .mm files too
 	METALFLAGS := -O3 -ffast-math -funroll-loops
-	MM_SRC := $(shell find src -name '*.mm')
+	MM_SRC := $(shell find src tests -name '*.mm')
 	MM_OBJ := $(MM_SRC:.mm=_gpu.o)
 
 	OBJ := $(CPP_OBJ) $(MM_OBJ)
@@ -37,7 +37,7 @@ else
 endif
 
 
-TARGET := mlp
+TARGET := runModel
 
 # Main
 all: $(TARGET)

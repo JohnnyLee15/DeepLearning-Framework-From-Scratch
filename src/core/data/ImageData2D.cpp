@@ -28,7 +28,11 @@ void ImageData2D::scanDirectory(
     ConsoleUtils::completeMessage();
 }
 
-void ImageData2D::extractImages(vector<RawImage> &features, const vector<string> &paths) const{
+void ImageData2D::extractImages(
+    vector<RawImage> &features, 
+    const vector<string> &paths,
+    size_t channels
+) const{
     ConsoleUtils::loadMessage("Extracting Images.");
     features.reserve(paths.size());
     for (const string &imgPath : paths) {
@@ -36,19 +40,19 @@ void ImageData2D::extractImages(vector<RawImage> &features, const vector<string>
         unsigned char *input = stbi_load(
             imgPath.c_str(),
             &w, &h, &c,
-            0
+            channels
         );
 
         if (!input) {
             ConsoleUtils::fatalError("Could not load image: " + imgPath);
         }
 
+
         RawImage rawImage;
         rawImage.width = w;
         rawImage.height = h;
-        rawImage.channels = c;
-        rawImage.pixels.assign(input, input + (w*h*c));
-
+        rawImage.channels = channels;
+        rawImage.pixels.assign(input, input + (w*h*channels));
         features.push_back(rawImage);
 
         stbi_image_free(input);
@@ -69,24 +73,25 @@ void ImageData2D::extractLabels(vector<float> &targets, const vector<string> &la
 void ImageData2D::read(
     vector<RawImage> &features, 
     vector<float> &targets, 
-    const string &path
+    const string &path,
+    size_t channels
 ) {
     vector<string> paths;
     vector<string> labels;
     scanDirectory(paths, labels, path);
-    extractImages(features, paths);
+    extractImages(features, paths, channels);
     extractLabels(targets, labels);
     ConsoleUtils::printSepLine();
 }
 
-void ImageData2D::readTrain(const string &path) {
+void ImageData2D::readTrain(const string &path, size_t channels) {
     cout << endl << "📥 Loading training data from: \"" << CsvUtils::trimFilePath(path) << "\"." << endl;
-    read(trainFeatures, trainTargets, path);
+    read(trainFeatures, trainTargets, path, channels);
 }
 
-void ImageData2D::readTest(const string &path) {
+void ImageData2D::readTest(const string &path, size_t channels) {
     cout << endl << "📥 Loading testing data from: \"" << CsvUtils::trimFilePath(path) << "\"." << endl;
-    read(testFeatures, testTargets, path);
+    read(testFeatures, testTargets, path, channels);
 }
 
 const vector<RawImage>& ImageData2D::getTrainFeatures() const {

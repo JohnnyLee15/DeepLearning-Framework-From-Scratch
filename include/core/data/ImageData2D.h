@@ -25,15 +25,15 @@ class ImageData2D : public Data {
         unordered_map<string, int> labelMap;
 
         // Methods
-        void read(vector<RawImage>&, vector<float>&, const string&);
+        void read(vector<RawImage>&, vector<float>&, const string&, size_t);
         void scanDirectory(vector<string>&, vector<string>&, const string&) const;
-        void extractImages(vector<RawImage>&, const vector<string>&) const;
+        void extractImages(vector<RawImage>&, const vector<string>&, size_t) const;
         void extractLabels(vector<float>&, const vector<string>&);
 
     public:
         // Methods
-        void readTrain(const string&);
-        void readTest(const string&);
+        void readTrain(const string&, size_t);
+        void readTest(const string&, size_t);
 
         const vector<RawImage>& getTrainFeatures() const;
         const vector<RawImage>& getTestFeatures() const;

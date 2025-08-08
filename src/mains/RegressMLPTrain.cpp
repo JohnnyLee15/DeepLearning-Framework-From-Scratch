@@ -74,13 +74,13 @@
 //     // Training Model
 //     ProgressMetric *metric = new ProgressMAPE(data->getNumTrainSamples());
 //     nn->fit(
-//         xTrain,
-//         yTrain,
-//         0.001,
-//         0.0001,
-//         300,
-//         32,
-//         *metric
+//         xTrain,  // Features
+//         yTrain,  // Targets
+//         0.001,   // Learning rate
+//         0.0001,  // Learning rate decay
+//         300,     // Number of epochs
+//         32,      // Batch Size
+//         *metric  // Progress metric
 //     );
 
 //     // Saving Model

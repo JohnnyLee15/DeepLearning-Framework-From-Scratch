@@ -26,6 +26,15 @@ Tensor ImageTransform2D::transform(const vector<RawImage> &rawImages) const {
     vector<float> &imageFlat = transformedImages.getFlat();
     size_t currIdx = 0;
     for (const RawImage &image : rawImages) {
+
+        if (channels != image.channels) {
+            ConsoleUtils::fatalError(
+                "Channel mismatch: requested " + std::to_string(channels) +
+                " but file provides " + std::to_string(image.channels) +
+                ". Choose a consistent channel count or pre-convert your data."
+            ); 
+        }
+
         vector<unsigned char> resized(height * width * channels);
         stbir_resize_uint8(
             image.pixels.data(), image.width, image.height, 0,

@@ -35,6 +35,7 @@
 //     // Initialize Gpu if on Mac (Safe to call on non-Mac, it just won't do anything)
 //     GpuEngine::init();
 
+//     // Data Paths
 //     const string trainPath = "DataFiles/California_Housing/housing_clean.csv";
 //     const string testPath = "DataFiles/California_Housing/housing_clean.csv";
 
@@ -62,13 +63,13 @@
 //     // Training Model
 //     ProgressMetric *metric = new ProgressMAPE(data->getNumTrainSamples());
 //     nn->fit(
-//         xTrain,
-//         yTrain,
-//         0.0001,
-//         0.0001,
-//         5,
-//         1024,
-//         *metric
+//         xTrain,  // Features
+//         yTrain,  // Targets
+//         0.0001,  // Learning rate
+//         0.0001,  // Learning rate decay
+//         2,       // Number of epochs
+//         32,      // Batch Size
+//         *metric  // Progress metric
 //     );
 
 //     // Saving Model

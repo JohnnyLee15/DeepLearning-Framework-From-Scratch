@@ -31,71 +31,64 @@
 //     // Welcome Message
 //     ConsoleUtils::printTitle();
 
+//     // Initialize Gpu if on Mac (Safe to call on non-Mac, it just won't do anything)
 //     GpuEngine::init();
 
-//     const size_t SIZE = 256;
+//     // Image Resize Dims
+//     const size_t SIZE = 64;
+
+//     // Number of channels to read in
 //     const size_t CHANNELS = 1;
+
+//     // Data Paths
 //     const string trainPath = "DataFiles/chest_xray/train";
 //     const string testPath = "DataFiles/chest_xray/test";
 
 //     // Data Reading
 //     ImageData2D *data = new ImageData2D();
-//     data->readTrain(trainPath);
-//     data->readTest(testPath);
+//     data->readTrain(trainPath, CHANNELS);
+//     data->readTest(testPath, CHANNELS);
 
+//     // Transform data (resize to 64x64 and normalize)
 //     ImageTransform2D *transformer = new ImageTransform2D(SIZE, SIZE, CHANNELS);
 //     Tensor xTrain = transformer->transform(data->getTrainFeatures());
 //     Tensor xTest = transformer->transform(data->getTestFeatures());
 //     vector<float> yTrain = data->getTrainTargets();
 //     vector<float> yTest = data->getTestTargets();
 
+//     // Defining Model Architecture
 //     Loss *loss = new SoftmaxCrossEntropy();
 //     vector<Layer*> layers = {
-//         new Conv2D(16, 3, 3, 1, "same", new ReLU()),
-//         new Conv2D(16, 3, 3, 1, "same", new ReLU()),
-//         new MaxPooling2D(2, 2, 2, "none"),
-
 //         new Conv2D(32, 3, 3, 1, "same", new ReLU()),
 //         new Conv2D(32, 3, 3, 1, "same", new ReLU()),
-//         new MaxPooling2D(2, 2, 2, "none"),
-
-//         new Conv2D(64, 3, 3, 1, "same", new ReLU()),
-//         new Conv2D(64, 3, 3, 1, "same", new ReLU()),
-//         new MaxPooling2D(2, 2, 2, "none"),
-
-//         new Conv2D(128, 3, 3, 1, "same", new ReLU()),
-//         new Conv2D(128, 3, 3, 1, "same", new ReLU()),
-//         new MaxPooling2D(2, 2, 2, "none"),
-
-//         new Conv2D(256, 3, 3, 1, "same", new ReLU()),
-//         new Conv2D(256, 3, 3, 1, "same", new ReLU()),
-//         new MaxPooling2D(2, 2, 2, "none"),
-
-//         new Flatten(),
-//         new Dense(256, new ReLU()),
-//         new Dense(128, new ReLU()),
-//         new Dense(2, new Softmax())
+//         new Flatten(),                              
+//         new Dense(128,  new ReLU()),
+//         new Dense(2,   new Softmax())
 //     };
 
+//     // Creating Neural Network
 //     NeuralNet *nn = new NeuralNet(layers, loss);
-//     ProgressMetric *metric = new ProgressAccuracy(data->getNumTrainSamples());
 
+//     // Training Model
+//     ProgressMetric *metric = new ProgressAccuracy(data->getNumTrainSamples());
 //     nn->fit(
-//         xTrain,
-//         yTrain,
-//         0.0001,
-//         0.00001,
-//         2,
-//         8,
-//         *metric
+//         xTrain, // Features
+//         yTrain, // Targets
+//         0.001,  // Learning rate
+//         0.2,    // Learning rate decay
+//         2,      // Number of epochs
+//         32,     // Batch Size
+//         *metric // Progress metric
 //     );
 
+//     // Saving Model
 //     Pipeline pipe;
 //     pipe.setData(data);
 //     pipe.setModel(nn);
 //     pipe.setImageTransformer2D(transformer);
-//     pipe.saveToBin("models/SmallXrayClassifierTrain");
+//     pipe.saveToBin("models/XrayCNNTrain");
 
+//     // Testing Model
 //     Tensor output = nn->predict(xTest);
 //     vector<float> predictions = TrainingUtils::getPredictions(output);
 //     float accuracy = TrainingUtils::getAccuracy(yTest, predictions);
