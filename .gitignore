@@ -1,4 +1,5 @@
 DataFiles/
+models/
 **/.DS_Store
 .vscode
 *.o
