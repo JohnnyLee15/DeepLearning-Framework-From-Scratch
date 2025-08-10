@@ -13,6 +13,8 @@ using namespace std;
 class Conv2D : public Layer {
     private:
         // Constants
+        static const float HE_INT_GAIN;
+        
         static const size_t GPU_FAST;
         static const size_t GPU_NAIVE;
         static const size_t CPU;

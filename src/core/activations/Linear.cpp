@@ -2,7 +2,7 @@
 #include "core/tensor/Tensor.h"
 #include <algorithm>
 
-const float Linear::LINEAR_BIAS = 0.01;
+const float Linear::LINEAR_BIAS = 0.0;
 
 void Linear::activate(const Tensor& z, Tensor &a) const {
     memcpy(a.getFlat().data(), z.getFlat().data(), z.getSize() * sizeof(float));

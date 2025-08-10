@@ -56,8 +56,8 @@
 //     // Defining Model Architecture
 //     Loss *loss = new SoftmaxCrossEntropy();
 //     vector<Layer*> layers = {
-//         new Dense(256, new ReLU()),
-//         new Dense(64, new ReLU()),
+//         new Dense(8192, new ReLU()),
+//         new Dense(4096, new ReLU()),
 //         new Dense(10, new Softmax())
 //     };
 

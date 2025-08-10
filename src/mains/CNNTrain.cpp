@@ -35,7 +35,7 @@ int main() {
     GpuEngine::init();
 
     // Image Resize Dims
-    const size_t SIZE = 128;
+    const size_t SIZE = 224;
 
     // Number of channels to read in
     const size_t CHANNELS = 1;
@@ -75,6 +75,10 @@ int main() {
         new Conv2D(128, 3, 3, 1, "same", new ReLU()),
         new Conv2D(256, 3, 3, 2, "same", new ReLU()),
 
+        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(512, 3, 3, 2, "same", new ReLU()),
+
         new Flatten(),      
         new Dense(256,  new ReLU()),                        
         new Dense(128,  new ReLU()),
@@ -91,7 +95,7 @@ int main() {
         yTrain, // Targets
         0.001,  // Learning rate
         0.2,    // Learning rate decay
-        2,      // Number of epochs
+        10,      // Number of epochs
         32,     // Batch Size
         *metric // Progress metric
     );

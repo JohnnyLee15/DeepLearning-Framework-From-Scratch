@@ -70,6 +70,10 @@ class Dense : public Layer {
 
         Layer* clone() const override;
 
+        const Tensor& getWeights() const override;
+        const Tensor& getBiases() const override;
+        const Tensor& getDeltaInputs() const override;
+
         // GPU Interface
         #ifdef __APPLE__
             void forwardGpu(const Tensor&, GpuCommandBuffer) override;

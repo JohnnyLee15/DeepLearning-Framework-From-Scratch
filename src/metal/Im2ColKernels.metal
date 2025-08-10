@@ -234,8 +234,7 @@ kernel void col2ImFast(
     uint dxCol = gid.x;
     uint dxRow = gid.y;
     uint n = gid.z / (inDepth / 4);
-    uint dPack = gid.z % (inDepth / 4);
-    uint d = dPack * 4;
+    uint d = (gid.z % (inDepth / 4)) * 4;
 
     int rowBase = (int) dxRow + (int) padTop;
     int colBase = (int) dxCol + (int) padLeft;

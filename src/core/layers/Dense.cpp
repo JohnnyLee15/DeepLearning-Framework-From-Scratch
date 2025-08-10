@@ -275,3 +275,15 @@ Layer::Encodings Dense::getEncoding() const {
 Layer* Dense::clone() const {
     return new Dense(*this);
 }
+
+const Tensor& Dense::getWeights() const {
+    return weights;
+}
+
+const Tensor& Dense::getBiases() const {
+    return biases;
+}
+
+const Tensor& Dense::getDeltaInputs() const {
+    return dX;
+}

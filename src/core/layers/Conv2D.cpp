@@ -9,6 +9,8 @@
 #include "core/activations/Linear.h"
 #include "core/activations/Softmax.h"
 
+const float Conv2D::HE_INT_GAIN = 2.0;
+
 const size_t Conv2D::GPU_FAST = 0;
 const size_t Conv2D::GPU_NAIVE = 1;
 const size_t Conv2D::CPU = 2;
@@ -125,17 +127,6 @@ void Conv2D::initGradBuf(bool isInference) {
     gradBuf = Tensor({getMaxBatchSize(), gradRows, gradCols, numKernels});
 }
 
-vector<uint32_t> Conv2D::generateThreadSeeds() const {
-    size_t numSeeds = omp_get_max_threads();
-    vector<uint32_t> seeds(numSeeds);
-    random_device rd;
-    for (size_t i = 0; i < numSeeds; i++) {
-        seeds[i] = rd();
-    }
-
-    return seeds;
-}
-
 void Conv2D::unflattenKernels() {
     if (executionMode != GPU_FAST)
         return;
@@ -189,6 +180,17 @@ void Conv2D::flattenKernels() {
     kernels = Tensor();
 }
 
+vector<uint32_t> Conv2D::generateThreadSeeds() const {
+    size_t numSeeds = omp_get_max_threads();
+    vector<uint32_t> seeds(numSeeds);
+    random_device rd;
+    for (size_t i = 0; i < numSeeds; i++) {
+        seeds[i] = rd();
+    }
+
+    return seeds;
+}
+
 void Conv2D::initKernels(size_t inDepth) {
     if (kernels.getSize() != 0 || fastKernels.getSize() != 0)
         return;
@@ -196,7 +198,7 @@ void Conv2D::initKernels(size_t inDepth) {
     kernels = Tensor({numKernels, kRows, kCols, inDepth});
     const vector<size_t> &kernelsShape = kernels.getShape();
     size_t size = kernels.getSize();
-    float std = sqrt(2.0/(kernelsShape[1] * kernelsShape[2] * kernelsShape[3]));
+    float std = sqrt(HE_INT_GAIN/(kernelsShape[1] * kernelsShape[2] * kernelsShape[3]));
     vector<float> &kernelsFlat = kernels.getFlat();
     vector<uint32_t> seeds = generateThreadSeeds();
 
