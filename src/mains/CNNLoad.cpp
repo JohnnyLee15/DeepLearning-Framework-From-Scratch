@@ -24,6 +24,7 @@
 // #include "core/layers/Conv2D.h"
 // #include "core/layers/MaxPooling2D.h"
 // #include "core/layers/Flatten.h"
+// #include "core/layers/Dropout.h"
 // #include "core/data/ImageData2D.h"
 // #include "core/gpu/GpuEngine.h"
 

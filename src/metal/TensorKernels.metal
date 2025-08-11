@@ -411,3 +411,22 @@ kernel void maxPool2dGrad(
     uint dxIdx = maxIndices[gid];
     atomic_fetch_add_explicit(&dX[dxIdx], grad[gid], memory_order_relaxed);
 }
+
+kernel void applyMask(
+    device const float *input [[ buffer(0) ]],
+    device const float *mask [[ buffer(1) ]],
+    device float *output [[ buffer(2) ]],
+    constant uint &size [[ buffer(3) ]],
+    constant uint &gridWidth [[ buffer(4) ]],
+    uint gid [[ thread_position_in_grid] ]
+) {
+    #pragma unroll
+    for (uint i = 0; i < COARSE_FACTOR; i++) {
+        uint idx = gid + (i * gridWidth);
+
+        if (idx >= size) 
+            return;
+
+        output[idx] = input[idx] * mask[idx];
+    }
+}

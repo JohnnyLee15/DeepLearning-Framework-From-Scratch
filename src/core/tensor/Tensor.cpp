@@ -434,7 +434,7 @@ void Tensor::reduceSumBias(Tensor &dB) const {
     size_t gradCols = shape[2];
     size_t numKernals = shape[3];
 
-    vector<float> &dbFlat = dB.getFlat();
+    vector<float> &dbFlat = dB.data;
     fill(dbFlat.begin(), dbFlat.end(), 0.0f);
     #pragma omp parallel
     {
@@ -560,7 +560,7 @@ void Tensor::maxPool2dGrad(
 ) const {
     vector<float> &dxFlat = dX.data;
     fill(dxFlat.begin(), dxFlat.end(), 0.0f);
-    const vector<float> &gradFlat = getFlat();
+    const vector<float> &gradFlat = data;
     
     size_t gradSize = getSize();
 
@@ -585,11 +585,22 @@ void Tensor::hadamard(const Tensor &ten2) {
 
 void Tensor::applyGrad(const Tensor &grad, float scaleFactor){
     size_t size = getSize();
-    const vector<float> &gradFlat = grad.getFlat();
+    const vector<float> &gradFlat = grad.data;
 
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
         data[i] += (scaleFactor * gradFlat[i]);
     }
-    
+}
+
+void Tensor::applyMask(const Tensor &mask, Tensor &output) const {
+    const vector<float> &inFlat = data;
+    const vector<float> &maskFlat = mask.data;
+    vector<float> &outFlat = output.data;
+    size_t size = getSize();
+
+    #pragma omp parallel for
+    for (size_t i = 0; i < size; i++) {
+        outFlat[i] = maskFlat[i] * inFlat[i];
+    }
 }

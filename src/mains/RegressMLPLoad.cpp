@@ -22,6 +22,7 @@
 // #include "core/model/Pipeline.h"
 // #include "utils/ImageTransform2D.h"
 // #include "core/layers/Conv2D.h"
+// #include "core/layers/Dropout.h"
 // #include "core/layers/MaxPooling2D.h"
 // #include "core/layers/Flatten.h"
 // #include "core/data/ImageData2D.h"

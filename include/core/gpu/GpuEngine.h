@@ -28,6 +28,7 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> hadamardPipeline;
             static id<MTLComputePipelineState> applyGradPipeline;
+            static id<MTLComputePipelineState> applyMaskPipeline;
 
             static id<MTLComputePipelineState> calculateLinearGradPipeline;
             static id<MTLComputePipelineState> calculateReluGradPipeline;
@@ -100,6 +101,7 @@ class GpuEngine {
 
             static id<MTLComputePipelineState> getHadamardPipe();
             static id<MTLComputePipelineState> getApplyGradPipe();
+            static id<MTLComputePipelineState> getApplyMaskPipe();
 
             static id<MTLComputePipelineState> getCalculateLinearGradPipe();
             static id<MTLComputePipelineState> getCalculateReluGradPipe();

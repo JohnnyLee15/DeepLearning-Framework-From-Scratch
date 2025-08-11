@@ -16,6 +16,7 @@
 #include "core/layers/Flatten.h"
 #include "core/gpu/GpuEngine.h"
 #include <cstring>
+#include "core/layers/Dropout.h"
 
 const size_t NeuralNet::INFERENCE_BATCH_SIZE = 8;
 
@@ -313,6 +314,8 @@ void NeuralNet::loadLayer(ifstream &modelBin) {
         layer = new MaxPooling2D;
     } else if (layerEncoding == Layer::Encodings::Flatten) {
         layer = new Flatten();
+    } else if (layerEncoding == Layer::Encodings::Dropout) {
+        layer = new Dropout();
     } else {
         ConsoleUtils::fatalError(
             "Unsupported layer encoding \"" + to_string(layerEncoding) + "\"."

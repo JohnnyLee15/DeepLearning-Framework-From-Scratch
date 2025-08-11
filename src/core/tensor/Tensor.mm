@@ -447,3 +447,30 @@ void Tensor::maxPool2dGradGpu(
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
     [encoder endEncoding];
 }
+
+void Tensor::applyMaskGpu(
+    const Tensor &mask, 
+    Tensor &output,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> inBuf = getGpuData();
+    id<MTLBuffer> maskBuf = mask.getGpuData();
+    id<MTLBuffer> outBuf = output.getGpuData();
+
+    uint32_t size = (uint32_t) getSize();
+    uint32_t gridWidth = (size + COARSE_FACTOR - 1) / COARSE_FACTOR;
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getApplyMaskPipe()];
+
+    [encoder setBuffer:inBuf offset:0 atIndex:0];
+    [encoder setBuffer:maskBuf offset:0 atIndex:1];
+    [encoder setBuffer:outBuf offset:0 atIndex:2];
+    [encoder setBytes:&size length:sizeof(uint32_t)  atIndex:3];
+    [encoder setBytes:&gridWidth length:sizeof(uint32_t) atIndex:4];
+    
+    MTLSize grid = MTLSizeMake(gridWidth, 1, 1);
+    MTLSize tg = MTLSizeMake(NUM_THREADS, 1, 1);
+    [encoder dispatchThreads:grid threadsPerThreadgroup:tg];
+    [encoder endEncoding];
+}

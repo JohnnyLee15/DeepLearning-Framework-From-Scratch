@@ -3,7 +3,6 @@
 #include "core/gpu/GpuEngine.h"
 
 void Flatten::forwardGpu(const Tensor &input, GpuCommandBuffer cmdBufVoid) {
-    id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>) cmdBufVoid;
     const vector<size_t> &shape = input.getShape();
     
     checkInputSize(shape);
@@ -11,7 +10,7 @@ void Flatten::forwardGpu(const Tensor &input, GpuCommandBuffer cmdBufVoid) {
 
     inShape[0] = batchSize;
     outShape[0] = batchSize;
-    input.copyGpu(output, cmdBuf);
+    output = input;
     output.reShapeInPlace(outShape);
 }
 
@@ -26,8 +25,6 @@ void Flatten::backpropGpu(
     (void)prevActivations;
     (void)learningRate;
     (void)isFirstLayer;
-
-    id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>) cmdBufVoid;
-    grad.copyGpu(dX, cmdBuf);
+    dX = grad;
     dX.reShapeInPlace(inShape);
 }

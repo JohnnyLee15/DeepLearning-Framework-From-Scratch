@@ -19,6 +19,7 @@
 // #include "core/layers/Dense.h"
 // #include "core/metrics/ProgressAccuracy.h"
 // #include "core/metrics/ProgressMAPE.h"
+// #include "core/layers/Dropout.h"
 // #include "core/model/Pipeline.h"
 // #include "utils/ImageTransform2D.h"
 // #include "core/layers/Conv2D.h"

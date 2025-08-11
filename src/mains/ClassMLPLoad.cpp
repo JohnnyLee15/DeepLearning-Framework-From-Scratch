@@ -14,6 +14,8 @@
 // #include "utils/ConsoleUtils.h"
 // #include "utils/Greyscale.h"
 // #include "utils/Minmax.h"
+// #include "core/layers/Dropout.h"
+// #include "core/layers/Flatten.h"
 // #include "utils/TrainingUtils.h"
 // #include "core/layers/Layer.h"
 // #include "core/layers/Dense.h"
@@ -43,7 +45,7 @@
 //     const string targetColumn = "label";
 
 //     // Loading Model
-//     Pipeline pipe = Pipeline::loadFromBin("ClassMnistTrain");
+//     Pipeline pipe = Pipeline::loadFromBin("test");
 //     NeuralNet *nn = pipe.getModel();
 //     TabularData *data = dynamic_cast<TabularData*>(pipe.getData());
 //     Scalar *scalar = pipe.getFeatureScalar();
@@ -64,19 +66,19 @@
 //     nn->fit(
 //         xTrain,  // Features
 //         yTrain,  // Targets
-//         0.0001,  // Learning rate
-//         0.0001,  // Learning rate decay
+//         0.01,  // Learning rate
+//         0.01,  // Learning rate decay
 //         2,       // Number of epochs
 //         32,      // Batch Size
 //         *metric  // Progress metric
 //     );
 
 //     // Saving Model
-//     pipe.saveToBin("models/ClassMnistLoad");
+//     pipe.saveToBin("testLoad");
 
 //     // Testing Model
 //     Tensor output = nn->predict(xTest);
 //     vector<float> predictions = TrainingUtils::getPredictions(output);
-//     float rmse = TrainingUtils::getAccuracy(yTest, predictions);
-//     printf("\nTest Accuracy: %.2f.\n", rmse);
+//     float accuracy = TrainingUtils::getAccuracy(yTest, predictions);
+//     printf("\nTest Accuracy: %.2f.\n", accuracy);
 // }

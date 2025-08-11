@@ -24,6 +24,7 @@ class Layer {
             Conv2D,
             MaxPooling2D,
             Flatten,
+            Dropout,
             None
         };
         // Constructor

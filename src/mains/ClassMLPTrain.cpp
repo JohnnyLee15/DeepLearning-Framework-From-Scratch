@@ -17,6 +17,8 @@
 // #include "utils/TrainingUtils.h"
 // #include "core/layers/Layer.h"
 // #include "core/layers/Dense.h"
+// #include "core/layers/Dropout.h"
+// #include "core/layers/Flatten.h"
 // #include "core/metrics/ProgressAccuracy.h"
 // #include "core/metrics/ProgressMAPE.h"
 // #include "core/model/Pipeline.h"
@@ -56,8 +58,9 @@
 //     // Defining Model Architecture
 //     Loss *loss = new SoftmaxCrossEntropy();
 //     vector<Layer*> layers = {
-//         new Dense(8192, new ReLU()),
-//         new Dense(4096, new ReLU()),
+//         new Dense(256, new ReLU()),
+//         new Dropout(0.5), 
+//         new Dense(128, new ReLU()),
 //         new Dense(10, new Softmax())
 //     };
 
@@ -81,11 +84,11 @@
 //     pipe.setData(data);
 //     pipe.setFeatureScalar(scalar);
 //     pipe.setModel(nn);
-//     pipe.saveToBin("models/ClassMnistTrain");
+//     pipe.saveToBin("test");
 
 //     // Testing Model
 //     Tensor output = nn->predict(xTest);
 //     vector<float> predictions = TrainingUtils::getPredictions(output);
-//     float rmse = TrainingUtils::getAccuracy(yTest, predictions);
-//     printf("\nTest Accuracy: %.2f.\n", rmse);
+//     float accuracy = TrainingUtils::getAccuracy(yTest, predictions);
+//     printf("\nTest Accuracy: %.2f.\n", accuracy);
 // }
