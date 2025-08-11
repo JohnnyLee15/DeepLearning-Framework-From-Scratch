@@ -48,7 +48,7 @@ void MatrixT::mTmTGpu(
     );
 }
 
-void MatrixT::applyKernelGrads(
+void MatrixT::applyWeightsGrad(
     const Matrix &mat2,
     Tensor &kernels,
     float scaleFactor,
@@ -66,7 +66,7 @@ void MatrixT::applyKernelGrads(
 
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
 
-    [encoder setComputePipelineState:GpuEngine::getApplyKernelGradsPipe()];
+    [encoder setComputePipelineState:GpuEngine::getApplyWeightsGradPipe()];
     [encoder setBuffer:mat1Buf offset:0 atIndex:0];
     [encoder setBuffer:mat2Buf offset:0 atIndex:1];
     [encoder setBuffer:kBuf offset:0 atIndex:2];

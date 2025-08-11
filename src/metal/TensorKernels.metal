@@ -266,7 +266,7 @@ kernel void reduceSumBias(
     dB[k] = sum;
 }
 
-kernel void applyBiasGrad(
+kernel void applyBiasGradConv2D(
     device const float *grad [[ buffer(0) ]],
     device float *biases [[ buffer(1) ]],
     constant uint4 &gradDims [[ buffer(2) ]],

@@ -308,7 +308,7 @@ void Tensor::reduceSumBiasGpu(
     [encoder endEncoding];
 }
 
-void Tensor::applyBiasGrad(
+void Tensor::applyBiasGradConv2D(
     Tensor &biases,
     float scaleFactor,
     id<MTLCommandBuffer> cmdBuf
@@ -321,7 +321,7 @@ void Tensor::applyBiasGrad(
     };
 
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
-    [encoder setComputePipelineState:GpuEngine::getApplyBiasGradPipe()];
+    [encoder setComputePipelineState:GpuEngine::getApplyBiasGradConv2DPipe()];
 
     [encoder setBuffer:gradBuf offset:0 atIndex:0];
     [encoder setBuffer:biasBuf offset:0 atIndex:1];

@@ -15,6 +15,10 @@
 
 const float Dense::HE_INT_GAIN = 2.0;
 
+const size_t Dense::GPU_FAST = 0;
+const size_t Dense::GPU_NAIVE = 1;
+const size_t Dense::CPU = 2;
+
 Dense::Dense(size_t numNeurons,  Activation *activation) :
     numNeurons(numNeurons), activation(activation) {}
 
@@ -51,8 +55,20 @@ void Dense::checkBuildSize(const vector<size_t> &inShape) const {
     }
 }
 
+void Dense::initExecutionMode() {
+    if (GpuEngine::isUsingGpu()) {
+        ReLU *act = dynamic_cast<ReLU*>(activation);
+        executionMode = (act != nullptr) ? GPU_FAST : GPU_NAIVE;
+    } else {
+        executionMode = CPU;
+    }
+}
+
 void Dense::allocateForwardBuffers() {
-    preActivations = Tensor({getMaxBatchSize(), numNeurons});
+    if (executionMode != GPU_FAST) {
+        preActivations = Tensor({getMaxBatchSize(), numNeurons});
+    }
+    
     activations = Tensor({getMaxBatchSize(), numNeurons});
 }
 
@@ -60,10 +76,16 @@ void Dense::allocateGradientBuffers(size_t weightsPerNeuron, bool isInference) {
     if (isInference)
         return;
         
-    dB = Tensor({numNeurons});
-    dW = Tensor({numNeurons, weightsPerNeuron});
+    if (executionMode == CPU) {
+        dB = Tensor({numNeurons});
+        dW = Tensor({numNeurons, weightsPerNeuron});
+    }
+    
+    if (executionMode != GPU_FAST) {
+        dA = Tensor({getMaxBatchSize(), numNeurons});
+    }
+
     dX = Tensor({getMaxBatchSize(), weightsPerNeuron});
-    dA = Tensor({getMaxBatchSize(), numNeurons});
 }
 
 void Dense::deallocateGradientBuffers(bool isInference) {
@@ -129,11 +151,11 @@ void Dense::initParams(size_t weightsPerNeuron, bool isInference) {
 
 void Dense::build(const vector<size_t> &inShape, bool isInference) {
     checkBuildSize(inShape);
+    initExecutionMode();
 
     Layer::build(inShape);
-
     size_t weightsPerNeuron = inShape[1];
-
+    
     allocateForwardBuffers();
     allocateGradientBuffers(weightsPerNeuron, isInference);
     initParams(weightsPerNeuron, isInference);
@@ -210,12 +232,17 @@ void Dense::loadFromBin(ifstream &modelBin) {
 
 void Dense::reShapeBatch(size_t currBatchSize) {
     size_t weightsPerNeuron = weights.getShape()[1];
-
-    preActivations.reShapeInPlace({currBatchSize, numNeurons});
     activations.reShapeInPlace({currBatchSize, numNeurons});
 
     if (dX.getSize() > 0) {
         dX.reShapeInPlace({currBatchSize, weightsPerNeuron});
+    }
+
+    if (executionMode != GPU_FAST) {
+        preActivations.reShapeInPlace({currBatchSize, numNeurons});
+    }
+    
+    if (dA.getSize() > 0) {
         dA.reShapeInPlace({currBatchSize, numNeurons});
     }
 }

@@ -13,6 +13,10 @@ class Dense : public Layer {
         // Constants
         static const float HE_INT_GAIN;
 
+        static const size_t GPU_FAST;
+        static const size_t GPU_NAIVE;
+        static const size_t CPU;
+
         // Instance Variables
         size_t numNeurons;
 
@@ -26,11 +30,14 @@ class Dense : public Layer {
         Tensor biases;
 
         Activation *activation;
+
+        size_t executionMode;
         
         // Methods
         void initBiases();
         void initWeights(size_t);
         void initParams(size_t, bool);
+        void initExecutionMode();
         void checkBuildSize(const vector<size_t>&) const;
         
         void ensureGpu();
@@ -78,6 +85,8 @@ class Dense : public Layer {
         #ifdef __APPLE__
             void forwardGpu(const Tensor&, GpuCommandBuffer) override;
             void backpropGpu(const Tensor&, float, Tensor&, bool, GpuCommandBuffer) override;
+            void backpropGpuNaive(const Tensor&, float, Tensor&, bool, GpuCommandBuffer);
+            void backpropGpuFast(const Tensor&, float, Tensor&, bool, GpuCommandBuffer);
             void downloadOutputFromGpu() override;
         #endif
 };

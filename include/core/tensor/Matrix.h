@@ -53,11 +53,25 @@ class Matrix {
                 id<MTLCommandBuffer>
             );
 
+            static void matMatBiasReLUEngine(
+                id<MTLBuffer>,
+                id<MTLBuffer>,
+                id<MTLBuffer>,
+                id<MTLBuffer>,
+                size_t,
+                size_t,
+                size_t,
+                id<MTLComputePipelineState>, 
+                id<MTLCommandBuffer>
+            );
+
             // Instance Methods
             void mmGpu(const Matrix&, Tensor&, id<MTLCommandBuffer>) const;
             void mmBiasReLU(const Matrix&, Tensor&, const Tensor&, id<MTLCommandBuffer>) const;
+            void mmTBiasReLU(const MatrixT&, Tensor&, const Tensor&, id<MTLCommandBuffer>) const;
             void mmTGpu(const MatrixT&, Tensor&, id<MTLCommandBuffer>) const;
             void colSumsGpu(Tensor&, id<MTLCommandBuffer>) const;
+            void applyBiasGradDense(Tensor&, float, id<MTLCommandBuffer>) const;
             void addToRowsGpu(const Tensor&, id<MTLCommandBuffer>);
 
             id<MTLBuffer> getGpuData() const;

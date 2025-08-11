@@ -403,6 +403,55 @@ kernel void mmBiasReLU(
     }
 }
 
+kernel void mmTBiasReLU(
+    device const float *mat1 [[ buffer(0) ]],
+    device const float *mat2 [[ buffer(1) ]],
+    device float *a [[ buffer(2) ]],
+    device const float *biases [[ buffer(3) ]],
+    constant uint3 &dims [[ buffer(4) ]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 group_id [[ threadgroup_position_in_grid ]]
+) {
+    uint mat1Rows = dims[0];
+    uint mat2Cols = dims[2];
+
+    uint threadNum = tid.y * THREADGROUP_WIDTH + tid.x;
+
+    uint row = COARSE_FACTOR_ROW * (threadNum / (TILE_MAT2_COLS/COARSE_FACTOR_COL));
+    uint col = COARSE_FACTOR_COL * (threadNum % (TILE_MAT2_COLS/COARSE_FACTOR_COL));
+
+    threadgroup float mat1Tile[TILE_MAT1_COLS][TILE_MAT1_ROWS];
+    threadgroup float mat2Tile[TILE_MAT1_COLS][TILE_MAT2_COLS];
+
+    float prodVals[COARSE_FACTOR_ROW][COARSE_FACTOR_COL] = {{0.0f}};
+    float regMat1[COARSE_FACTOR_ROW] = {0.0f};
+    float regMat2[COARSE_FACTOR_COL] = {0.0f};
+    float regBias[COARSE_FACTOR_COL];
+    
+    for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+        uint prodCol = group_id.x * TILE_MAT2_COLS + col + j;
+        regBias[j] = (prodCol < mat2Cols) ? biases[prodCol] : 0.0f;
+    }
+
+    MMT_LOAD_DATA( 
+        mat1, mat2, 
+        mat1Tile, mat2Tile, 
+        prodVals, regMat1, regMat2, 
+        dims, threadNum, row, col, group_id 
+    );
+
+    for (uint i = 0; i < COARSE_FACTOR_ROW; i++) {
+        for (uint j = 0; j < COARSE_FACTOR_COL; j++) {
+            uint prodRow = group_id.y * TILE_MAT1_ROWS + row + i;
+            uint prodCol = group_id.x * TILE_MAT2_COLS + col + j;
+
+            if (prodRow < mat1Rows && prodCol < mat2Cols) {
+                a[prodRow * mat2Cols + prodCol] = max(prodVals[i][j] + regBias[j], 0.0f);
+            }
+        }
+    }
+}
+
 kernel void mmT(
     device const float *mat1 [[ buffer(0) ]],
     device const float *mat2 [[ buffer(1) ]],
@@ -489,7 +538,7 @@ kernel void mTm(
     }
 }
 
-kernel void applyKernelGrads(
+kernel void applyWeightsGrad(
     device const float *mat1 [[ buffer(0) ]],
     device const float *mat2 [[ buffer(1) ]],
     device float *kernels [[ buffer(2) ]],
@@ -596,6 +645,29 @@ kernel void colSums(
     }
 
     vec[col] = val;
+}
+
+kernel void applyBiasGradDense(
+    device const float *grad[[ buffer(0) ]],
+    device float *biases [[ buffer (1) ]],
+    constant uint2 &dims [[ buffer(2) ]],
+    constant float &scaleFactor [[ buffer(3) ]],
+    uint gid [[thread_position_in_grid]]
+) {
+    uint col = gid;
+
+    uint gradRows = dims[0];
+    uint gradCols = dims[1];
+
+    if (col >= gradCols)
+        return;
+
+    float val = 0.0;
+    for (uint i = 0; i < gradRows; i++) {
+        val += grad[i * gradCols + col];
+    }
+
+    biases[col] += (val * scaleFactor);
 }
 
 kernel void addToRows(

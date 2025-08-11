@@ -95,10 +95,10 @@
 //         const_cast<Tensor&>(gpuLayer.getBiases()).downloadFromGpu();
 //         const_cast<Tensor&>(gpuLayer.getDeltaInputs()).downloadFromGpu();
 
-//         // // 7) Compare: dW, dB, dX
-//         // compareTensors(cpuLayer.getWeights(),       gpuLayer.getWeights(),         "dW");
-//         // compareTensors(cpuLayer.getBiases(),        gpuLayer.getBiases(),   "biases");
-//         // compareTensors(cpuLayer.getDeltaInputs(),   gpuLayer.getDeltaInputs(), "dX");
+//         // 7) Compare: dW, dB, dX
+//         compareTensors(cpuLayer.getWeights(),       gpuLayer.getWeights(),         "dW");
+//         compareTensors(cpuLayer.getBiases(),        gpuLayer.getBiases(),   "biases");
+//         compareTensors(cpuLayer.getDeltaInputs(),   gpuLayer.getDeltaInputs(), "dX");
 //     }
 
 //     // 8) Report

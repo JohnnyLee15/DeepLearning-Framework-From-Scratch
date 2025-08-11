@@ -73,7 +73,7 @@ class Conv2D : public Layer {
 
         void reShapeBatch(size_t);
         void reShapeGpuFastBuffers(size_t, size_t);
-        void reShapeCpuBuffers(size_t, size_t);
+        void reShapeCpuBuffers(size_t);
 
     public:
         // Constructors
@@ -104,8 +104,6 @@ class Conv2D : public Layer {
         // GPU Interface
         #ifdef __APPLE__
             void forwardGpu(const Tensor&, GpuCommandBuffer) override;
-            void forwardGpuNaive(const Tensor&, GpuCommandBuffer);
-            void forwardGpuFast(const Tensor&, GpuCommandBuffer);
             void backpropGpu(const Tensor&, float, Tensor&, bool, GpuCommandBuffer) override;
             void backpropGpuNaive(const Tensor&, float, Tensor&, bool, GpuCommandBuffer);
             void backpropGpuFast(const Tensor&, float, Tensor&, bool, GpuCommandBuffer);

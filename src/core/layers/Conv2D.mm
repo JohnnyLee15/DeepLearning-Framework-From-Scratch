@@ -16,22 +16,12 @@ void Conv2D::forwardGpu(const Tensor &input, GpuCommandBuffer cmdBufVoid) {
     const Tensor &inputFwd = input.padIfNeededGpu(paddedInput, winIn, padding, cmdBuf);
     
     if (executionMode == GPU_FAST) {
-        forwardGpuFast(inputFwd, cmdBufVoid);
+        Im2ColUtils::im2Col(inputFwd, im2ColInBuf, kRows, kCols, stride, winIn, cmdBuf);
+        im2ColInBuf.M().mmBiasReLU(fastKernels, activations, biases, cmdBuf);
     } else {
-        forwardGpuNaive(inputFwd, cmdBufVoid);
+        inputFwd.conv2dForwardGpu(kernels, stride, preActivations, biases, cmdBuf);
+        activation->activateGpu(preActivations, activations, cmdBufVoid);
     }
-}
-
-void Conv2D::forwardGpuFast(const Tensor &input, GpuCommandBuffer cmdBufVoid) {
-    id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>)cmdBufVoid;
-    Im2ColUtils::im2Col(input, im2ColInBuf, kRows, kCols, stride, winIn, cmdBuf);
-    im2ColInBuf.M().mmBiasReLU(fastKernels, activations, biases, cmdBuf);
-}
-
-void Conv2D::forwardGpuNaive(const Tensor &input, GpuCommandBuffer cmdBufVoid) {
-    id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>)cmdBufVoid;
-    input.conv2dForwardGpu(kernels, stride, preActivations, biases, cmdBuf);
-    activation->activateGpu(preActivations, activations, cmdBufVoid);
 }
 
 void Conv2D::backpropGpu(
@@ -59,11 +49,9 @@ void Conv2D::backpropGpuFast(
     float scaleFactor = -learningRate / input.getShape()[0];
 
     activation->backpropGpu(activations, grad, cmdBuf);
-    grad.applyBiasGrad(biases, scaleFactor, cmdBuf);
+    grad.applyBiasGradConv2D(biases, scaleFactor, cmdBuf);
 
     grad.reShapeInPlace(im2ColPreActShape);
-    im2ColInBuf.M().T().applyKernelGrads(grad, fastKernels, scaleFactor, cmdBuf);
-
     if (!isFirstLayer) {
         grad.M().mmTGpu(fastKernels.M().T(), gradIm2ColBuf, cmdBuf);
         Im2ColUtils::col2Im(
@@ -71,7 +59,8 @@ void Conv2D::backpropGpuFast(
             kRows, kCols, stride, winIn.padTop, winIn.padLeft, cmdBuf
         );
     }
-
+    
+    im2ColInBuf.M().T().applyWeightsGrad(grad, fastKernels, scaleFactor, cmdBuf);
     grad.reShapeInPlace(preActTensorShape);
 }
 
@@ -88,14 +77,14 @@ void Conv2D::backpropGpuNaive(
     activation->calculateGradientGpu(preActivations, dA, cmdBufVoid);
     grad.hadamardGpu(dA, cmdBuf);
 
-    const Tensor &inputBwd = input.padIfNeededGpu(paddedInput, winIn, padding, cmdBuf);
-    inputBwd.conv2dWeightsGpu(grad, numKernels, kRows, kCols, stride, dW, cmdBuf);
-    
-    kernels.applyGradGpu(dW, scaleFactor, cmdBuf);
-    grad.applyBiasGrad(biases, scaleFactor, cmdBuf);
-
     if (!isFirstLayer) {
         grad.padAndUpsampleGradGpu(gradBuf, winGrad, stride, cmdBuf);
         gradBuf.conv2dInputGpu(kernels, dX, cmdBuf);
     }
+
+    const Tensor &inputBwd = input.padIfNeededGpu(paddedInput, winIn, padding, cmdBuf);
+    inputBwd.conv2dWeightsGpu(grad, numKernels, kRows, kCols, stride, dW, cmdBuf);
+    
+    kernels.applyGradGpu(dW, scaleFactor, cmdBuf);
+    grad.applyBiasGradConv2D(biases, scaleFactor, cmdBuf);
 }

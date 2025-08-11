@@ -311,7 +311,7 @@ void Conv2D::reShapeGpuFastBuffers(size_t currBatchSize, size_t inDepth) {
     }
 }
 
-void Conv2D::reShapeCpuBuffers(size_t currBatchSize, size_t inDepth) {
+void Conv2D::reShapeCpuBuffers(size_t currBatchSize) {
     if (executionMode == GPU_FAST)
         return;
 
@@ -322,13 +322,6 @@ void Conv2D::reShapeCpuBuffers(size_t currBatchSize, size_t inDepth) {
         size_t gradRows = gradShape[1];
         size_t gradCols = gradShape[2];
         gradBuf.reShapeInPlace({currBatchSize, gradRows, gradCols, numKernels});
-    }
-    
-    if (dX.getSize() > 0) {
-        const vector<size_t> &inShape = dX.getShape();
-        size_t inRows = inShape[1];
-        size_t inCols = inShape[2];
-        dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});        
     }
 
     if (dA.getSize() > 0) {
@@ -345,8 +338,17 @@ void Conv2D::reShapeBatch(size_t currBatchSize) {
     paddedInput.reShapeInPlace({currBatchSize, inPadRows, inPadCols, inDepth});
     activations.reShapeInPlace({currBatchSize, winIn.outRows, winIn.outCols, numKernels});
 
-    reShapeCpuBuffers(currBatchSize, inDepth);
+    if (dX.getSize() > 0) {
+        const vector<size_t> &inShape = dX.getShape();
+        size_t inRows = inShape[1];
+        size_t inCols = inShape[2];
+        dX.reShapeInPlace({currBatchSize, inRows, inCols, inDepth});        
+    }
+
+    reShapeCpuBuffers(currBatchSize);
     reShapeGpuFastBuffers(currBatchSize, inDepth);
+
+
 }
 
 void Conv2D::forward(const Tensor &input) {

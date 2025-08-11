@@ -11,6 +11,86 @@
 #define TILE_MAT1_COLS 32
 #define TILE_MAT2_COLS 64
 
+id<MTLBuffer> Matrix::getGpuData() const {
+    return tensor.getGpuData();
+}
+
+void Matrix::mmGpu(
+    const Matrix &mat2,
+    Tensor &prod,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
+    matMatEngine(
+        getGpuData(),
+        mat2.getGpuData(),
+        prod.getGpuData(),
+        getNumRows(),
+        getNumCols(),
+        mat2.getNumCols(),
+        GpuEngine::getMatMatPipe(),
+        cmdBuf
+    );
+}
+
+void Matrix::mmTGpu(
+    const MatrixT &mat2,
+    Tensor &prod,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
+    matMatEngine(
+        getGpuData(),
+        mat2.getGpuData(),
+        prod.getGpuData(),
+        getNumRows(),
+        getNumCols(),
+        mat2.getNumCols(),
+        GpuEngine::getMatMatTPipe(),
+        cmdBuf
+    );
+} 
+
+void Matrix::mmBiasReLU(
+    const Matrix &mat2,
+    Tensor &a,
+    const Tensor &biases,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
+    matMatBiasReLUEngine(
+        getGpuData(),
+        mat2.getGpuData(),
+        a.getGpuData(),
+        biases.getGpuData(),
+        getNumRows(),
+        getNumCols(),
+        mat2.getNumCols(),
+        GpuEngine::getMMBiasReLUPipe(),
+        cmdBuf
+    );
+}
+
+void Matrix::mmTBiasReLU(
+    const MatrixT &mat2,
+    Tensor &a,
+    const Tensor &biases,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
+    matMatBiasReLUEngine(
+        getGpuData(),
+        mat2.getGpuData(),
+        a.getGpuData(),
+        biases.getGpuData(),
+        getNumRows(),
+        getNumCols(),
+        mat2.getNumCols(),
+        GpuEngine::getMMTBiasReLUPipe(),
+        cmdBuf
+    );
+}
+
 void Matrix::matMatEngine(
     id<MTLBuffer> mat1Buf,
     id<MTLBuffer> mat2Buf,
@@ -44,48 +124,25 @@ void Matrix::matMatEngine(
     [encoder endEncoding];
 }
 
-id<MTLBuffer> Matrix::getGpuData() const {
-    return tensor.getGpuData();
-}
-
-void Matrix::mmGpu(
-    const Matrix &mat2,
-    Tensor &prod,
+void Matrix::matMatBiasReLUEngine(
+    id<MTLBuffer> mat1Buf,
+    id<MTLBuffer> mat2Buf,
+    id<MTLBuffer> aBuf,
+    id<MTLBuffer> biasBuf,
+    size_t mat1Rows,
+    size_t mat1Cols,
+    size_t mat2Cols,
+    id<MTLComputePipelineState> pipeline,
     id<MTLCommandBuffer> cmdBuf
-) const {
-    Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
-    matMatEngine(
-        getGpuData(),
-        mat2.getGpuData(),
-        prod.getGpuData(),
-        getNumRows(),
-        getNumCols(),
-        mat2.getNumCols(),
-        GpuEngine::getMatMatPipe(),
-        cmdBuf
-    );
-}
-
-void Matrix::mmBiasReLU(
-    const Matrix &mat2,
-    Tensor &a,
-    const Tensor &biases,
-    id<MTLCommandBuffer> cmdBuf
-) const {
-    Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
-    uint32_t mat1RowsU = (uint32_t) getNumRows();
-    uint32_t mat1ColsU = (uint32_t) getNumCols();
-    uint32_t mat2ColsU = (uint32_t) mat2.getNumCols();
+) {
+    uint32_t mat1RowsU = (uint32_t) mat1Rows;
+    uint32_t mat1ColsU = (uint32_t) mat1Cols;
+    uint32_t mat2ColsU = (uint32_t) mat2Cols;
     uint32_t dims[3] = {mat1RowsU, mat1ColsU, mat2ColsU};
-
-    id<MTLBuffer> mat1Buf = getGpuData();
-    id<MTLBuffer> mat2Buf = mat2.getGpuData();
-    id<MTLBuffer> aBuf = a.getGpuData();
-    id<MTLBuffer> biasBuf = biases.getGpuData();
 
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
 
-    [encoder setComputePipelineState:GpuEngine::getMMBiasReLUPipe()];
+    [encoder setComputePipelineState:pipeline];
     [encoder setBuffer:mat1Buf offset:0 atIndex:0];
     [encoder setBuffer:mat2Buf offset:0 atIndex:1];
     [encoder setBuffer:aBuf offset:0 atIndex:2];
@@ -102,23 +159,6 @@ void Matrix::mmBiasReLU(
     [encoder endEncoding];
 }
 
-void Matrix::mmTGpu(
-    const MatrixT &mat2,
-    Tensor &prod,
-    id<MTLCommandBuffer> cmdBuf
-) const {
-    Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
-    matMatEngine(
-        getGpuData(),
-        mat2.getGpuData(),
-        prod.getGpuData(),
-        getNumRows(),
-        getNumCols(),
-        mat2.getNumCols(),
-        GpuEngine::getMatMatTPipe(),
-        cmdBuf
-    );
-} 
 
 void Matrix::colSumsGpu(Tensor &vec, id<MTLCommandBuffer> cmdBuf) const {
     id<MTLBuffer> matBuf = getGpuData();
@@ -134,6 +174,35 @@ void Matrix::colSumsGpu(Tensor &vec, id<MTLCommandBuffer> cmdBuf) const {
     [encoder setBuffer:matBuf offset:0 atIndex:0];
     [encoder setBuffer:vecBuf offset:0 atIndex:1];
     [encoder setBytes:&dims length:sizeof(dims) atIndex:2];
+
+    MTLSize gridSize = MTLSizeMake(numCols, 1, 1);
+
+    NSUInteger tgCols = MIN(numCols, NUM_THREADS);
+    MTLSize threadSize = MTLSizeMake(tgCols, 1, 1);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
+    [encoder endEncoding];
+}
+
+void Matrix::applyBiasGradDense(
+    Tensor &biases,
+    float scaleFactor,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> gradBuf = getGpuData();
+    id<MTLBuffer> biasBuf = biases.getGpuData();
+
+    uint32_t numRows = (uint32_t) getNumRows();
+    uint32_t numCols = (uint32_t) getNumCols();
+    uint32_t dims[2] = {numRows, numCols};
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getApplyBiasGradDensePipe()];
+
+    [encoder setBuffer:gradBuf offset:0 atIndex:0];
+    [encoder setBuffer:biasBuf offset:0 atIndex:1];
+    [encoder setBytes:&dims length:sizeof(dims)  atIndex:2];
+    [encoder setBytes:&scaleFactor length:sizeof(float)  atIndex:3];
 
     MTLSize gridSize = MTLSizeMake(numCols, 1, 1);
 
