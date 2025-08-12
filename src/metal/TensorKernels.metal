@@ -430,3 +430,71 @@ kernel void applyMask(
         output[idx] = input[idx] * mask[idx];
     }
 }
+
+kernel void globalAvgPool2d(
+    device const float *input [[ buffer(0) ]],
+    device float *output [[ buffer(1) ]],
+    constant uint4 &dims [[ buffer(2) ]],
+    uint group_id [[ threadgroup_position_in_grid ]],
+    uint tid [[ thread_position_in_threadgroup ]]
+) {
+    uint inRows = dims[1];
+    uint inCols = dims[2];
+    uint depth = dims[3];
+
+    uint n = group_id / depth;
+    uint d = group_id % depth;
+
+    uint numElements = inRows * inCols;
+
+    threadgroup float tile[THREADS_PER_GROUP];
+
+    float sum = 0.0f;
+    for (uint i = tid; i < numElements; i += THREADS_PER_GROUP) {
+        uint r = i / inCols;
+        uint c = i % inCols;
+        uint idx = ((n * inRows + r) * inCols + c) * depth + d;
+        sum += input[idx];
+    }
+
+    tile[tid] = sum;
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+
+    for (uint s = THREADS_PER_GROUP/2; s > 0; s /= 2) {
+        if (tid < s) {
+            tile[tid] += tile[tid + s];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+
+    if (tid == 0) {
+        output[n * depth + d] = tile[tid] * (1.0f / float(numElements));
+    }
+}
+
+kernel void globalAvgPool2dGrad(
+    device const float *grad [[ buffer(0) ]],
+    device float *dX [[ buffer(1) ]],
+    constant uint4 &dims [[ buffer(2) ]],
+    uint gid [[ thread_position_in_grid ]]
+) {
+    uint batchSize = dims[0];
+    uint inRows = dims[1];
+    uint inCols = dims[2];
+    uint depth = dims[3];
+
+    if (batchSize * inRows * inCols <= gid)
+        return;
+
+    uint n = gid / (inRows * inCols);
+    uint r = (gid / inCols) % inRows;
+    uint c = gid % inCols;
+    
+    uint baseIn = ((n * inRows + r) * inCols + c) * depth;
+    uint baseOut = n * depth;
+
+    float scale = 1.0f / (inRows * inCols);
+    for (uint d = 0; d < depth; d++) {
+        dX[baseIn + d] = grad[baseOut +d] * scale;
+    }
+}

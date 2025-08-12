@@ -25,6 +25,7 @@ class Layer {
             MaxPooling2D,
             Flatten,
             Dropout,
+            GlobalAveragePooling2D,
             None
         };
         // Constructor

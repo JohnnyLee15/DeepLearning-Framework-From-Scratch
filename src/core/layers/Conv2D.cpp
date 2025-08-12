@@ -372,17 +372,17 @@ void Conv2D::backprop(
     activation->calculateGradient(preActivations, dA);
     grad.hadamard(dA);
 
+    if (!isFirstLayer) {
+        grad.padAndUpsampleGrad(gradBuf, winGrad, stride);
+        gradBuf.conv2dInput(kernels, dX);
+    }
+
     const Tensor &inputBwd = input.padIfNeeded(paddedInput, winIn, padding);
     inputBwd.conv2dWeights(grad, numKernels, kRows, kCols, stride, dW);
     grad.reduceSumBias(dB);
 
     kernels.applyGrad(dW, scaleFactor);
     biases.applyGrad(dB, scaleFactor);
-
-    if (!isFirstLayer) {
-        grad.padAndUpsampleGrad(gradBuf, winGrad, stride);
-        gradBuf.conv2dInput(kernels, dX);
-    }
 }
 
 const Tensor& Conv2D::getOutput() const {

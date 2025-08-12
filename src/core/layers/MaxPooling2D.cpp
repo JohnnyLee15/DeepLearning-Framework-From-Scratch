@@ -63,13 +63,7 @@ void MaxPooling2D::initMaxIndices() {
 }
 
 vector<size_t> MaxPooling2D::getBuildOutShape(const vector<size_t> &inShape) const {
-    if (inShape.size() != 4) {
-        ConsoleUtils::fatalError(
-            "MaxPooling2D build error: Expected 4D input (batch_size, height, width, channels), "
-            "but got tensor with " + to_string(inShape.size()) + " dimensions."
-        );
-    }
-
+    checkBuildSize(inShape);
     return {getMaxBatchSize(), winIn.outRows, winIn.outCols, inShape[3]};
 }
 

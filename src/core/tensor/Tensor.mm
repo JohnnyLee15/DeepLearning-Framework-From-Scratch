@@ -363,7 +363,7 @@ void Tensor::padAndUpsampleGradGpu(
     uint32_t padding[2] = {(uint32_t) winGrad.padTop, (uint32_t) winGrad.padLeft};
     uint32_t strideU = (uint32_t) stride;
 
-    GpuEngine::fillInt(outBuf, (uint32_t) outGrad.getSize(), cmdBuf, 0.0f);
+    GpuEngine::fillFloat(outBuf, (uint32_t) outGrad.getSize(), cmdBuf, 0.0f);
 
     id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
     [encoder setComputePipelineState:GpuEngine::getPadAndUpsampleGradPipe()];
@@ -472,5 +472,55 @@ void Tensor::applyMaskGpu(
     MTLSize grid = MTLSizeMake(gridWidth, 1, 1);
     MTLSize tg = MTLSizeMake(NUM_THREADS, 1, 1);
     [encoder dispatchThreads:grid threadsPerThreadgroup:tg];
+    [encoder endEncoding];
+}
+
+void Tensor::globalAvgPool2dGpu(
+    Tensor &output,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> inBuf = getGpuData();
+    id<MTLBuffer> outBuf = output.getGpuData();
+    uint32_t dims[4] = {
+        (uint32_t) shape[0], (uint32_t) shape[1],  
+        (uint32_t) shape[2], (uint32_t) shape[3]
+    };
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getGlobalAvgPool2dPipe()];
+
+    [encoder setBuffer:inBuf offset:0 atIndex:0];
+    [encoder setBuffer:outBuf offset:0 atIndex:1];
+    [encoder setBytes:&dims length:sizeof(dims)  atIndex:2];
+
+    MTLSize gridSize = MTLSizeMake(dims[0] * dims[3], 1, 1);
+    MTLSize threadSize = MTLSizeMake(NUM_THREADS, 1, 1);
+
+    [encoder dispatchThreadgroups:gridSize threadsPerThreadgroup:threadSize];
+    [encoder endEncoding];
+}
+
+void Tensor::globalAvgPool2dGradGpu(
+    Tensor &dX,
+    id<MTLCommandBuffer> cmdBuf
+) const {
+    id<MTLBuffer> gradBuf = getGpuData();
+    id<MTLBuffer> dxBuf = dX.getGpuData();
+    uint32_t dims[4] = {
+        (uint32_t) dX.shape[0], (uint32_t) dX.shape[1],  
+        (uint32_t) dX.shape[2], (uint32_t) dX.shape[3]
+    };
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getGlobalAvgPool2dGradPipe()];
+
+    [encoder setBuffer:gradBuf offset:0 atIndex:0];
+    [encoder setBuffer:dxBuf offset:0 atIndex:1];
+    [encoder setBytes:&dims length:sizeof(dims)  atIndex:2];
+
+    MTLSize gridSize = MTLSizeMake(dims[0] * dims[1] * dims[2], 1, 1);
+    MTLSize threadSize = MTLSizeMake(NUM_THREADS, 1, 1);
+
+    [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
     [encoder endEncoding];
 }

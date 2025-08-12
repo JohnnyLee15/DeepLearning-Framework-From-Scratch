@@ -17,6 +17,7 @@
 #include "core/gpu/GpuEngine.h"
 #include <cstring>
 #include "core/layers/Dropout.h"
+#include "core/layers/GlobalAveragePooling2D.h"
 
 const size_t NeuralNet::INFERENCE_BATCH_SIZE = 8;
 
@@ -316,6 +317,8 @@ void NeuralNet::loadLayer(ifstream &modelBin) {
         layer = new Flatten();
     } else if (layerEncoding == Layer::Encodings::Dropout) {
         layer = new Dropout();
+    } else if (layerEncoding == Layer::Encodings::GlobalAveragePooling2D) {
+        layer = new GlobalAveragePooling2D();
     } else {
         ConsoleUtils::fatalError(
             "Unsupported layer encoding \"" + to_string(layerEncoding) + "\"."

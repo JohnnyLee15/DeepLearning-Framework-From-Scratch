@@ -276,15 +276,15 @@ void Dense::backprop(
     size_t batchSize = gradMat.getNumRows();
     float scaleFactor = -learningRate/batchSize;
 
+    if (!isFirstLayer) {
+        gradMat.mm(weights, dX);
+    }
+
     gradMat.T().mTm(prevActivations.M(), dW);
     gradMat.colSums(dB);
 
     weights.applyGrad(dW, scaleFactor);
     biases.applyGrad(dB, scaleFactor);
-
-    if (!isFirstLayer) {
-        gradMat.mm(weights, dX);
-    }
 }
 
 Tensor& Dense::getOutputGradient() {

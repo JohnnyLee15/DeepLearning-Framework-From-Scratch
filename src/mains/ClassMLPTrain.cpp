@@ -84,7 +84,7 @@
 //     pipe.setData(data);
 //     pipe.setFeatureScalar(scalar);
 //     pipe.setModel(nn);
-//     pipe.saveToBin("test");
+//     pipe.saveToBin("models/ClassMnistTrain.nn");
 
 //     // Testing Model
 //     Tensor output = nn->predict(xTest);

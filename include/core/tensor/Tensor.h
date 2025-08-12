@@ -78,11 +78,14 @@ class Tensor {
         void applyGrad(const Tensor&, float);
         void applyMask(const Tensor&, Tensor&) const;
 
+        void globalAvgPool2d(Tensor&) const;
+        void globalAvgPool2dGrad(Tensor&) const;
+
         void reShapeInPlace(const vector<size_t>&);
 
         void zero();
 
-        void print(const string&) const;
+        void printShape(const string&) const;
 
         // Static methods
         static Paddings decodePadding(const string&);
@@ -101,6 +104,9 @@ class Tensor {
             void reduceSumBiasGpu(Tensor&, id<MTLCommandBuffer>) const;
             void applyBiasGradConv2D(Tensor&, float, id<MTLCommandBuffer>) const;
             void applyMaskGpu(const Tensor&, Tensor&, id<MTLCommandBuffer>) const;
+
+            void globalAvgPool2dGpu(Tensor&, id<MTLCommandBuffer>) const;
+            void globalAvgPool2dGradGpu(Tensor&, id<MTLCommandBuffer>) const;
 
             const Tensor& padIfNeededGpu(Tensor&, const WindowDims&, Tensor::Paddings, id<MTLCommandBuffer>, float padVal = 0.0f) const;
             void padWindowInputGpu(Tensor&, const WindowDims&, id<MTLCommandBuffer>) const;

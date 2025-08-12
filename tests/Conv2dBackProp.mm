@@ -23,7 +23,7 @@
 //         assert(false); // Halt execution if sizes are different
 //     }
 //     for (size_t i = 0; i < v1.size(); ++i) {
-//         if (fabs(v1[i] - v2[i]) > 1.0f) { // Use a slightly larger tolerance for backprop
+//         if (fabs(v1[i] - v2[i]) > 1e-6f) { // Use a slightly larger tolerance for backprop
 //             printf("Mismatch in %s at idx %zu: CPU=%.6f GPU=%.6f\n", name.c_str(), i, v1[i], v2[i]);
 //             assert(false);
 //         }

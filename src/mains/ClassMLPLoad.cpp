@@ -45,7 +45,7 @@
 //     const string targetColumn = "label";
 
 //     // Loading Model
-//     Pipeline pipe = Pipeline::loadFromBin("test");
+//     Pipeline pipe = Pipeline::loadFromBin("models/ClassMnistTrain.nn");
 //     NeuralNet *nn = pipe.getModel();
 //     TabularData *data = dynamic_cast<TabularData*>(pipe.getData());
 //     Scalar *scalar = pipe.getFeatureScalar();
@@ -74,7 +74,7 @@
 //     );
 
 //     // Saving Model
-//     pipe.saveToBin("testLoad");
+//     pipe.saveToBin("models/ClassMnistLoad.nn");
 
 //     // Testing Model
 //     Tensor output = nn->predict(xTest);

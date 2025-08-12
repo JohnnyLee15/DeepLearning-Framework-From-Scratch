@@ -91,6 +91,10 @@ void Dropout::backprop(
     Tensor &grad,
     bool isFirstLayer
 ) {
+    (void)prevActivations;
+    (void)learningRate;
+    (void)isFirstLayer;
+    
     grad.applyMask(mask, dX);
 }
 

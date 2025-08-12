@@ -73,7 +73,7 @@ void Tensor::ensureGpu() {
     }
 }
 
-void Tensor::print(const string &name) const {
+void Tensor::printShape(const string &name) const {
     cout << name << ": shape=[";
     for (size_t i = 0; i < shape.size(); ++i) {
         cout << shape[i];
@@ -602,5 +602,65 @@ void Tensor::applyMask(const Tensor &mask, Tensor &output) const {
     #pragma omp parallel for
     for (size_t i = 0; i < size; i++) {
         outFlat[i] = maskFlat[i] * inFlat[i];
+    }
+}
+
+void Tensor::globalAvgPool2d(Tensor &output) const {
+    const vector<size_t> &inShape = shape;
+    size_t batchSize = inShape[0];
+    size_t inRows = inShape[1];
+    size_t inCols = inShape[2];
+    size_t depth = inShape[3];
+
+    float scale = 1.0f / (inRows * inCols);
+
+    const vector<float> &inFlat = data;
+    vector<float> &outFlat = output.data;
+
+    #pragma omp parallel for collapse(2)
+    for (size_t n = 0; n < batchSize; n++) {
+        for (size_t d = 0; d < depth; d++) {
+            
+            float val = 0.0f;
+            for (size_t r = 0; r < inRows; r++) {
+                for (size_t c = 0; c < inCols; c++) {
+
+                    size_t inIdx = ((n * inRows + r) * inCols + c) * depth + d; 
+                    val += inFlat[inIdx];
+                }
+            }
+
+            outFlat[n * depth + d] = val * scale;
+        }
+    }
+}
+
+void Tensor::globalAvgPool2dGrad(Tensor &dX) const {
+    const vector<size_t> &gradShape = shape;
+    size_t batchSize = gradShape[0];
+    size_t depth = gradShape[1];
+
+    const vector<size_t> &dxShape = dX.shape;
+    size_t dxRows = dxShape[1];
+    size_t dxCols = dxShape[2];
+
+    const vector<float> &gradFlat = data;
+    vector<float> &dxFlat = dX.data;
+
+    float scale = 1.0f / (dxRows * dxCols);
+
+    #pragma omp parallel for collapse(2)
+    for (size_t n = 0; n < batchSize; n++) {
+        for (size_t r = 0; r < dxRows; r++) {
+
+            size_t gradBase = n * depth;
+            for (size_t c = 0; c < dxCols; c++) {
+
+                size_t dxBase = ((n * dxRows + r) * dxCols + c) * depth;
+                for (size_t d = 0; d < depth; d++) {
+                    dxFlat[dxBase + d] = (gradFlat[gradBase + d] * scale);
+                }
+            }
+        }
     }
 }

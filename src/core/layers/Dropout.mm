@@ -26,6 +26,10 @@ void Dropout::backpropGpu(
     bool isFirstLayer,
     GpuCommandBuffer cmdBufVoid
 ) {
+    (void)prevActivations;
+    (void)learningRate;
+    (void)isFirstLayer;
+
     id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>) cmdBufVoid;
     grad.applyMaskGpu(mask, dX, cmdBuf);
 }
