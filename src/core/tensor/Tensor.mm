@@ -524,3 +524,29 @@ void Tensor::globalAvgPool2dGradGpu(
     [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadSize];
     [encoder endEncoding];
 }
+
+void Tensor::applyL2Gpu(
+    const Tensor &trainable, 
+    float l2,
+    id<MTLCommandBuffer> cmdBuf
+) {
+    id<MTLBuffer> gradBuf = getGpuData();
+    id<MTLBuffer> trainBuf = trainable.getGpuData();
+
+    uint32_t size = (uint32_t) getSize();
+    uint32_t gridWidth = (size + COARSE_FACTOR - 1) / COARSE_FACTOR;
+
+    id<MTLComputeCommandEncoder> encoder = [cmdBuf computeCommandEncoder];
+    [encoder setComputePipelineState:GpuEngine::getApplyL2Pipe()];
+
+    [encoder setBuffer:trainBuf offset:0 atIndex:0];
+    [encoder setBuffer:gradBuf offset:0 atIndex:1];
+    [encoder setBytes:&l2 length:sizeof(float) atIndex:2];
+    [encoder setBytes:&size length:sizeof(uint32_t) atIndex:3];
+    [encoder setBytes:&gridWidth length:sizeof(uint32_t) atIndex:4];
+    
+    MTLSize grid = MTLSizeMake(gridWidth, 1, 1);
+    MTLSize tg = MTLSizeMake(NUM_THREADS, 1, 1);
+    [encoder dispatchThreads:grid threadsPerThreadgroup:tg];
+    [encoder endEncoding];
+}

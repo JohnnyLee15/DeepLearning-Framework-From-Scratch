@@ -498,3 +498,24 @@ kernel void globalAvgPool2dGrad(
         dX[baseIn + d] = grad[baseOut +d] * scale;
     }
 }
+
+kernel void applyL2(
+    device const float *trainable [[ buffer(0) ]],
+    device float *grad [[ buffer(1) ]],
+    constant float &l2 [[ buffer(2) ]],
+    constant uint &size [[ buffer(3) ]],
+    constant uint &gridWidth [[ buffer(4)]],
+    uint gid [[ thread_position_in_grid] ]
+) {
+    float scale = 2 * l2;
+    
+    #pragma unroll
+    for (uint i = 0; i < COARSE_FACTOR; i++) {
+        uint idx = gid + (i * gridWidth);
+
+        if (idx >= size) 
+            return;
+
+        grad[idx] += (trainable[idx] * scale);
+    }
+}

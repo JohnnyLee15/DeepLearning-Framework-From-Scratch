@@ -77,6 +77,7 @@ class Tensor {
         void hadamard(const Tensor&);
         void applyGrad(const Tensor&, float);
         void applyMask(const Tensor&, Tensor&) const;
+        void applyL2(const Tensor&, float);
 
         void globalAvgPool2d(Tensor&) const;
         void globalAvgPool2dGrad(Tensor&) const;
@@ -104,6 +105,7 @@ class Tensor {
             void reduceSumBiasGpu(Tensor&, id<MTLCommandBuffer>) const;
             void applyBiasGradConv2D(Tensor&, float, id<MTLCommandBuffer>) const;
             void applyMaskGpu(const Tensor&, Tensor&, id<MTLCommandBuffer>) const;
+            void applyL2Gpu(const Tensor&, float, id<MTLCommandBuffer>);
 
             void globalAvgPool2dGpu(Tensor&, id<MTLCommandBuffer>) const;
             void globalAvgPool2dGradGpu(Tensor&, id<MTLCommandBuffer>) const;

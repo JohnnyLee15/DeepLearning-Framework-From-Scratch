@@ -20,6 +20,7 @@ id<MTLComputePipelineState> GpuEngine::addToRowsPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::hadamardPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::applyGradPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::applyMaskPipeline = nil;
+id<MTLComputePipelineState> GpuEngine::applyL2Pipeline = nil;
 
 id<MTLComputePipelineState> GpuEngine::calculateLinearGradPipeline = nil;
 id<MTLComputePipelineState> GpuEngine::calculateReluGradPipeline  = nil;
@@ -108,6 +109,7 @@ void GpuEngine::initAllPipes() {
     initPipe("hadamard", hadamardPipeline);
     initPipe("applyGrad", applyGradPipeline);
     initPipe("applyMask", applyMaskPipeline);
+    initPipe("applyL2", applyL2Pipeline);
 
     initPipe("calculateLinearGrad", calculateLinearGradPipeline);
     initPipe("calculateReluGrad", calculateReluGradPipeline);
@@ -196,6 +198,7 @@ id<MTLComputePipelineState> GpuEngine::getAddToRowsPipe() { return addToRowsPipe
 id<MTLComputePipelineState> GpuEngine::getHadamardPipe() { return hadamardPipeline; }
 id<MTLComputePipelineState> GpuEngine::getApplyGradPipe() { return applyGradPipeline; }
 id<MTLComputePipelineState> GpuEngine::getApplyMaskPipe() { return applyMaskPipeline; }
+id<MTLComputePipelineState> GpuEngine::getApplyL2Pipe() { return applyL2Pipeline; }
 
 id<MTLComputePipelineState> GpuEngine::getCalculateLinearGradPipe() { return calculateLinearGradPipeline; }
 id<MTLComputePipelineState> GpuEngine::getCalculateReluGradPipe() { return calculateReluGradPipeline; }

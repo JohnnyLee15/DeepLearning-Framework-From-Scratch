@@ -21,8 +21,10 @@ Conv2D::Conv2D(
     size_t kCols, 
     size_t strideIn,
     const string &padIn, 
-    Activation *activation
-) : numKernels(numKernels), kRows(kRows), kCols(kCols), activation(activation){
+    Activation *activation,
+    float kernelL2
+) : numKernels(numKernels), kRows(kRows), kCols(kCols), 
+    activation(activation), kernelL2(kernelL2) {
     initStride(strideIn);
     padding = Tensor::decodePadding(padIn);
 }
@@ -53,7 +55,8 @@ Conv2D::Conv2D(const Conv2D &other)
       activation(other.activation ? other.activation->clone() : nullptr),
       padding(other.padding),
       stride(other.stride),
-      executionMode(other.executionMode) 
+      executionMode(other.executionMode),
+      kernelL2(other.kernelL2)
 {}
 
 void Conv2D::initStride(size_t strideIn) {
@@ -381,6 +384,11 @@ void Conv2D::backprop(
     inputBwd.conv2dWeights(grad, numKernels, kRows, kCols, stride, dW);
     grad.reduceSumBias(dB);
 
+    if (kernelL2 > 0.0f) {
+        float l2Term = kernelL2 * input.getShape()[0];
+        dW.applyL2(kernels, l2Term);
+    }
+
     kernels.applyGrad(dW, scaleFactor);
     biases.applyGrad(dB, scaleFactor);
 }
@@ -426,6 +434,8 @@ void Conv2D::writeBinInternal(ofstream &modelBin) const {
     
     modelBin.write((char*) kernels.getFlat().data(), kernels.getSize() * sizeof(float));
     modelBin.write((char*) biases.getFlat().data(), biases.getSize() * sizeof(float));
+
+    modelBin.write((char*) &kernelL2, sizeof(float));
 }
 
 void Conv2D::loadActivation(ifstream &modelBin) {
@@ -476,6 +486,8 @@ void Conv2D::loadFromBin(ifstream &modelBin) {
     
     biases = Tensor({numKernels});
     modelBin.read((char*) biases.getFlat().data(), sizeof(float) * numKernels);
+
+    modelBin.read((char*) &kernelL2, sizeof(float));
     ensureGpu();
 }
 

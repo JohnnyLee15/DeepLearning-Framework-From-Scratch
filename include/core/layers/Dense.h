@@ -32,6 +32,8 @@ class Dense : public Layer {
         Activation *activation;
 
         size_t executionMode;
+
+        float weightL2;
         
         // Methods
         void initBiases();
@@ -51,7 +53,7 @@ class Dense : public Layer {
         
     public:
         // Constructors
-        Dense(size_t, Activation*);
+        Dense(size_t, Activation*, float weightL2 = 0.0f);
         Dense();
         Dense(const Dense&);
 

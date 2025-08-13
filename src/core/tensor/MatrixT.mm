@@ -52,6 +52,7 @@ void MatrixT::applyWeightsGrad(
     const Matrix &mat2,
     Tensor &kernels,
     float scaleFactor,
+    float weightL2,
     id<MTLCommandBuffer> cmdBuf
 ) const {
     Matrix::checkSizeMatch(getNumCols(), mat2.getNumRows());
@@ -72,6 +73,7 @@ void MatrixT::applyWeightsGrad(
     [encoder setBuffer:kBuf offset:0 atIndex:2];
     [encoder setBytes:&dims length:sizeof(dims) atIndex:3];
     [encoder setBytes:&scaleFactor length:sizeof(float) atIndex:4];
+    [encoder setBytes:&weightL2 length:sizeof(float) atIndex:5];
 
     MTLSize threadGroupSize = MTLSizeMake(MEDIUM_TILE, MEDIUM_TILE, 1);
 

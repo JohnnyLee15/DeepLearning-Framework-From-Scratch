@@ -44,11 +44,11 @@
 //         vector<size_t> inShape = {N, inFeatures};
 
 //         GpuEngine::disableGpu();
-//         Dense cpuLayer(outFeatures, new ReLU());
+//         Dense cpuLayer(outFeatures, new ReLU(), 0.0001);
 //         cpuLayer.build(inShape);
 
 //         GpuEngine::enableGpu();
-//         Dense gpuLayer(outFeatures, new ReLU());
+//         Dense gpuLayer(outFeatures, new ReLU(), 0.0001);
 //         gpuLayer.build(inShape);
 
 //         // 2) Random input and upstream gradient (match output shape)

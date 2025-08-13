@@ -37,7 +37,7 @@ int main() {
     GpuEngine::init();
 
     // Image Resize Dims
-    const size_t SIZE = 256;
+    const size_t SIZE = 224;
 
     // Number of channels to read in
     const size_t CHANNELS = 1;
@@ -61,29 +61,21 @@ int main() {
     // Defining Model Architecture
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
-        new Conv2D(16, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(16, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(32, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(32, 3, 3, 1, "same", new ReLU()),
         new MaxPooling2D(2, 2, 2, "none"),
 
-        new Conv2D(32, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(32, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(64, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(64, 3, 3, 1, "same", new ReLU()),
         new MaxPooling2D(2, 2, 2, "none"),          
 
-        new Conv2D(64, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(64, 3, 3, 1, "same", new ReLU()),
-        new MaxPooling2D(2, 2, 2, "none"),  
-
-        new Conv2D(128, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(128, 3, 3, 1, "same", new ReLU()),
-        new MaxPooling2D(2, 2, 2, "none"),  
-
-        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(96, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(96, 3, 3, 1, "same", new ReLU()),
         new MaxPooling2D(2, 2, 2, "none"),  
 
         new GlobalAveragePooling2D(),
         new Dense(128, new ReLU()),
-        new Dropout(0.3f),
+        new Dropout(0.5f),
         new Dense(2, new Softmax())
     };
 
@@ -95,10 +87,10 @@ int main() {
     nn->fit(
         xTrain, // Features
         yTrain, // Targets
-        0.001,  // Learning rate
-        0.2,    // Learning rate decay
-        30,      // Number of epochs
-        32,     // Batch Size
+        0.0015,  // Learning rate
+        0.0025,    // Learning rate decay
+        50,      // Number of epochs
+        8,     // Batch Size
         *metric // Progress metric
     );
 
@@ -112,6 +104,6 @@ int main() {
     // Testing Model
     Tensor output = nn->predict(xTest);
     vector<float> predictions = TrainingUtils::getPredictions(output);
-    float accuracy = TrainingUtils::getAccuracy(yTest, predictions);
+    float accuracy = 100.0f * TrainingUtils::getAccuracy(yTest, predictions);
     printf("\nTest Accuracy %.2f.\n", accuracy);
 }

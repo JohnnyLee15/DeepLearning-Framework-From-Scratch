@@ -47,6 +47,7 @@ void Conv2D::backpropGpuFast(
 ) {
     id<MTLCommandBuffer> cmdBuf = (id<MTLCommandBuffer>)cmdBufVoid;
     float scaleFactor = -learningRate / input.getShape()[0];
+    float l2Term = kernelL2 * (float) input.getShape()[0];
 
     activation->backpropGpu(activations, grad, cmdBuf);
     grad.applyBiasGradConv2D(biases, scaleFactor, cmdBuf);
@@ -60,7 +61,7 @@ void Conv2D::backpropGpuFast(
         );
     }
     
-    im2ColInBuf.M().T().applyWeightsGrad(grad, fastKernels, scaleFactor, cmdBuf);
+    im2ColInBuf.M().T().applyWeightsGrad(grad, fastKernels, scaleFactor, l2Term, cmdBuf);
     grad.reShapeInPlace(preActTensorShape);
 }
 
@@ -85,6 +86,11 @@ void Conv2D::backpropGpuNaive(
     const Tensor &inputBwd = input.padIfNeededGpu(paddedInput, winIn, padding, cmdBuf);
     inputBwd.conv2dWeightsGpu(grad, numKernels, kRows, kCols, stride, dW, cmdBuf);
     
+    if (kernelL2 > 0.0f) {
+        float l2Term = kernelL2 * (float) input.getShape()[0];
+        dW.applyL2Gpu(kernels, l2Term, cmdBuf);
+    }
+
     kernels.applyGradGpu(dW, scaleFactor, cmdBuf);
     grad.applyBiasGradConv2D(biases, scaleFactor, cmdBuf);
 }

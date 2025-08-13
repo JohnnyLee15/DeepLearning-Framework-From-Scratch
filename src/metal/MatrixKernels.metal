@@ -541,9 +541,10 @@ kernel void mTm(
 kernel void applyWeightsGrad(
     device const float *mat1 [[ buffer(0) ]],
     device const float *mat2 [[ buffer(1) ]],
-    device float *kernels [[ buffer(2) ]],
+    device float *weights [[ buffer(2) ]],
     constant uint3 &dims [[ buffer(3) ]],
     constant float &scaleFactor [[ buffer(4) ]],
+    constant float &weightL2 [[ buffer(5) ]],
     uint2 tid [[thread_position_in_threadgroup]],
     uint2 gid [[thread_position_in_grid]],
     uint2 group_id [[ threadgroup_position_in_grid ]]
@@ -563,6 +564,8 @@ kernel void applyWeightsGrad(
     float regMat1[COARSE_FACTOR_ROW] = {0.0f};
     float regMat2[COARSE_FACTOR_COL] = {0.0f};
 
+    float l2Term = 2 * weightL2;
+
     MTM_LOAD_DATA(
         mat1, mat2, 
         mat1Tile, mat2Tile, 
@@ -576,7 +579,10 @@ kernel void applyWeightsGrad(
             uint prodCol = group_id.x * TILE_MAT2_COLS + col + j;
 
             if (prodRow < mat1Rows && prodCol < mat2Cols) {
-                kernels[prodRow * mat2Cols + prodCol] +=  scaleFactor * prodVals[i][j];
+                uint idx = prodRow * mat2Cols + prodCol;
+                float w = weights[idx];
+                w += scaleFactor * (prodVals[i][j] + l2Term * w);
+                weights[idx] = w;
             }
         }
     }

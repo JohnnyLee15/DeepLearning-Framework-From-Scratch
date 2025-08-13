@@ -19,8 +19,8 @@ const size_t Dense::GPU_FAST = 0;
 const size_t Dense::GPU_NAIVE = 1;
 const size_t Dense::CPU = 2;
 
-Dense::Dense(size_t numNeurons,  Activation *activation) :
-    numNeurons(numNeurons), activation(activation) {}
+Dense::Dense(size_t numNeurons,  Activation *activation, float weightL2) :
+    numNeurons(numNeurons), activation(activation), weightL2(weightL2) {}
 
 Dense::Dense() : activation(nullptr) {}
 
@@ -34,7 +34,8 @@ Dense::Dense(const Dense& other)
       dX(other.dX),
       dA(other.dA),
       biases(other.biases),
-      activation(other.activation ? other.activation->clone() : nullptr)
+      activation(other.activation ? other.activation->clone() : nullptr),
+      weightL2(other.weightL2)
 {}
 
 void Dense::ensureGpu() {
@@ -191,6 +192,8 @@ void Dense::writeBinInternal(ofstream& modelBin) const {
     size_t numWeights = weightsMat.getNumRows() * weightsMat.getNumCols();
     modelBin.write((char*) weights.getFlat().data(), numWeights * sizeof(float));
     modelBin.write((char*) biases.getFlat().data(), biases.getSize() * sizeof(float));
+
+    modelBin.write((char*) &weightL2, sizeof(float));
 }
 
 void Dense::loadActivation(ifstream &modelBin) {
@@ -227,6 +230,8 @@ void Dense::loadFromBin(ifstream &modelBin) {
     size_t numWeights = weightsMat.getNumRows() * weightsMat.getNumCols();
     modelBin.read((char*) weights.getFlat().data(), numWeights * sizeof(float));
     modelBin.read((char*) biases.getFlat().data(), biases.getSize() * sizeof(float));
+
+    modelBin.read((char*) &weightL2, sizeof(float));
     ensureGpu();
 }
 
@@ -282,6 +287,11 @@ void Dense::backprop(
 
     gradMat.T().mTm(prevActivations.M(), dW);
     gradMat.colSums(dB);
+
+    if (weightL2 > 0.0f) {
+        float l2Term = (weightL2 * (float) batchSize);
+        dW.applyL2(weights, l2Term);
+    }
 
     weights.applyGrad(dW, scaleFactor);
     biases.applyGrad(dB, scaleFactor);

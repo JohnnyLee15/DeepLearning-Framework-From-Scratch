@@ -6,7 +6,7 @@ CXX := g++
 CXXFLAGS := -std=c++17 \
 			-isystem include/stb \
 			-Iinclude \
-			-Wall -fopenmp -O3 -march=native -funroll-loops -ffast-math
+			-Wall -fopenmp -O3 -march=native -funroll-loops -ffp-contract=fast
 LDFLAGS := -fopenmp
 
 # Source files: always .cpp
@@ -27,7 +27,7 @@ ifeq ($(UNAME_S), Darwin)
 	METAL_LIB := CoreKernels.metallib
 
 	# Add .mm files too
-	METALFLAGS := -O3 -ffast-math -funroll-loops
+	METALFLAGS := -O3
 	MM_SRC := $(shell find src tests -name '*.mm')
 	MM_OBJ := $(MM_SRC:.mm=_gpu.o)
 

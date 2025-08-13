@@ -48,13 +48,14 @@ void Dense::backpropGpuFast(
     Matrix gradMat = grad.M();
     size_t batchSize = gradMat.getNumRows();
     float scaleFactor = -learningRate/batchSize;
+    float l2Term = weightL2 * (float) batchSize;
 
     if (!isFirstLayer) {
         gradMat.mmGpu(weights, dX, (id<MTLCommandBuffer>) cmdBufVoid);
     }
     
     gradMat.applyBiasGradDense(biases, scaleFactor, cmdBuf);
-    gradMat.T().applyWeightsGrad(prevActivations.M(), weights, scaleFactor, cmdBuf);
+    gradMat.T().applyWeightsGrad(prevActivations.M(), weights, scaleFactor, l2Term, cmdBuf);
 }
 
 void Dense::backpropGpuNaive(
@@ -73,13 +74,14 @@ void Dense::backpropGpuNaive(
     Matrix gradMat = grad.M();
     size_t batchSize = gradMat.getNumRows();
     float scaleFactor = -learningRate/batchSize;
+    float l2Term = weightL2 * (float) batchSize;
 
     if (!isFirstLayer) {
         gradMat.mmGpu(weights, dX, (id<MTLCommandBuffer>) cmdBufVoid);
     }
 
     gradMat.applyBiasGradDense(biases, scaleFactor, cmdBuf);
-    gradMat.T().applyWeightsGrad(prevActivations.M(), weights, scaleFactor, cmdBuf);
+    gradMat.T().applyWeightsGrad(prevActivations.M(), weights, scaleFactor, l2Term, cmdBuf);
 }
 
 void Dense::downloadOutputFromGpu() {

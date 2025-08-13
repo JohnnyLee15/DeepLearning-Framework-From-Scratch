@@ -11,7 +11,9 @@
 // #include "core/activations/ReLU.h"
 // #include "core/gpu/GpuTypes.h"
 
-// void testConv2DForwardCompare() {
+// void testConv2DForwardCompare (
+//     size_t N, size_t H, size_t W, size_t C_in, size_t C_out, size_t stride
+// ) {
 
 //   double gpuMs = 0;
 //   double cpuMs = 0;
@@ -19,21 +21,18 @@
 
 //   for (size_t t = 0; t < 10; t++) {
 //     //–– 1) Setup a small conv layer
-//     size_t N      = 32,
-//           H      = 64,
-//           W      = 64,
-//           C_in   = 64,
-//           C_out  = 64,
-//           kH     = 3,
-//           kW     = 3,
-//           stride = 1;
+//     size_t kH     = 3,kW     = 3;
 
 //     Conv2D cpuLayer(C_out, kH, kW, stride, "Same", new ReLU());
 //     Conv2D gpuLayer(C_out, kH, kW, stride, "same", new ReLU());
 
 //     //–– 2) Build both
 //     vector<size_t> inShape = {N,H,W,C_in};
+
+//     GpuEngine::disableGpu();
 //     cpuLayer.build(inShape);
+
+//     GpuEngine::enableGpu();
 //     gpuLayer.build(inShape);
 
 //     //–– 3) Random input
@@ -69,7 +68,7 @@
 //     assert(cpuOut.size() == gpuOut.size());
 //     for (size_t i = 0; i < cpuOut.size(); ++i) {
 //       float a = cpuOut[i], b = gpuOut[i];
-//       if (fabs(a - b) > 1e-4f) {
+//       if (fabs(a - b) > 1e-5f) {
 //         printf("Mismatch at idx %zu: CPU=%.6f GPU=%.6f\n", i, a, b);
 //         assert(false);
 //       }
@@ -98,7 +97,30 @@
 // }
 
 // int main() {
-//   GpuEngine::init();
-//   testConv2DForwardCompare();
+//     GpuEngine::init();
+//     testConv2DForwardCompare(1,   1,   2,   1,   1,   2);
+//     testConv2DForwardCompare(1,   1,   2,   1,   1,   2);
+//     testConv2DForwardCompare(1,   2,   2,   1,   1,   2);
+//     testConv2DForwardCompare(1,   2,   2,   1,   1,   2);
+//     testConv2DForwardCompare(2,   5,   5,   1,   1,   2);
+//     testConv2DForwardCompare(2,   5,   5,   1,   1,   2);
+//     testConv2DForwardCompare(2,   5,   5,   3,   3,   2);
+//     testConv2DForwardCompare(4,   8,  16,   3,   8,   2);
+//     testConv2DForwardCompare(4,   8,  16,   3,   8,   2);
+//     testConv2DForwardCompare(8,  30,  50,   4,   4,   2);
+//     testConv2DForwardCompare(8,  30,  50,   4,   4,   2);
+//     testConv2DForwardCompare(16, 32,  32,   3,  16,   2);
+//     testConv2DForwardCompare(16, 32,  32,   3,  16,   2);
+//     testConv2DForwardCompare(32, 64,  64,   3,  16,   2);
+//     testConv2DForwardCompare(32, 64,  64,   3,  16,   2);
+//     testConv2DForwardCompare(32, 64,  64,  16,  32,   2);
+//     testConv2DForwardCompare(32, 64,  64,  64,  64,   2);
+//     testConv2DForwardCompare(10,224, 224,   3,  64,   2);
+//     testConv2DForwardCompare(10,224, 224,   3,  64,   2);
+//     testConv2DForwardCompare(8,  16,  16,  32,  32,   2);
+//     testConv2DForwardCompare(8,  16,  16,  64,  64,   2);
+//     testConv2DForwardCompare(4, 128, 128,  64, 128,   2);
+//     testConv2DForwardCompare(2,   7,   7,   3,   5,   3);
+//     testConv2DForwardCompare(2,   9,   9,   3,   5,   4);
 //   return 0;
 // }

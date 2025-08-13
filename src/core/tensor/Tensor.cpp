@@ -664,3 +664,13 @@ void Tensor::globalAvgPool2dGrad(Tensor &dX) const {
         }
     }
 }
+
+void Tensor::applyL2(const Tensor &trainable, float l2) {
+    size_t size = getSize();
+    float scale = 2 * l2;
+
+    #pragma omp parallel for
+    for (size_t i = 0; i < size; i++) {
+        data[i] += (scale * trainable.data[i]);
+    }
+}

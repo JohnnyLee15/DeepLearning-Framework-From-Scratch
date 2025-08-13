@@ -23,7 +23,7 @@
 //         assert(false); // Halt execution if sizes are different
 //     }
 //     for (size_t i = 0; i < v1.size(); ++i) {
-//         if (fabs(v1[i] - v2[i]) > 1e-6f) { // Use a slightly larger tolerance for backprop
+//         if (fabs(v1[i] - v2[i]) > 1e-3f) { // Use a slightly larger tolerance for backprop
 //             printf("Mismatch in %s at idx %zu: CPU=%.6f GPU=%.6f\n", name.c_str(), i, v1[i], v2[i]);
 //             assert(false);
 //         }
@@ -77,11 +77,11 @@
 //         vector<size_t> inShape = {N, H, W, C_in};
 
 //         GpuEngine::disableGpu();
-//         Conv2D cpuLayer(C_out, kH, kW, stride, "None", new ReLU());
+//         Conv2D cpuLayer(C_out, kH, kW, stride, "None", new ReLU(), 0.0001f);
 //         cpuLayer.build(inShape);
 
 //         GpuEngine::enableGpu();
-//         Conv2D gpuLayer(C_out, kH, kW, stride, "None", new ReLU());
+//         Conv2D gpuLayer(C_out, kH, kW, stride, "None", new ReLU(), 0.0001f);
 //         gpuLayer.build(inShape);
 
 //         //–– 2) Random input and upstream gradient

@@ -46,6 +46,7 @@ class Conv2D : public Layer {
         Tensor::Paddings padding;
         size_t stride;
         size_t executionMode;
+        float kernelL2;
 
         // Methods
         void initKernels(size_t);
@@ -77,7 +78,7 @@ class Conv2D : public Layer {
 
     public:
         // Constructors
-        Conv2D(size_t, size_t, size_t, size_t, const string&, Activation*);
+        Conv2D(size_t, size_t, size_t, size_t, const string&, Activation*, float kernelL2 = 0.0f);
         Conv2D();
         Conv2D(const Conv2D&);
 
