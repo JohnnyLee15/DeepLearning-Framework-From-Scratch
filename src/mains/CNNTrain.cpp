@@ -37,7 +37,7 @@ int main() {
     GpuEngine::init();
 
     // Image Resize Dims
-    const size_t SIZE = 224;
+    const size_t SIZE = 256;
 
     // Number of channels to read in
     const size_t CHANNELS = 1;
@@ -61,20 +61,19 @@ int main() {
     // Defining Model Architecture
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
-        new Conv2D(32, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(32, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(64, 3, 3, 2, "same", new ReLU()),
         new MaxPooling2D(2, 2, 2, "none"),
 
-        new Conv2D(64, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(64, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(128, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(128, 3, 3, 1, "same", new ReLU()),
         new MaxPooling2D(2, 2, 2, "none"),          
 
-        new Conv2D(96, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(96, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
+        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
         new MaxPooling2D(2, 2, 2, "none"),  
 
         new GlobalAveragePooling2D(),
-        new Dense(128, new ReLU()),
+        new Dense(128, new ReLU(), 0.0001f),
         new Dropout(0.5f),
         new Dense(2, new Softmax())
     };

@@ -6,7 +6,7 @@ CXX := g++
 CXXFLAGS := -std=c++17 \
 			-isystem include/stb \
 			-Iinclude \
-			-Wall -fopenmp -O3 -march=native -funroll-loops -ffp-contract=fast
+			-Wall -fopenmp -O3 -ffast-math -march=native -funroll-loops -ffp-contract=fast
 LDFLAGS := -fopenmp
 
 # Source files: always .cpp
