@@ -11,14 +11,15 @@ class ProgressMAPE : public ProgressMetric {
         // Instance Variables
         size_t numNonZeroTargets;
         float runningSum;
-        
-    public:
-
-        // Constructor
-        ProgressMAPE(size_t);
 
         // Methods
-        void init() override;
+        void accumulateMAPE(
+            const Tensor&, const vector<float>&, const Loss*, const Tensor&, float
+        );
+        
+    public:
+        // Methods
+        void init(size_t) override;
         string getName() const override;
         void update(const Batch&, const Loss*, const Tensor&, float) override;
         void update(

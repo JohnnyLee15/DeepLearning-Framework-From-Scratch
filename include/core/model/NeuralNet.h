@@ -6,12 +6,12 @@
 #include <random>
 #include "core/tensor/Tensor.h"
 #include "core/gpu/GpuTypes.h"
-#include "utils/EarlyStop.h"
 
 class Loss;
 class Activation;
 class Batch;
 class ProgressMetric;
+class EarlyStop;
 
 using namespace std;
 

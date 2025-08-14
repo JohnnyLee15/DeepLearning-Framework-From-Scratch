@@ -3,22 +3,54 @@
 #include <vector>
 #include <random>
 #include <algorithm>
+#include <numeric>
+
+float DataSplitter::clampRatio(float ratio) {
+    return min(max(ratio, 0.0f), 0.999999f);
+}
+
+Split DataSplitter::prepareSplit(
+    size_t sampleFloats,
+    size_t nTrain,
+    size_t nVal,
+    const Tensor& x
+) {
+    Split split;
+    size_t trainFloats = sampleFloats * nTrain;
+    size_t valFloats = sampleFloats * nVal;
+
+    vector<size_t> xTrainShape = x.getShape();
+    vector<size_t> xValShape = x.getShape();
+
+    xTrainShape[0] = nTrain;
+    xValShape[0] = nVal;
+
+    split.xTrain.reShapeInPlace(xTrainShape);
+    split.xVal.reShapeInPlace(xValShape);
+
+    split.xTrain.getFlat().reserve(trainFloats);
+    split.xVal.getFlat().reserve(valFloats);
+    split.yTrain.reserve(nTrain);
+    split.yVal.reserve(nVal);
+
+    return split;
+}
 
 Split DataSplitter::stratifiedSplit(
     const Tensor &x,
-    const Tensor &y,
+    const vector<float> &y,
     float valRatio
 ) {
+    valRatio = clampRatio(valRatio);
     unordered_map<size_t, vector<size_t>> indicesMap;
 
-    size_t size = y.getSize();
+    size_t size = y.size();
 
-    const vector<float> &yFlat = y.getFlat();
     const vector<float> &xFlat = x.getFlat();
     size_t sampleFloats = x.getSize() / x.getShape()[0];
 
     for (size_t i = 0; i < size; i++) {
-        size_t label = (size_t) yFlat[i];
+        size_t label = (size_t) y[i];
         indicesMap[label].push_back(i);
     }
 
@@ -34,34 +66,12 @@ Split DataSplitter::stratifiedSplit(
         nTrain += indices.size() - valToAdd;
     }
 
-    Split split;
-    size_t trainFloats = sampleFloats * nTrain;
-    size_t valFloats = sampleFloats * nVal;
+    Split split = prepareSplit(sampleFloats, nTrain, nVal, x);
 
     vector<float> &xTrain = split.xTrain.getFlat();
     vector<float> &xVal = split.xVal.getFlat();
-    vector<float> &yTrain = split.yTrain.getFlat();
-    vector<float> &yVal = split.yVal.getFlat();
-
-    xTrain.reserve(trainFloats);
-    xVal.reserve(valFloats);
-    yTrain.reserve(nTrain);
-    yVal.reserve(nVal);
-
-    vector<size_t> xTrainShape = x.getShape();
-    vector<size_t> xValShape = x.getShape();
-    vector<size_t> yTrainShape = y.getShape();
-    vector<size_t> yValShape = y.getShape();
-
-    xTrainShape[0] = nTrain;
-    yTrainShape[0] = nTrain;
-    xValShape[0] = nVal;
-    yValShape[0] = nVal;
-
-    split.xTrain.reShapeInPlace(xTrainShape);
-    split.yTrain.reShapeInPlace(yTrainShape);
-    split.xVal.reShapeInPlace(xValShape);
-    split.yVal.reShapeInPlace(yValShape);
+    vector<float> &yTrain = split.yTrain;
+    vector<float> &yVal = split.yVal;
 
     for (pair<const size_t, vector<size_t>> &keyVal : indicesMap) {
         vector<size_t> &indices = keyVal.second;
@@ -74,13 +84,13 @@ Split DataSplitter::stratifiedSplit(
         for (size_t i = 0; i < valIndicesEnd; i++) {
             size_t idx = indices[i] * sampleFloats;
             xVal.insert(xVal.end(), xFlat.begin() + idx, xFlat.begin() + idx + sampleFloats);
-            yVal.push_back(yFlat[indices[i]]);
+            yVal.push_back(y[indices[i]]);
         }
 
         for (size_t i = valIndicesEnd; i < numIndices; i++) {
             size_t idx = indices[i] * sampleFloats;
             xTrain.insert(xTrain.end(), xFlat.begin() + idx, xFlat.begin() + idx + sampleFloats);
-            yTrain.push_back(yFlat[indices[i]]);
+            yTrain.push_back(y[indices[i]]);
         }
     }
 
@@ -89,13 +99,12 @@ Split DataSplitter::stratifiedSplit(
 
 Split DataSplitter::randomSplit(
     const Tensor &x,
-    const Tensor &y,
+    const vector <float> &y,
     float valRatio
 ) {
+    valRatio = clampRatio(valRatio);
+    size_t size = y.size();
 
-    size_t size = y.getSize();
-
-    const vector<float> &yFlat = y.getFlat();
     const vector<float> &xFlat = x.getFlat();
     size_t sampleFloats = x.getSize() / x.getShape()[0];
 
@@ -109,45 +118,23 @@ Split DataSplitter::randomSplit(
     std::iota(indices.begin(), indices.end(), 0); 
     std::shuffle(indices.begin(), indices.end(), gen);
 
-    Split split;
-    size_t trainFloats = sampleFloats * nTrain;
-    size_t valFloats = sampleFloats * nVal;
+    Split split = prepareSplit(sampleFloats, nTrain, nVal, x);
 
     vector<float> &xTrain = split.xTrain.getFlat();
     vector<float> &xVal = split.xVal.getFlat();
-    vector<float> &yTrain = split.yTrain.getFlat();
-    vector<float> &yVal = split.yVal.getFlat();
-
-    xTrain.reserve(trainFloats);
-    xVal.reserve(valFloats);
-    yTrain.reserve(nTrain);
-    yVal.reserve(nVal);
-
-    vector<size_t> xTrainShape = x.getShape();
-    vector<size_t> xValShape = x.getShape();
-    vector<size_t> yTrainShape = y.getShape();
-    vector<size_t> yValShape = y.getShape();
-
-    xTrainShape[0] = nTrain;
-    yTrainShape[0] = nTrain;
-    xValShape[0] = nVal;
-    yValShape[0] = nVal;
-
-    split.xTrain.reShapeInPlace(xTrainShape);
-    split.yTrain.reShapeInPlace(yTrainShape);
-    split.xVal.reShapeInPlace(xValShape);
-    split.yVal.reShapeInPlace(yValShape);
+    vector<float> &yTrain = split.yTrain;
+    vector<float> &yVal = split.yVal;
 
     for (size_t i = 0; i < nVal; i++) {
         size_t idx = indices[i] * sampleFloats;
         xVal.insert(xVal.end(), xFlat.begin() + idx, xFlat.begin() + idx + sampleFloats);
-        yVal.push_back(yFlat[indices[i]]);
+        yVal.push_back(y[indices[i]]);
     }
 
     for (size_t i = nVal; i < size; i++) {
         size_t idx = indices[i] * sampleFloats;
         xTrain.insert(xTrain.end(), xFlat.begin() + idx, xFlat.begin() + idx + sampleFloats);
-        yTrain.push_back(yFlat[indices[i]]);
+        yTrain.push_back(y[indices[i]]);
     }
 
     return split;

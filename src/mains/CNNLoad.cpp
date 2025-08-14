@@ -59,7 +59,7 @@
 //     vector<float> yTest = data.getTestTargets();
 
 //     // Training Data
-//     ProgressMetric *metric = new ProgressAccuracy(data.getNumTrainSamples());
+//     ProgressMetric *metric = new ProgressAccuracy();
 //     nn->fit(
 //         xTrain, // Features
 //         yTrain, // Targets

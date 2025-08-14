@@ -29,6 +29,7 @@
 #include "core/data/ImageData2D.h"
 #include "core/gpu/GpuEngine.h"
 #include "utils/EarlyStop.h"
+#include "utils/DataSplitter.h"
 
 int main() {
     // Welcome Message
@@ -54,35 +55,30 @@ int main() {
 
     // Transform data (resize to 224x224 and normalize)
     ImageTransform2D *transformer = new ImageTransform2D(SIZE, SIZE, CHANNELS);
-    Tensor xTrain = transformer->transform(data->getTrainFeatures());
+    Tensor x = transformer->transform(data->getTrainFeatures());
     Tensor xTest = transformer->transform(data->getTestFeatures());
-    vector<float> yTrain = data->getTrainTargets();
+
+    vector<float> y= data->getTrainTargets();
     vector<float> yTest = data->getTestTargets();
+
+    // Splitting training data into train and validation sets
+    Split split = DataSplitter::stratifiedSplit(x, y, 0.1f);
+    const Tensor &xTrain = split.xTrain;
+    const Tensor &xVal = split.xVal;
+    const vector<float> &yTrain = split.yTrain;
+    const vector<float> &yVal = split.yVal;
 
     // Defining Model Architecture
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
-        new Conv2D(64, 3, 3, 2, "same", new ReLU(), 3e-4f),
-        new Conv2D(64, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new Conv2D(64, 7, 7, 2, "same", new ReLU(), 3e-4f),
         new MaxPooling2D(2, 2, 2, "none"),                 
 
         new Conv2D(128, 3, 3, 1, "same", new ReLU(), 3e-4f),
-        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 3e-4f),
-        new MaxPooling2D(2, 2, 2, "none"),                 
+        new MaxPooling2D(2, 2, 2, "none"),                   
 
-        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 3e-4f),
-        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 3e-4f),
-        new MaxPooling2D(2, 2, 2, "none"),   
-
-        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 3e-4f),
-        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 3e-4f),
-        new MaxPooling2D(2, 2, 2, "none"),   
-
-        new GlobalAveragePooling2D(),
-        new Dense(128, new ReLU(), 3e-4f),
-        new Dropout(0.5f),
+        new Flatten(),
         new Dense(64, new ReLU(), 3e-4f),
-        new Dropout(0.5f),
         new Dense(2, new Softmax())
     };
 
@@ -96,10 +92,10 @@ int main() {
     pipe.setImageTransformer2D(transformer);
 
     // Creating Early Stop Object
-    EarlyStop stop(&pipe, 5, 1e-4f, 5);
+    EarlyStop *stop = new EarlyStop(&pipe, 5, 1e-4f, 5);
 
     // Training Model
-    ProgressMetric *metric = new ProgressAccuracy(data->getNumTrainSamples());
+    ProgressMetric *metric = new ProgressAccuracy();
     nn->fit(
         xTrain, // Features
         yTrain, // Targets
@@ -107,7 +103,10 @@ int main() {
         0.0025,    // Learning rate decay
         30,      // Number of epochs
         32,     // Batch Size
-        *metric // Progress metric
+        *metric, // Progress metric
+        xVal,  // Validation features
+        yVal,   // Validation targets
+        stop    // Early stop object
     );
 
     // Saving Model

@@ -48,8 +48,7 @@ void EarlyStop::saveBestPipe() {
     localtime_r(&currSeconds, &tmCopy);
 
     ostringstream oss;
-    oss << "./"
-        << "best_weights_" << getpid() << "_" 
+    oss << "best_weights_" << getpid() << "_" 
         << put_time(&tmCopy, "%Y%m%d_%H%M%S")
         << "_" << setfill('0') << setw(3) << currMs.count()
         << ".nn_tmp";

@@ -14,11 +14,8 @@ class ProgressAccuracy : public ProgressMetric {
         vector<float> predictions;
 
     public:
-        // Constructor
-        ProgressAccuracy(size_t);
-
         // Methods
-        void init() override;
+        void init(size_t) override;
         string getName() const override;
         void updateCorrectPredictions(
             const Tensor&, const vector<float>&, const Tensor&, 

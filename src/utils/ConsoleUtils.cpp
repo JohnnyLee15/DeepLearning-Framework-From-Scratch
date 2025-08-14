@@ -54,7 +54,7 @@ void ConsoleUtils::printProgressBar(ProgressMetric &metric){
 void ConsoleUtils::printValidationMetrics(ProgressMetric &metric) {
     cout << fixed << setprecision(2) 
          << "Avg Validation Loss: " << metric.getAvgLoss()
-         << " | " << metric.getName() << ": " << metric.calculate()
+         << " | Validation " << metric.getName() << ": " << metric.calculate()
          << defaultfloat << setprecision(6) << endl;
 }
 

@@ -23,16 +23,15 @@ class ProgressMetric {
         string progressMetricName;
         size_t samplesProcessed;
 
-    public:
-        
-        // Constructor
-        ProgressMetric(size_t);
+        // Methods
+        void updateCommon(const Loss*, const Tensor&, float);
 
+    public:
         // Virtual Destructor
         virtual ~ProgressMetric() = default;
 
         // Methods
-        virtual void init();
+        virtual void init(size_t);
         
         virtual string getName() const = 0;
         size_t getSamplesProcessed() const;

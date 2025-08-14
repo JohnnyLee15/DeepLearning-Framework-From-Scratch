@@ -5,10 +5,8 @@
 
 const string ProgressMAPE::NAME = "MAPE";
 
-ProgressMAPE::ProgressMAPE(size_t numSamples) : ProgressMetric(numSamples) {}
-
-void ProgressMAPE::init() {
-    ProgressMetric::init();
+void ProgressMAPE::init(size_t n) {
+    ProgressMetric::init(n);
     numNonZeroTargets = 0;
     runningSum = 0.0;
 }
@@ -23,7 +21,8 @@ void ProgressMAPE::update(
     const Tensor &outputActivations,
     float batchTotalLoss
 ) {
-    update(
+    ProgressMetric::update(batch, loss, outputActivations, batchTotalLoss);
+    accumulateMAPE(
         batch.getData(), batch.getTargets().getFlat(), loss, 
         outputActivations, batchTotalLoss
     );
@@ -37,7 +36,16 @@ void ProgressMAPE::update(
     float batchTotalLoss
 ) {
     ProgressMetric::update(features, targets, loss, outputActivations, batchTotalLoss);
+    accumulateMAPE(features, targets, loss, outputActivations, batchTotalLoss);
+}
 
+void ProgressMAPE::accumulateMAPE(
+    const Tensor &features,
+    const vector<float> &targets,
+    const Loss *loss,
+    const Tensor &outputActivations,
+    float batchTotalLoss
+) {
     const vector<float> &outputFlat = outputActivations.getFlat();
     size_t numBatchSamples = outputActivations.getSize();
     float localMapeSum = 0.0;
@@ -48,13 +56,15 @@ void ProgressMAPE::update(
         float actual = targets[i];
         if (actual != 0) {
             localNonZero ++;
-            localMapeSum += abs(outputFlat[i] - actual)/actual;
+            localMapeSum += fabs((outputFlat[i] - actual)/actual);
         }
     }
 
     runningSum += localMapeSum;
     numNonZeroTargets += localNonZero;
 }
+
+
 
 float ProgressMAPE::calculate() const {
     if (numNonZeroTargets == 0) {

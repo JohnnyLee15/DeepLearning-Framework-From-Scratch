@@ -6,11 +6,9 @@
 
 const string ProgressAccuracy::NAME = "Accuracy";
 
-ProgressAccuracy::ProgressAccuracy(size_t numSamples) : 
-    ProgressMetric(numSamples), predictions(numSamples) {}
-
-void ProgressAccuracy::init() {
-    ProgressMetric::init();
+void ProgressAccuracy::init(size_t n) {
+    ProgressMetric::init(n);
+    predictions = vector<float>(n);
     correctPredictions = 0;
 }
 

@@ -2,9 +2,8 @@
 #include "core/data/Batch.h"
 #include "core/losses/Loss.h"
 
-ProgressMetric::ProgressMetric(size_t numSamples) : numSamples(numSamples) {}
-
-void ProgressMetric::init() {
+void ProgressMetric::init(size_t n) {
+    numSamples = n;
     totalLoss = 0.0;
     avgLoss = 0.0;
     timeElapsed = 0.0;
@@ -19,10 +18,8 @@ void ProgressMetric::update(
     const Tensor &outputActivations,
     float batchTotalLoss
 ) {
-    update(
-        batch.getData(), batch.getTargets().getFlat(), 
-        loss, outputActivations, batchTotalLoss
-    );
+    samplesProcessed += batch.getSize();
+    updateCommon(loss, outputActivations, batchTotalLoss);
 }
 
 void ProgressMetric::update(
@@ -32,8 +29,16 @@ void ProgressMetric::update(
     const Tensor &outputActivations,
     float batchTotalLoss
 ) {
-    totalLoss += batchTotalLoss;
     samplesProcessed += features.getShape()[0];
+    updateCommon(loss, outputActivations, batchTotalLoss);
+}
+
+void ProgressMetric::updateCommon(
+    const Loss *loss,
+    const Tensor &outputActivations,
+    float batchTotalLoss
+) {
+    totalLoss += batchTotalLoss;
     avgLoss = loss->formatLoss(totalLoss/samplesProcessed);
     timeElapsed = chrono::duration<float>(chrono::steady_clock::now() - startTime).count();
 }

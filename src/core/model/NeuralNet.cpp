@@ -18,6 +18,7 @@
 #include <cstring>
 #include "core/layers/Dropout.h"
 #include "core/layers/GlobalAveragePooling2D.h"
+#include "utils/EarlyStop.h"
 
 const size_t NeuralNet::INFERENCE_BATCH_SIZE = 8;
 
@@ -59,7 +60,7 @@ void NeuralNet::fit(
 ) {
     float initialLR = learningRate;
     avgLosses.resize(numEpochs);
-    bool doVal = xVal.getSize() != 0 && yVal.size() != 0;
+    bool doVal = (xVal.getSize() != 0 && yVal.size() != 0);
     if (!doVal) build(batchSize, features);
 
     bool stopEpochs = false;
@@ -96,7 +97,6 @@ void NeuralNet::build(size_t batchSize, const Tensor &features, bool isInference
     } else {
         dL = Tensor();
     }
-
 }
 
 float NeuralNet::runEpoch(
@@ -106,7 +106,7 @@ float NeuralNet::runEpoch(
     size_t batchSize,
     ProgressMetric &metric
 ) {
-    metric.init();
+    metric.init(targets.size());
     size_t numBatches = (targets.size() + batchSize - 1)/batchSize;
     vector<size_t> shuffledIndices = generateShuffledIndices(features);
 
@@ -201,7 +201,7 @@ bool NeuralNet::validateEpoch(
     if (xVal.getSize() == 0 || yVal.size() == 0)
         return false;
 
-    metric.init();
+    metric.init(yVal.size());
     Tensor preds = predict(xVal);
 
     Tensor yValTensor = Tensor(yVal, {yVal.size()});
