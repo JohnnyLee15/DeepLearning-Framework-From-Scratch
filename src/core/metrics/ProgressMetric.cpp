@@ -19,8 +19,21 @@ void ProgressMetric::update(
     const Tensor &outputActivations,
     float batchTotalLoss
 ) {
+    update(
+        batch.getData(), batch.getTargets().getFlat(), 
+        loss, outputActivations, batchTotalLoss
+    );
+}
+
+void ProgressMetric::update(
+    const Tensor &features,
+    const vector<float> &targets,
+    const Loss *loss,
+    const Tensor &outputActivations,
+    float batchTotalLoss
+) {
     totalLoss += batchTotalLoss;
-    samplesProcessed += batch.getSize();
+    samplesProcessed += features.getShape()[0];
     avgLoss = loss->formatLoss(totalLoss/samplesProcessed);
     timeElapsed = chrono::duration<float>(chrono::steady_clock::now() - startTime).count();
 }

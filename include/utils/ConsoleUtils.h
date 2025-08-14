@@ -38,6 +38,7 @@ class ConsoleUtils {
     public:
         // Methods
         static void printProgressBar(ProgressMetric&);
+        static void printValidationMetrics(ProgressMetric&);
         static void loadMessage(const string&);
         static void completeMessage();
         static void printTitle();

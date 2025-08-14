@@ -2,6 +2,7 @@
 
 #include <string>
 #include <chrono>
+#include <vector>
 
 class Batch;
 class Loss;
@@ -41,5 +42,8 @@ class ProgressMetric {
         float getAvgLoss() const;
 
         virtual void update(const Batch&, const Loss*, const Tensor&, float);
+        virtual void update(
+            const Tensor&, const vector<float>&, const Loss*, const Tensor&, float
+        );
         virtual float calculate() const = 0;
 };

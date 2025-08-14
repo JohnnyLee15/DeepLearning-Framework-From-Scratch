@@ -23,14 +23,10 @@ class EarlyStop {
 
     public:
         // Constructors
-        EarlyStop();
         EarlyStop(
             Pipeline*, size_t patience = 5, float minDelta = 1e-4f, 
             size_t warmupEpochs = 5
         );
-
-        // Methods
-        bool isEnabled() const;
 
         bool shouldStop(float, size_t);
 };

@@ -6,6 +6,7 @@
 #include <random>
 #include "core/tensor/Tensor.h"
 #include "core/gpu/GpuTypes.h"
+#include "utils/EarlyStop.h"
 
 class Loss;
 class Activation;
@@ -51,6 +52,8 @@ class NeuralNet {
         void forwardPassInference(const Tensor&);
         void cpyBatchToOutput(size_t, size_t, size_t, size_t, const Tensor&, Tensor&) const;
 
+        bool validateEpoch(const Tensor&, const vector<float>&, ProgressMetric&, EarlyStop*, size_t);
+
         // GPU Interface
         #ifdef __APPLE__
             void fitBatchGpu(const Batch&, float);
@@ -69,7 +72,14 @@ class NeuralNet {
         ~NeuralNet();
 
         //Methods
-        void fit(const Tensor&, const vector<float>&, float, float, size_t, size_t, ProgressMetric&);
+        void fit(
+            const Tensor&, const vector<float>&, float, 
+            float, size_t, size_t, ProgressMetric&,
+            const Tensor& xVal = Tensor(),
+            const vector<float>& yVal = vector<float>(),
+            EarlyStop *stop = nullptr
+        );
+
         Tensor predict(const Tensor&);
 
         void writeBin(ofstream&) const;

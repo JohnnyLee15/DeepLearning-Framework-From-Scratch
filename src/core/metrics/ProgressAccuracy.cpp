@@ -25,27 +25,53 @@ void ProgressAccuracy::update(
     float batchTotalLoss
 ) {
     ProgressMetric::update(batch, loss, outputActivations, batchTotalLoss);
+    updateCorrectPredictions(
+        batch.getData(), batch.getTargets().getFlat(),
+        outputActivations, &batch.getIndices()
+    );
+}
 
-    size_t batchSize = batch.getSize();
+void ProgressAccuracy::update(
+    const Tensor &features,
+    const vector<float> &targets,
+    const Loss *loss,
+    const Tensor &outputActivations,
+    float batchTotalLoss
+) {
+    ProgressMetric::update(features, targets, loss, outputActivations, batchTotalLoss);
+    updateCorrectPredictions(features, targets, outputActivations);
+}
+
+void ProgressAccuracy::updateCorrectPredictions(
+    const Tensor &features,
+    const vector<float> &targets,
+    const Tensor &outputActivations,
+    const vector<size_t> *indices
+) {
+    size_t batchSize = features.getShape()[0];
     Matrix probsMat = outputActivations.M();
     size_t numCols = probsMat.getNumCols();
     const vector<float> &probsFlat = outputActivations.getFlat();
-    const vector<size_t> &indices = batch.getIndices();
-    const vector<float> &batchTargets = batch.getTargets().getFlat();
     size_t localCorrect = 0;
 
     #pragma omp parallel for reduction(+:localCorrect)
     for (size_t i = 0; i < batchSize; i++) {
         float prediction = TrainingUtils::getPrediction(probsFlat, i, numCols);
-        predictions[indices[i]] = prediction;
 
-        if (prediction == batchTargets[i]) {
+        if (indices == nullptr) {
+            predictions[i] = prediction;
+        } else {
+            predictions[(*indices)[i]] = prediction;
+        }
+        
+        if (prediction == targets[i]) {
             localCorrect++;
         }
     }
     
     correctPredictions += localCorrect;
 }
+
 
 float ProgressAccuracy::calculate() const {
     if (getSamplesProcessed() == 0) {

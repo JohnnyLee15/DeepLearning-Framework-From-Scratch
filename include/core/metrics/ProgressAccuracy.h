@@ -20,6 +20,13 @@ class ProgressAccuracy : public ProgressMetric {
         // Methods
         void init() override;
         string getName() const override;
+        void updateCorrectPredictions(
+            const Tensor&, const vector<float>&, const Tensor&, 
+            const vector<size_t> *indices = nullptr
+        );
         void update(const Batch&, const Loss*, const Tensor&, float) override;
+        void update(
+            const Tensor&, const vector<float>&, const Loss*, const Tensor&, float
+        ) override;
         float calculate() const override;
 };

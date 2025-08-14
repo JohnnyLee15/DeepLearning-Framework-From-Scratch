@@ -36,9 +36,11 @@ void ConsoleUtils::printProgressBar(ProgressMetric &metric){
         }
     }
 
-    cout << fixed << setprecision(2) << "| " << metric.getName() << ": " << metric.calculate() 
-        << "%| Avg Loss: " << metric.getAvgLoss() << " | Elapsed: " << metric.getTimeElapsed() <<"s" 
-        << defaultfloat << setprecision(6);
+    cout << fixed << setprecision(2) 
+         << "| " << metric.getName() << ": " << metric.calculate() 
+         << "%| Avg Loss: " << metric.getAvgLoss() 
+         << " | Elapsed: " << metric.getTimeElapsed() <<"s" 
+         << defaultfloat << setprecision(6);
 
     if (metric.getSamplesProcessed()  == metric.getNumSamples()) {
         cout << endl;
@@ -47,6 +49,13 @@ void ConsoleUtils::printProgressBar(ProgressMetric &metric){
     }
 
     cout.flush();
+}
+
+void ConsoleUtils::printValidationMetrics(ProgressMetric &metric) {
+    cout << fixed << setprecision(2) 
+         << "Avg Validation Loss: " << metric.getAvgLoss()
+         << " | " << metric.getName() << ": " << metric.calculate()
+         << defaultfloat << setprecision(6) << endl;
 }
 
 void ConsoleUtils::loadMessage(const string &message) {

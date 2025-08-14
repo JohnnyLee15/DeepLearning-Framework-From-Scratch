@@ -23,18 +23,29 @@ void ProgressMAPE::update(
     const Tensor &outputActivations,
     float batchTotalLoss
 ) {
-    ProgressMetric::update(batch, loss, outputActivations, batchTotalLoss);
+    update(
+        batch.getData(), batch.getTargets().getFlat(), loss, 
+        outputActivations, batchTotalLoss
+    );
+}
+
+void ProgressMAPE::update(
+    const Tensor &features,
+    const vector<float> &targets,
+    const Loss *loss,
+    const Tensor &outputActivations,
+    float batchTotalLoss
+) {
+    ProgressMetric::update(features, targets, loss, outputActivations, batchTotalLoss);
 
     const vector<float> &outputFlat = outputActivations.getFlat();
-    const vector<float> &batchTargets = batch.getTargets().getFlat();
-
     size_t numBatchSamples = outputActivations.getSize();
     float localMapeSum = 0.0;
     size_t localNonZero = 0;
 
     #pragma omp parallel for reduction(+:localMapeSum, localNonZero)
     for (size_t i = 0; i < numBatchSamples; i++) {
-        float actual = batchTargets[i];
+        float actual = targets[i];
         if (actual != 0) {
             localNonZero ++;
             localMapeSum += abs(outputFlat[i] - actual)/actual;

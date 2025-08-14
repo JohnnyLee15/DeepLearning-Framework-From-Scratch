@@ -21,5 +21,8 @@ class ProgressMAPE : public ProgressMetric {
         void init() override;
         string getName() const override;
         void update(const Batch&, const Loss*, const Tensor&, float) override;
+        void update(
+            const Tensor&, const vector<float>&, const Loss*, const Tensor&, float
+        ) override;
         float calculate() const override;
 };

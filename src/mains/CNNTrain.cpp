@@ -28,6 +28,7 @@
 #include "core/layers/Dropout.h"
 #include "core/data/ImageData2D.h"
 #include "core/gpu/GpuEngine.h"
+#include "utils/EarlyStop.h"
 
 int main() {
     // Welcome Message
@@ -88,6 +89,15 @@ int main() {
     // Creating Neural Network
     NeuralNet *nn = new NeuralNet(layers, loss);
 
+    // Creating Pipeline
+    Pipeline pipe;
+    pipe.setData(data);
+    pipe.setModel(nn);
+    pipe.setImageTransformer2D(transformer);
+
+    // Creating Early Stop Object
+    EarlyStop stop(&pipe, 5, 1e-4f, 5);
+
     // Training Model
     ProgressMetric *metric = new ProgressAccuracy(data->getNumTrainSamples());
     nn->fit(
@@ -101,10 +111,6 @@ int main() {
     );
 
     // Saving Model
-    Pipeline pipe;
-    pipe.setData(data);
-    pipe.setModel(nn);
-    pipe.setImageTransformer2D(transformer);
     pipe.saveToBin("models/XrayCNNTrain");
 
     // Testing Model

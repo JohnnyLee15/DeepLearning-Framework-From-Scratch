@@ -20,12 +20,6 @@ EarlyStop::EarlyStop(
     pipe(pipe), badEpochs(0), bestLoss(numeric_limits<float>::max()) 
 {}
 
-EarlyStop::EarlyStop() : pipe(nullptr) {}
-
-bool EarlyStop::isEnabled() const {
-    return pipe != nullptr;
-}
-
 bool EarlyStop::shouldStop(float valLoss, size_t epoch) {
     if (epoch < warmupEpochs || pipe == nullptr) 
         return false;

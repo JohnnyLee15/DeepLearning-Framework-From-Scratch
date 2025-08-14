@@ -52,15 +52,24 @@ void NeuralNet::fit(
     float learningDecay,
     size_t numEpochs,
     size_t batchSize,
-    ProgressMetric &metric
+    ProgressMetric &metric,
+    const Tensor &xVal,
+    const vector<float> &yVal,
+    EarlyStop *stop
 ) {
-    build(batchSize, features);
     float initialLR = learningRate;
     avgLosses.resize(numEpochs);
-    for (size_t k = 0; k < numEpochs; k++) {
+    bool doVal = xVal.getSize() != 0 && yVal.size() != 0;
+    if (!doVal) build(batchSize, features);
+
+    bool stopEpochs = false;
+    for (size_t k = 0; k < numEpochs && !stopEpochs; k++) {
+        if (doVal) build(batchSize, features);
+        
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
 
         float avgLoss = runEpoch(features, targets, learningRate, batchSize, metric);
+        stopEpochs = validateEpoch(xVal, yVal, metric, stop, k);
 
         avgLosses[k] = avgLoss;
         learningRate = initialLR/(1 + learningDecay*k);
@@ -180,6 +189,31 @@ void NeuralNet::backprop(const Batch &batch, float learningRate) {
 
         grad = &layers[i]->getOutputGradient();
     }
+}
+
+bool NeuralNet::validateEpoch(
+    const Tensor &xVal,
+    const vector<float> &yVal,
+    ProgressMetric &metric,
+    EarlyStop *stop,
+    size_t epoch
+) {
+    if (xVal.getSize() == 0 || yVal.size() == 0)
+        return false;
+
+    metric.init();
+    Tensor preds = predict(xVal);
+
+    Tensor yValTensor = Tensor(yVal, {yVal.size()});
+    float totalLoss = loss->calculateTotalLoss(yValTensor, preds);
+
+    metric.update(xVal, yVal, loss, preds, totalLoss);
+    ConsoleUtils::printValidationMetrics(metric);
+
+    if (stop == nullptr)
+        return false;
+
+    return stop->shouldStop(metric.getAvgLoss(), epoch);
 }
 
 Tensor NeuralNet::makeInferenceBatch(
