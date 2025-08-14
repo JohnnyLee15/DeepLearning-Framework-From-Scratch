@@ -16,13 +16,15 @@ class BinUtils {
         // Methods
         static bool fileExists(string, bool);
         static char getUserChoice();
-        static void writeToBin(const Pipeline&, const string&);
-        static string getNewModelName();
+        static string getNewModelPath();
         static void printOptions();
         static string addExtension(const string&);
+        static void promoteBestModel(const Pipeline&, const string&);
+        static void checkParentDirs(const string&);
 
     public:
         // Methods
-        static void savePipeline(const Pipeline&, const string&);
+        static void writeToBin(const Pipeline&, const string&);
+        static void savePipeline(Pipeline&, const string&);
         static Pipeline loadPipeline(const string&);
 };

@@ -180,6 +180,22 @@
 
 //     // 8) Rectangular overlapping (H=3, W=8, k=3×5, s=1, same)
 //     testMaxPool2DBackpropCompare(1, 3,  8, 1, 3, 5, 1, "same");
+//     testMaxPool2DBackpropCompare(2,   5,   5,   3,   7,   2, 1, "same");
+//     testMaxPool2DBackpropCompare(8,  30,  50,   4,   10,   2, 2, "same");
+//     testMaxPool2DBackpropCompare(8,  30,  50,   4,   11,   2, 2, "none");
+//     testMaxPool2DBackpropCompare(16, 32,  32,   3,  16,   2, 2, "same");
+//     testMaxPool2DBackpropCompare(16, 32,  32,   3,  16,   2, 2, "none");
+//     testMaxPool2DBackpropCompare(32, 64,  64,   3,  16,   2, 2, "same");
+//     testMaxPool2DBackpropCompare(32, 64,  64,   3,  16,   2, 2, "none");
+//     testMaxPool2DBackpropCompare(32, 64,  64,  16,  32,   2, 4, "none");
+//     testMaxPool2DBackpropCompare(32, 64,  64,  64,  64,   2, 4, "none");
+//     testMaxPool2DBackpropCompare(10,224, 224,   3,  64,   3, 3, "same");
+//     testMaxPool2DBackpropCompare(10,224, 224,   3,  64,   6, 3, "none");
+//     testMaxPool2DBackpropCompare(8,  16,  16,  32,  32,   5, 4, "none");
+//     testMaxPool2DBackpropCompare(8,  16,  16,  64,  64,   4, 4, "none");
+//     testMaxPool2DBackpropCompare(4, 128, 128,  64, 128,   3, 4, "same");
+//     testMaxPool2DBackpropCompare(2,   7,   7,   3,   5,   2, 2, "none");
+//     testMaxPool2DBackpropCompare(2,   9,   9,   3,   5,   1, 4, "same");
 
 
 //     printf("--------------------------------------------\n");

@@ -37,7 +37,7 @@ int main() {
     GpuEngine::init();
 
     // Image Resize Dims
-    const size_t SIZE = 256;
+    const size_t SIZE = 224;
 
     // Number of channels to read in
     const size_t CHANNELS = 1;
@@ -61,19 +61,26 @@ int main() {
     // Defining Model Architecture
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
-        new Conv2D(64, 3, 3, 2, "same", new ReLU()),
-        new MaxPooling2D(2, 2, 2, "none"),
+        new Conv2D(64, 3, 3, 2, "same", new ReLU(), 3e-4f),
+        new Conv2D(64, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new MaxPooling2D(2, 2, 2, "none"),                 
 
-        new Conv2D(128, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(128, 3, 3, 1, "same", new ReLU()),
-        new MaxPooling2D(2, 2, 2, "none"),          
+        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new MaxPooling2D(2, 2, 2, "none"),                 
 
-        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
-        new Conv2D(256, 3, 3, 1, "same", new ReLU()),
-        new MaxPooling2D(2, 2, 2, "none"),  
+        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new MaxPooling2D(2, 2, 2, "none"),   
+
+        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new MaxPooling2D(2, 2, 2, "none"),   
 
         new GlobalAveragePooling2D(),
-        new Dense(128, new ReLU(), 0.0001f),
+        new Dense(128, new ReLU(), 3e-4f),
+        new Dropout(0.5f),
+        new Dense(64, new ReLU(), 3e-4f),
         new Dropout(0.5f),
         new Dense(2, new Softmax())
     };
@@ -86,10 +93,10 @@ int main() {
     nn->fit(
         xTrain, // Features
         yTrain, // Targets
-        0.0015,  // Learning rate
+        0.003,  // Learning rate
         0.0025,    // Learning rate decay
-        50,      // Number of epochs
-        8,     // Batch Size
+        30,      // Number of epochs
+        32,     // Batch Size
         *metric // Progress metric
     );
 

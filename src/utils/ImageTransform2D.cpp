@@ -8,6 +8,7 @@
 #include "utils/ImageTransform2D.h"
 #include "utils/ConsoleUtils.h"
 #include <iostream>
+#include <omp.h>
 
 const float ImageTransform2D::MAX_COLOUR_VALUE = 255.0;
 
@@ -19,14 +20,18 @@ ImageTransform2D::ImageTransform2D() {}
 Tensor ImageTransform2D::transform(const vector<RawImage> &rawImages) const {
     cout << endl << "🎨 Transforming " << rawImages.size() << " images." << endl;
     ConsoleUtils::loadMessage("Resizing & Normalizing images.");
+
     Tensor transformedImages = Tensor({
         rawImages.size(), (size_t) height, (size_t) width, (size_t) channels
     });
 
     vector<float> &imageFlat = transformedImages.getFlat();
-    size_t currIdx = 0;
-    for (const RawImage &image : rawImages) {
+    size_t numImages = rawImages.size();
+    size_t size = height * width * channels;
 
+    #pragma omp parallel for
+    for (size_t n = 0; n < numImages; n++) {
+        const RawImage &image = rawImages[n];
         if (channels != image.channels) {
             ConsoleUtils::fatalError(
                 "Channel mismatch: requested " + std::to_string(channels) +
@@ -42,13 +47,12 @@ Tensor ImageTransform2D::transform(const vector<RawImage> &rawImages) const {
             channels
         );
 
-        size_t size = height * width * channels;
+        size_t currIdx = n * size;
         for (size_t i = 0; i < size; i++) {
             imageFlat[i + currIdx] = (float) resized[i] / MAX_COLOUR_VALUE;
         }
-
-        currIdx += size;
     }
+    
     ConsoleUtils::completeMessage();
     ConsoleUtils::printSepLine();
     return transformedImages;

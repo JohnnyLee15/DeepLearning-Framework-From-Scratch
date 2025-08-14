@@ -7,14 +7,18 @@
 #include <cerrno>
 #include <cstring>
 #include "core/model/Pipeline.h"
+#include <filesystem>
+
+using namespace std;
+namespace fs = std::filesystem;
 
 const char BinUtils::CANCEL = 'q';
 const char BinUtils::OVERRIDE = 'o';
 const char BinUtils::RENAME = 'r';
 const string BinUtils::MODEL_EXTENSION = ".nn";
 
-void BinUtils::savePipeline(const Pipeline &pipe, const string &filename) {
-    string fileToWrite = addExtension(filename);
+void BinUtils::savePipeline(Pipeline &pipe, const string &filepath) {
+    string fileToWrite = addExtension(filepath);
     bool done = !fileExists(fileToWrite, false);
     bool shouldWrite = done;
     while (!done) {
@@ -27,7 +31,7 @@ void BinUtils::savePipeline(const Pipeline &pipe, const string &filename) {
             shouldWrite = true; 
             ConsoleUtils::printWarning("Overwriting existing model.");
         } else if (choice == RENAME) {
-            fileToWrite = addExtension(getNewModelName());
+            fileToWrite = addExtension(getNewModelPath());
             done = !fileExists(fileToWrite, true);
             if (done) {
                 shouldWrite = true;
@@ -36,21 +40,28 @@ void BinUtils::savePipeline(const Pipeline &pipe, const string &filename) {
     }
 
     if (shouldWrite) {
-        writeToBin(pipe, fileToWrite);
+        checkParentDirs(fileToWrite);
+        if (pipe.hasBestModel()) {
+            promoteBestModel(pipe, fileToWrite);
+            pipe.clearBestModelPath();
+        } else {
+            writeToBin(pipe, fileToWrite);
+        }
+        
         ConsoleUtils::printSuccess("Model saved successfully as \"" + fileToWrite + "\".", true);
     }
 
     ConsoleUtils::printSepLine();
 }
 
-bool BinUtils::fileExists(string filename, bool showLineSep) {
-    ifstream file(filename);
+bool BinUtils::fileExists(string filepath, bool showLineSep) {
+    ifstream file(filepath);
     if (file.good()) {
         if (showLineSep) {
             ConsoleUtils::printSepLine();
         }
         cout << endl;
-        ConsoleUtils::printWarning("File \"" + filename + "\"" + " already exists.");
+        ConsoleUtils::printWarning("File \"" + filepath + "\"" + " already exists.");
     }
     return file.good();
 }
@@ -86,11 +97,28 @@ char BinUtils::getUserChoice() {
     return choice;
 }
 
-void BinUtils::writeToBin(const Pipeline &pipe, const string &filename) {
-    ofstream modelBin(filename, ios::out | ios::binary);
+void BinUtils::checkParentDirs(const string &filepath) {
+    fs::path finalPath = filepath;
+    fs::path parent = finalPath.parent_path();
+    if (!parent.empty()) {
+        error_code ec;
+        fs::create_directories(parent, ec);
+
+        if (ec && (!fs::exists(parent) || !fs::is_directory(parent))) {
+            ConsoleUtils::fatalError(
+                "Cannot create parent directory \"" + parent.string() +
+                "\" for \"" + filepath + "\": " + ec.message() +
+                ". Choose a different save path or create the folder and retry."
+            );
+        }
+    }
+}
+
+void BinUtils::writeToBin(const Pipeline &pipe, const string &filepath) {
+    ofstream modelBin(filepath, ios::out | ios::binary);
     if (!modelBin) {
         ConsoleUtils::fatalError(
-            "Could not open \"" + filename + "\": " + strerror(errno) + "."
+            "Could not open \"" + filepath + "\": " + strerror(errno) + "."
         );
     }
 
@@ -99,37 +127,59 @@ void BinUtils::writeToBin(const Pipeline &pipe, const string &filename) {
     modelBin.close();
     if (!modelBin) {
         ConsoleUtils::fatalError(
-            "Failed to write model to \"" + filename + "\". The file may be corrupted."
+            "Failed to write model to \"" + filepath + "\". The file may be corrupted."
         );
     }
 }
 
-string BinUtils::getNewModelName() {
-    bool done = false;
-    string newFilename;
-    while (!done) {
-        cout << "[>] Enter the new model name: ";
-        getline(cin, newFilename);
-        newFilename = CsvUtils::trim(newFilename);
+void BinUtils::promoteBestModel(const Pipeline &pipe, const string &filepath) {
+    const string &bestModelPath = pipe.getBestModelPath();
 
-        if (newFilename.length() > 0) {
+    if (bestModelPath.empty() || !fs::exists(bestModelPath)) 
+        return;
+
+    error_code ec;
+    fs::rename(bestModelPath, filepath, ec);
+    if (!ec) return;
+
+    fs::copy_file(bestModelPath, filepath, fs::copy_options::overwrite_existing, ec);
+    if (!ec) {
+        fs::remove(bestModelPath);
+        return;
+    }
+
+    ConsoleUtils::fatalError(
+        "Failed to promote best snapshot from \"" + bestModelPath +
+        "\" to \"" + filepath + "\": " + ec.message() + "."
+    );
+}
+
+string BinUtils::getNewModelPath() {
+    bool done = false;
+    string newFilepath;
+    while (!done) {
+        cout << "[>] Enter the new model path: ";
+        getline(cin, newFilepath);
+        newFilepath = CsvUtils::trim(newFilepath);
+
+        if (newFilepath.length() > 0) {
             done = true;
         } else {
             ConsoleUtils::printError("Error: File name must contain atleast one character.");
         }
     }
 
-    return newFilename;
+    return newFilepath;
 }
 
 
-Pipeline BinUtils::loadPipeline(const string &filename) {
-    string fullFilename = addExtension(filename);
+Pipeline BinUtils::loadPipeline(const string &filepath) {
+    string fullFilepath = addExtension(filepath);
 
-    ifstream modelBin(fullFilename, ios::in | ios::binary);
+    ifstream modelBin(fullFilepath, ios::in | ios::binary);
     if (!modelBin) {
         ConsoleUtils::fatalError(
-            "Unable to open file \"" + fullFilename + "\" for reading.\n" +
+            "Unable to open file \"" + fullFilepath + "\" for reading.\n" +
             "Reason: " + strerror(errno) + "."
         );
     }
@@ -140,12 +190,12 @@ Pipeline BinUtils::loadPipeline(const string &filename) {
 
     if (!modelBin) {
         ConsoleUtils::fatalError(
-            "Failed to fully read model from \"" + fullFilename + "\". "
+            "Failed to fully read model from \"" + fullFilepath + "\". "
             "The file may be corrupted or incomplete."
         );
     }
 
-    ConsoleUtils::printSuccess("Model successfully loaded from \"" + fullFilename + "\".", true);
+    ConsoleUtils::printSuccess("Model successfully loaded from \"" + fullFilepath + "\".", true);
     ConsoleUtils::printSepLine();
     return pipe;
 }

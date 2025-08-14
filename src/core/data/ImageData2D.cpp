@@ -18,10 +18,12 @@ void ImageData2D::scanDirectory(
 ) const {
     ConsoleUtils::loadMessage("Scanning Image Directories.");
     for (const auto &labelDir : fs::directory_iterator(path)) {
+
+        if (!labelDir.is_directory()) continue;
+
         string label = labelDir.path().filename().string();
         for (const auto &image : fs::directory_iterator(labelDir.path())) {
-            string imgPath = image.path().string();
-            paths.push_back(imgPath);
+            paths.push_back(image.path().string());
             labels.push_back(label);
         }
     }
@@ -46,7 +48,6 @@ void ImageData2D::extractImages(
         if (!input) {
             ConsoleUtils::fatalError("Could not load image: " + imgPath);
         }
-
 
         RawImage rawImage;
         rawImage.width = w;

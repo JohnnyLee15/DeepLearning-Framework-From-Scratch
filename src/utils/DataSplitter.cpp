@@ -64,13 +64,12 @@ Split DataSplitter::stratifiedSplit(
     split.yVal.reShapeInPlace(yValShape);
 
     for (pair<const size_t, vector<size_t>> &keyVal : indicesMap) {
-        size_t label = keyVal.first;
         vector<size_t> &indices = keyVal.second;
 
         shuffle(indices.begin(), indices.end(), gen);
 
         size_t numIndices = indices.size();
-        size_t valIndicesEnd = (size_t)(valRatio * indices.size());
+        size_t valIndicesEnd = (size_t)(valRatio * numIndices);
 
         for (size_t i = 0; i < valIndicesEnd; i++) {
             size_t idx = indices[i] * sampleFloats;
