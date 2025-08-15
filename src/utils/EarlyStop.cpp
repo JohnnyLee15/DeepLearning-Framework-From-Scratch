@@ -20,7 +20,7 @@ EarlyStop::EarlyStop(
 {}
 
 bool EarlyStop::shouldStop(float valLoss, size_t epoch, const NeuralNet &nn) {
-    if (epoch < warmupEpochs || pipe == nullptr) 
+    if (epoch < warmupEpochs) 
         return false;
 
     if (valLoss < bestLoss - minDelta) {
