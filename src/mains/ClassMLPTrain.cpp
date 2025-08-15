@@ -89,6 +89,6 @@
 //     // Testing Model
 //     Tensor output = nn->predict(xTest);
 //     vector<float> predictions = TrainingUtils::getPredictions(output);
-//     float accuracy = TrainingUtils::getAccuracy(yTest, predictions);
+//     float accuracy = 100.0f * TrainingUtils::getAccuracy(yTest, predictions);
 //     printf("\nTest Accuracy: %.2f.\n", accuracy);
 // }

@@ -18,6 +18,7 @@
 #include <cstring>
 #include "core/layers/Dropout.h"
 #include "core/layers/GlobalAveragePooling2D.h"
+#include <cerrno>
 #include "utils/EarlyStop.h"
 
 const size_t NeuralNet::INFERENCE_BATCH_SIZE = 8;
@@ -75,6 +76,8 @@ void NeuralNet::fit(
         avgLosses[k] = avgLoss;
         learningRate = initialLR/(1 + learningDecay*k);
     }
+
+    tryBestWeights(stop);
     ConsoleUtils::printSepLine();
 }
 
@@ -213,7 +216,7 @@ bool NeuralNet::validateEpoch(
     if (stop == nullptr)
         return false;
 
-    return stop->shouldStop(metric.getAvgLoss(), epoch);
+    return stop->shouldStop(metric.getAvgLoss(), epoch, *this);
 }
 
 Tensor NeuralNet::makeInferenceBatch(
@@ -303,10 +306,15 @@ vector<size_t> NeuralNet::generateShuffledIndices(const Tensor &features) const 
 
 NeuralNet::~NeuralNet() {
     delete loss;
+    deleteLayers();
+}
+
+void NeuralNet::deleteLayers() {
     size_t numLayers = layers.size();
     for (size_t i = 0; i < numLayers; i++) {
         delete layers[i];
     }
+    layers.clear();
 }
 
 void NeuralNet::writeBin(ofstream &modelBin) const {
@@ -315,9 +323,92 @@ void NeuralNet::writeBin(ofstream &modelBin) const {
 
     uint32_t numActiveLayers = layers.size();
     modelBin.write((char*) &numActiveLayers, sizeof(uint32_t));
-
+    
     for (uint32_t i = 0; i < numActiveLayers; i++) {
         layers[i]->writeBin(modelBin);
+    }
+}
+
+void NeuralNet::saveBestWeights(ofstream &modelBin) const {
+    size_t numActiveLayers = layers.size();
+    for (uint32_t i = 0; i < numActiveLayers; i++) {
+        layers[i]->writeBin(modelBin);
+    }
+}
+
+void NeuralNet::tryBestWeights(EarlyStop *stop) {
+    if (stop == nullptr || !stop->hasBestWeights())
+        return;
+
+    BinUtils::loadBestWeights(stop->getBestWeightPath(), *this);
+    stop->deleteBestWeights();
+}
+
+void NeuralNet::loadBestWeights(ifstream &modelBin) {
+    size_t numLayers = layers.size();
+    vector<Layer*> temp;
+    temp.reserve(numLayers);
+    
+    for (uint32_t i = 0; i < numLayers; i++) {
+        Layer *layer = loadLayer(modelBin);
+
+        if (layer == nullptr) {
+            ConsoleUtils::printError(
+                "Best weights file invalid/truncated at layer " + std::to_string(i)
+                + ". Returning to previous weights."
+            );
+
+            for (Layer *layer : temp) {
+                delete layer;
+            }
+            return;
+        }
+
+        temp.push_back(layer);
+    }
+
+    deleteLayers();
+    layers.swap(temp);
+}
+
+Layer* NeuralNet::loadLayer(ifstream &modelBin) {
+    uint32_t layerEncoding;
+    modelBin.read((char*) &layerEncoding, sizeof(uint32_t));
+
+    Layer *layer = nullptr;
+    if (layerEncoding == Layer::Encodings::Dense) {
+        layer = new Dense();
+    } else if (layerEncoding == Layer::Encodings::Conv2D) {
+        layer = new Conv2D();
+    } else if (layerEncoding == Layer::Encodings::MaxPooling2D) {
+        layer = new MaxPooling2D;
+    } else if (layerEncoding == Layer::Encodings::Flatten) {
+        layer = new Flatten();
+    } else if (layerEncoding == Layer::Encodings::Dropout) {
+        layer = new Dropout();
+    } else if (layerEncoding == Layer::Encodings::GlobalAveragePooling2D) {
+        layer = new GlobalAveragePooling2D();
+    } 
+
+    if (layer) {
+        layer->loadFromBin(modelBin);
+    }
+
+    return layer;
+}
+
+void NeuralNet::loadFromBin(ifstream &modelBin) {
+    loadLoss(modelBin);
+    uint32_t numActiveLayers;
+    modelBin.read((char*) &numActiveLayers, sizeof(uint32_t));
+
+    layers.reserve(numActiveLayers);
+    for (uint32_t i = 0; i < numActiveLayers; i++) {
+        Layer *layer = loadLayer(modelBin);
+
+        if (layer == nullptr) ConsoleUtils::fatalError("Failed to load layer.");
+
+        layers.push_back(layer);
     }
 }
 
@@ -336,41 +427,3 @@ void NeuralNet::loadLoss(ifstream &modelBin) {
     } 
 }
 
-void NeuralNet::loadLayer(ifstream &modelBin) {
-    uint32_t layerEncoding;
-    modelBin.read((char*) &layerEncoding, sizeof(uint32_t));
-
-    Layer *layer = nullptr;
-    if (layerEncoding == Layer::Encodings::Dense) {
-        layer = new Dense();
-    } else if (layerEncoding == Layer::Encodings::Conv2D) {
-        layer = new Conv2D();
-    } else if (layerEncoding == Layer::Encodings::MaxPooling2D) {
-        layer = new MaxPooling2D;
-    } else if (layerEncoding == Layer::Encodings::Flatten) {
-        layer = new Flatten();
-    } else if (layerEncoding == Layer::Encodings::Dropout) {
-        layer = new Dropout();
-    } else if (layerEncoding == Layer::Encodings::GlobalAveragePooling2D) {
-        layer = new GlobalAveragePooling2D();
-    } else {
-        ConsoleUtils::fatalError(
-            "Unsupported layer encoding \"" + to_string(layerEncoding) + "\"."
-        );
-    }
-
-    if (layer) {
-        layer->loadFromBin(modelBin);
-        layers.push_back(layer);
-    }
-}
-
-void NeuralNet::loadFromBin(ifstream &modelBin) {
-    loadLoss(modelBin);
-    uint32_t numActiveLayers;
-    modelBin.read((char*) &numActiveLayers, sizeof(uint32_t));
-
-    for (uint32_t i = 0; i < numActiveLayers; i++) {
-        loadLayer(modelBin);
-    }
-}

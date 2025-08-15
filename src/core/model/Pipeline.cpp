@@ -85,10 +85,6 @@ void Pipeline::setImageTransformer2D(ImageTransform2D *transformer) {
     imageTransformer = transformer;
 }
 
-void Pipeline::setBestModelPath(const string &path) {
-    bestModelPath = path;
-}
-
 Data* Pipeline::getData() const {
     return data;
 }
@@ -109,19 +105,7 @@ ImageTransform2D* Pipeline::getImageTransformer() const {
     return imageTransformer;
 }
 
-const string& Pipeline::getBestModelPath() const {
-    return bestModelPath;
-}
-
-bool Pipeline::hasBestModel() const {
-    return !bestModelPath.empty();
-}
-
-void Pipeline::clearBestModelPath() {
-    bestModelPath = "";
-}
-
-void Pipeline::saveToBin(const string &filename) {
+void Pipeline::saveToBin(const string &filename) const {
     BinUtils::savePipeline(*this, filename);
 }
 

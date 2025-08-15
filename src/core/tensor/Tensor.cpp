@@ -48,7 +48,9 @@ Tensor::Tensor(const vector<float> &data, const vector<size_t> &shape) :
 Tensor::Tensor(const Tensor &other) :
     shape(other.shape), data(other.data), dataGpu(other.dataGpu) {}
 
-Tensor::Tensor() {}
+Tensor::Tensor() {
+    ensureGpu();
+}
 
 Tensor& Tensor::operator =(const Tensor &other) {
     if (this != &other) { 

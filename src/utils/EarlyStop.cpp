@@ -12,22 +12,21 @@ using namespace std::chrono;
 namespace fs = std::filesystem;
 
 EarlyStop::EarlyStop(
-    Pipeline *pipe, 
     size_t patience,
     float minDelta,
     size_t warmupEpochs
 ) : patience(patience), minDelta(minDelta), warmupEpochs(warmupEpochs),
-    pipe(pipe), badEpochs(0), bestLoss(numeric_limits<float>::max()) 
+    badEpochs(0), bestLoss(numeric_limits<float>::max()) 
 {}
 
-bool EarlyStop::shouldStop(float valLoss, size_t epoch) {
+bool EarlyStop::shouldStop(float valLoss, size_t epoch, const NeuralNet &nn) {
     if (epoch < warmupEpochs || pipe == nullptr) 
         return false;
 
     if (valLoss < bestLoss - minDelta) {
         bestLoss = valLoss;
         badEpochs = 0;
-        saveBestPipe();
+        saveBestWeights(nn);
     } else {
         badEpochs++;
     }
@@ -35,10 +34,8 @@ bool EarlyStop::shouldStop(float valLoss, size_t epoch) {
     return badEpochs >= patience;
 }
 
-void EarlyStop::saveBestPipe() {
-    if (!bestPipePath.empty() && fs::exists(bestPipePath)) {
-        fs::remove(bestPipePath);
-    }
+void EarlyStop::saveBestWeights(const NeuralNet &nn) {
+    deleteBestWeights();
         
     auto currTime = system_clock::now();
     auto currSeconds = system_clock::to_time_t(currTime);
@@ -53,7 +50,22 @@ void EarlyStop::saveBestPipe() {
         << "_" << setfill('0') << setw(3) << currMs.count()
         << ".nn_tmp";
     
-    bestPipePath = oss.str();
-    BinUtils::writeToBin(*pipe, bestPipePath);
-    pipe->setBestModelPath(bestPipePath);
+    bestWeightsPath = oss.str();
+    BinUtils::saveBestWeights(bestWeightsPath, nn);
+}
+
+void EarlyStop::deleteBestWeights() {
+    if (!bestWeightsPath.empty() && fs::exists(bestWeightsPath)) {
+        fs::remove(bestWeightsPath);
+    }
+
+    bestWeightsPath.clear();
+}
+
+bool EarlyStop::hasBestWeights() const {
+    return !bestWeightsPath.empty();
+}
+
+const string& EarlyStop::getBestWeightPath() const {
+    return bestWeightsPath;
 }

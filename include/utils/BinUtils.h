@@ -2,6 +2,7 @@
 #include <string>
 
 class Pipeline;
+class NeuralNet;
 
 using namespace std;
 
@@ -19,12 +20,13 @@ class BinUtils {
         static string getNewModelPath();
         static void printOptions();
         static string addExtension(const string&);
-        static void promoteBestModel(const Pipeline&, const string&);
         static void checkParentDirs(const string&);
 
     public:
         // Methods
         static void writeToBin(const Pipeline&, const string&);
-        static void savePipeline(Pipeline&, const string&);
+        static void saveBestWeights(const string&, const NeuralNet&);
+        static void loadBestWeights(const string&, NeuralNet&);
+        static void savePipeline(const Pipeline&, const string&);
         static Pipeline loadPipeline(const string&);
 };

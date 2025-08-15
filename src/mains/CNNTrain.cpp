@@ -71,28 +71,36 @@ int main() {
     // Defining Model Architecture
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
-        new Conv2D(64, 7, 7, 2, "same", new ReLU(), 3e-4f),
-        new MaxPooling2D(2, 2, 2, "none"),                 
-
-        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new Conv2D(32, 3, 3, 2, "same", new ReLU(), 3e-4f),  
+        new Conv2D(32, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new Conv2D(64, 3, 3, 1, "same", new ReLU(), 3e-4f),
         new MaxPooling2D(2, 2, 2, "none"),                   
 
-        new Flatten(),
+        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new MaxPooling2D(2, 2, 2, "none"),                 
+
+        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new MaxPooling2D(2, 2, 2, "none"),              
+
+        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 3e-4f),
+        new MaxPooling2D(2, 2, 2, "none"),                  
+
+        new GlobalAveragePooling2D(),                     
+        new Dense(128, new ReLU(), 3e-4f),
+        new Dropout(0.5f),
         new Dense(64, new ReLU(), 3e-4f),
+        new Dropout(0.5f),
         new Dense(2, new Softmax())
     };
 
     // Creating Neural Network
     NeuralNet *nn = new NeuralNet(layers, loss);
 
-    // Creating Pipeline
-    Pipeline pipe;
-    pipe.setData(data);
-    pipe.setModel(nn);
-    pipe.setImageTransformer2D(transformer);
-
     // Creating Early Stop Object
-    EarlyStop *stop = new EarlyStop(&pipe, 5, 1e-4f, 5);
+    EarlyStop *stop = new EarlyStop(1, 1e-4, 0);
 
     // Training Model
     ProgressMetric *metric = new ProgressAccuracy();
@@ -101,7 +109,7 @@ int main() {
         yTrain, // Targets
         0.003,  // Learning rate
         0.0025,    // Learning rate decay
-        30,      // Number of epochs
+        50,      // Number of epochs
         32,     // Batch Size
         *metric, // Progress metric
         xVal,  // Validation features
@@ -110,6 +118,10 @@ int main() {
     );
 
     // Saving Model
+    Pipeline pipe;
+    pipe.setData(data);
+    pipe.setModel(nn);
+    pipe.setImageTransformer2D(transformer);
     pipe.saveToBin("models/XrayCNNTrain");
 
     // Testing Model

@@ -7,6 +7,7 @@
 #include <cerrno>
 #include <cstring>
 #include "core/model/Pipeline.h"
+#include "core/model/NeuralNet.h"
 #include <filesystem>
 
 using namespace std;
@@ -17,7 +18,7 @@ const char BinUtils::OVERRIDE = 'o';
 const char BinUtils::RENAME = 'r';
 const string BinUtils::MODEL_EXTENSION = ".nn";
 
-void BinUtils::savePipeline(Pipeline &pipe, const string &filepath) {
+void BinUtils::savePipeline(const Pipeline &pipe, const string &filepath) {
     string fileToWrite = addExtension(filepath);
     bool done = !fileExists(fileToWrite, false);
     bool shouldWrite = done;
@@ -41,13 +42,7 @@ void BinUtils::savePipeline(Pipeline &pipe, const string &filepath) {
 
     if (shouldWrite) {
         checkParentDirs(fileToWrite);
-        if (pipe.hasBestModel()) {
-            promoteBestModel(pipe, fileToWrite);
-            pipe.clearBestModelPath();
-        } else {
-            writeToBin(pipe, fileToWrite);
-        }
-        
+        writeToBin(pipe, fileToWrite);
         ConsoleUtils::printSuccess("Model saved successfully as \"" + fileToWrite + "\".", true);
     }
 
@@ -132,28 +127,6 @@ void BinUtils::writeToBin(const Pipeline &pipe, const string &filepath) {
     }
 }
 
-void BinUtils::promoteBestModel(const Pipeline &pipe, const string &filepath) {
-    const string &bestModelPath = pipe.getBestModelPath();
-
-    if (bestModelPath.empty() || !fs::exists(bestModelPath)) 
-        return;
-
-    error_code ec;
-    fs::rename(bestModelPath, filepath, ec);
-    if (!ec) return;
-
-    fs::copy_file(bestModelPath, filepath, fs::copy_options::overwrite_existing, ec);
-    if (!ec) {
-        fs::remove(bestModelPath);
-        return;
-    }
-
-    ConsoleUtils::fatalError(
-        "Failed to promote best snapshot from \"" + bestModelPath +
-        "\" to \"" + filepath + "\": " + ec.message() + "."
-    );
-}
-
 string BinUtils::getNewModelPath() {
     bool done = false;
     string newFilepath;
@@ -218,4 +191,42 @@ string BinUtils::addExtension(const string &modelName) {
     }
 
     return modelName;
+}
+
+void BinUtils::saveBestWeights(const string &path, const NeuralNet &nn) {
+    ofstream modelBin(path, ios::out | ios::binary);
+    if (!modelBin) {
+        ConsoleUtils::printError(
+            "Could not open best weights from \"" + path + "\": " + strerror(errno) + "."
+        );
+        return;
+    }
+
+    nn.saveBestWeights(modelBin);
+
+    if (!modelBin) {
+        ConsoleUtils::printError(
+            "Failed to write best weights to \"" + path + "\"."
+        );
+    }
+}
+
+void BinUtils::loadBestWeights(const string &path, NeuralNet &nn) {
+    ifstream modelBin(path, ios::in | ios::binary);
+    if (!modelBin) {
+        ConsoleUtils::printError(
+            "Could not open best weights from \"" + path + "\": " + strerror(errno) + "."
+        );
+        return;
+    }
+
+    nn.loadBestWeights(modelBin);
+    modelBin.close();
+
+    if (!modelBin) {
+        ConsoleUtils::printError(
+            "Failed to fully read best weights from \"" + path + "\". "
+        );
+        return;
+    }
 }

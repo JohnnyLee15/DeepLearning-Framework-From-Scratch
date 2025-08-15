@@ -42,7 +42,7 @@ class NeuralNet {
         Batch makeBatch(size_t, size_t, const Tensor&, const vector<float>&, const vector<size_t>&) const;
 
         void loadLoss(ifstream&);
-        void loadLayer(ifstream&);
+        Layer* loadLayer(ifstream&);
 
         vector<size_t> generateShuffledIndices(const Tensor&) const;
 
@@ -53,6 +53,8 @@ class NeuralNet {
         void cpyBatchToOutput(size_t, size_t, size_t, size_t, const Tensor&, Tensor&) const;
 
         bool validateEpoch(const Tensor&, const vector<float>&, ProgressMetric&, EarlyStop*, size_t);
+        void deleteLayers();
+        void tryBestWeights(EarlyStop *stop);
 
         // GPU Interface
         #ifdef __APPLE__
@@ -84,6 +86,8 @@ class NeuralNet {
 
         void writeBin(ofstream&) const;
         void loadFromBin(ifstream&);
+        void saveBestWeights(ofstream&) const;
+        void loadBestWeights(ifstream&);
 
         NeuralNet* clone() const;
 };

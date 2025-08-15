@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/model/Pipeline.h"
+#include "core/model/NeuralNet.h"
 #include <string>
 
 using namespace std;
@@ -11,22 +11,20 @@ class EarlyStop {
         size_t patience;
         float minDelta;
         size_t warmupEpochs;
-        Pipeline *pipe;
 
         size_t badEpochs;
         float bestLoss;
 
-        string bestPipePath;
+        string bestWeightsPath;
 
         // Methods
-        void saveBestPipe();
+        void saveBestWeights(const NeuralNet&);
 
     public:
         // Constructors
-        EarlyStop(
-            Pipeline*, size_t patience = 5, float minDelta = 1e-4f, 
-            size_t warmupEpochs = 5
-        );
-
-        bool shouldStop(float, size_t);
+        EarlyStop(size_t patience = 5, float minDelta = 1e-4f, size_t warmupEpochs = 5);
+        bool shouldStop(float, size_t, const NeuralNet&);
+        bool hasBestWeights() const;
+        const string& getBestWeightPath() const;
+        void deleteBestWeights();
 };

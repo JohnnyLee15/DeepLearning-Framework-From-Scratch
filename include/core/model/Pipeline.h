@@ -47,21 +47,16 @@ class Pipeline {
         void setModel(NeuralNet*);
         void setData(Data*);
         void setImageTransformer2D(ImageTransform2D*);
-        void setBestModelPath(const string&);
 
         Data* getData() const;
         Scalar* getFeatureScalar() const;
         Scalar* getTargetScalar() const;
         NeuralNet* getModel() const;
         ImageTransform2D* getImageTransformer() const;
-        const string& getBestModelPath() const;
 
-        void saveToBin(const string&);
+        void saveToBin(const string&) const;
         void writeBin(ofstream&) const;
         void loadComponents(ifstream&);
-
-        bool hasBestModel() const;
-        void clearBestModelPath();
 
         // Static Methods
         static Pipeline loadFromBin(const string&);

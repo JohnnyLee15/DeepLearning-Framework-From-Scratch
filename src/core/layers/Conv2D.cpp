@@ -131,7 +131,7 @@ void Conv2D::initGradBuf(bool isInference) {
 }
 
 void Conv2D::unflattenKernels() {
-    if (executionMode != GPU_FAST)
+    if (executionMode != GPU_FAST || fastKernels.getSize() == 0)
         return;
 
     size_t inDepth = fastKernels.getShape()[0] / (kRows * kCols);
@@ -419,7 +419,7 @@ void Conv2D::writeBinInternal(ofstream &modelBin) const {
     uint32_t numKernelsWrite = (uint32_t) numKernels;
     uint32_t kRowsWrite = (uint32_t) kRows;
     uint32_t kColsWrite = (uint32_t) kCols;
-    uint32_t inDepthWrite = (uint32_t) paddedInput.getShape()[3];
+    uint32_t inDepthWrite = (uint32_t) kernels.getShape()[3];
 
     modelBin.write((char*) &numKernelsWrite, sizeof(uint32_t));
     modelBin.write((char*) &kRowsWrite, sizeof(uint32_t));
