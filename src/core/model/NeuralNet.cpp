@@ -61,12 +61,17 @@ void NeuralNet::fit(
 ) {
     float initialLR = learningRate;
     avgLosses.resize(numEpochs);
-    bool doVal = (xVal.getSize() != 0 && yVal.size() != 0);
-    if (!doVal) build(batchSize, features);
+    bool hasVal = (xVal.getSize() != 0 && yVal.size() != 0);
+
+    if (!hasVal) {
+        build(batchSize, features);
+    }
 
     bool stopEpochs = false;
     for (size_t k = 0; k < numEpochs && !stopEpochs; k++) {
-        if (doVal) build(batchSize, features);
+        if (hasVal) {
+            build(batchSize, features);
+        }
         
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
 

@@ -1,7 +1,6 @@
 #include "core/layers/Dropout.h"
 #include "core/tensor/Tensor.h"
 #include "core/gpu/GpuEngine.h"
-#include <iostream>
 
 void Dropout::forwardGpu(const Tensor &input, GpuCommandBuffer cmdBufVoid) {
     if (input.getShape()[0] != output.getShape()[0]) {

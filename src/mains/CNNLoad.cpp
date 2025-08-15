@@ -36,8 +36,8 @@
 //     GpuEngine::init();
 
 //     // Data paths
-//     const string trainPath = "DataFiles/chest_xray/train";
-//     const string testPath = "DataFiles/chest_xray/test";
+//     const string trainPath = "DataFiles/mnist_png/train";
+//     const string testPath = "DataFiles/mnist_png/test";
 
 //     // Number of channels to read in
 //     const size_t CHANNELS = 1;
@@ -63,7 +63,7 @@
 //     nn->fit(
 //         xTrain, // Features
 //         yTrain, // Targets
-//         0.001,  // Learning rate
+//         0.01,  // Learning rate
 //         0.2,    // Learning rate decay
 //         2,      // Number of epochs
 //         32,     // Batch Size

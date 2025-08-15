@@ -27,6 +27,8 @@
 // #include "core/layers/Flatten.h"
 // #include "core/data/ImageData2D.h"
 // #include "core/gpu/GpuEngine.h"
+// #include "utils/DataSplitter.h"
+// #include "utils/EarlyStop.h"
 
 // int main() {
 
@@ -45,35 +47,44 @@
 //     data->readTrain(trainPath, targetColumn);
 //     data->readTest(testPath, targetColumn);
 
-//     // Scaling Training and Testing Features
+//     // Splitting training data into train and validation sets
+//     Split split = DataSplitter::stratifiedSplit(
+//         data->getTrainFeatures(), data->getTrainTargets(), 0.1f
+//     );
+
+//     // Scaling Features
 //     Scalar *featureScalar = new Minmax();
-//     featureScalar->fit(data->getTrainFeatures());
-    
-//     Tensor xTrain = featureScalar->transform(data->getTrainFeatures());
-//     Tensor xTest = featureScalar->transform(data->getTestFeatures());
+//     featureScalar->fit(split.xTrain);
+//     const Tensor xTrain = featureScalar->transform(split.xTrain);
+//     const Tensor xTest = featureScalar->transform(data->getTestFeatures());
+//     const Tensor xVal = featureScalar->transform(split.xVal);
 
-//     // Scaling Training Targets
+
+//     // Scaling Targets
 //     Scalar *targetScalar = new Minmax();
-//     targetScalar->fit(data->getTrainTargets());
-
-//     vector<float> yTrain = targetScalar->transform(data->getTrainTargets());
-//     vector<float> yTest = data->getTestTargets();
+//     targetScalar->fit(split.yTrain);
+//     const vector<float> yTrain = targetScalar->transform(split.yTrain);
+//     const vector<float> &yVal = targetScalar->transform(split.yVal);
+//     const vector<float> &yTest = data->getTestTargets();
 
 //     // Defining Model Architecture
 //     Loss *loss = new MSE();
 //     vector<Layer*> layers = {
-//     new Dense(512, new ReLU()),
-//     new Dense(256, new ReLU()),
-//     new Dense(128, new ReLU()),
-//     new Dense( 64, new ReLU()),
-//     new Dense(  1, new Linear())
+//         new Dense(512, new ReLU()),
+//         new Dense(256, new ReLU()),
+//         new Dense(128, new ReLU()),
+//         new Dense( 64, new ReLU()),
+//         new Dense(  1, new Linear())
 //     };
+
+//     // Creating Early Stop Object
+//     EarlyStop *stop = new EarlyStop(1, 1e-4, 5);
 
 //     // Creating Neural Network
 //     NeuralNet *nn = new NeuralNet(layers, loss);
 
 //     // Training Model
-//     ProgressMetric *metric = new ProgressMAPE(data->getNumTrainSamples());
+//     ProgressMetric *metric = new ProgressMAPE();
 //     nn->fit(
 //         xTrain,  // Features
 //         yTrain,  // Targets
@@ -81,7 +92,10 @@
 //         0.0001,  // Learning rate decay
 //         300,     // Number of epochs
 //         32,      // Batch Size
-//         *metric  // Progress metric
+//         *metric,  // Progress metric
+//         xVal,  // Validation features
+//         yVal,   // Validation targets
+//         stop    // Early stop object
 //     );
 
 //     // Saving Model

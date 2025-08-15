@@ -131,6 +131,12 @@ void Dense::initWeights(size_t weightsPerNeuron) {
             weightsFlat[i] = distribution(generator);
         }
     }
+
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            weights.uploadToGpu();
+        #endif
+    }
 }
 
 void Dense::initBiases() {
@@ -138,15 +144,17 @@ void Dense::initBiases() {
         return;
 
     biases = activation->initBias(numNeurons);
+    
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            biases.uploadToGpu();
+        #endif
+    }
 }
 
-void Dense::initParams(size_t weightsPerNeuron, bool isInference) {
-    if (isInference)
-        return;
-
+void Dense::initParams(size_t weightsPerNeuron) {
     initWeights(weightsPerNeuron);
     initBiases();
-    ensureGpu();
 }
 
 
@@ -159,7 +167,7 @@ void Dense::build(const vector<size_t> &inShape, bool isInference) {
     
     allocateForwardBuffers();
     allocateGradientBuffers(weightsPerNeuron, isInference);
-    initParams(weightsPerNeuron, isInference);
+    initParams(weightsPerNeuron);
     deallocateGradientBuffers(isInference);
 }
 

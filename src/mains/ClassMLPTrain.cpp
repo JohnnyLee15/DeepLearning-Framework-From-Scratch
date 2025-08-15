@@ -28,6 +28,8 @@
 // #include "core/layers/Flatten.h"
 // #include "core/data/ImageData2D.h"
 // #include "core/gpu/GpuEngine.h"
+// #include "utils/DataSplitter.h"
+// #include "utils/EarlyStop.h"
 
 // int main() {
 
@@ -46,38 +48,53 @@
 //     data->readTrain(trainPath, targetColumn);
 //     data->readTest(testPath, targetColumn);
 
-//     // Feature Scalar
-//     Scalar *scalar = new Greyscale();
-//     scalar->fit(data->getTrainFeatures());
-//     Tensor xTrain = scalar->transform(data->getTrainFeatures());
-//     Tensor xTest = scalar->transform(data->getTestFeatures());
+//     // Splitting training data into train and validation sets
+//     Split split = DataSplitter::stratifiedSplit(
+//         data->getTrainFeatures(), data->getTrainTargets(), 0.1f
+//     );
 
-//     vector<float> yTrain = data->getTrainTargets();
-//     vector<float> yTest = data->getTestTargets();
+//     // Scaling Data
+//     Scalar *scalar = new Greyscale();
+//     scalar->fit(split.xTrain);
+//     const Tensor xTrain = scalar->transform(split.xTrain);
+//     const Tensor xTest = scalar->transform(data->getTestFeatures());
+//     const Tensor xVal = scalar->transform(split.xVal);
+
+//     const vector<float> &yTrain = split.yTrain;
+//     const vector<float> &yTest = data->getTestTargets();
+//     const vector<float> &yVal = split.yVal;
 
 //     // Defining Model Architecture
 //     Loss *loss = new SoftmaxCrossEntropy();
 //     vector<Layer*> layers = {
-//         new Dense(256, new ReLU()),
+//         new Dense(512, new ReLU()),
 //         new Dropout(0.5), 
 //         new Dense(128, new ReLU()),
+//         new Dropout(0.5), 
 //         new Dense(10, new Softmax())
 //     };
 
 //     // Creating Neural Network
 //     NeuralNet *nn = new NeuralNet(layers, loss);
 
+//     // Creating Early Stop Object
+//     EarlyStop *stop = new EarlyStop(1, 1e-4, 5);
+
 //     // Training Model
-//     ProgressMetric *metric = new ProgressAccuracy(data->getNumTrainSamples());
+//     ProgressMetric *metric = new ProgressAccuracy();
 //     nn->fit(
 //         xTrain, // Features
 //         yTrain, // Targets
 //         0.01,   // Learning rate
 //         0.01,   // Learning rate decay
-//         2,      // Number of epochs
+//         50,      // Number of epochs
 //         32,     // Batch Size
-//         *metric // Progress metric
+//         *metric, // Progress metric
+//         xVal,  // Validation features
+//         yVal,   // Validation targets
+//         stop    // Early stop object
 //     );
+
 
 //     // Saving Model
 //     Pipeline pipe;

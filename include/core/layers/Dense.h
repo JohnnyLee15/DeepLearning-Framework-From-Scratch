@@ -38,7 +38,7 @@ class Dense : public Layer {
         // Methods
         void initBiases();
         void initWeights(size_t);
-        void initParams(size_t, bool);
+        void initParams(size_t);
         void initExecutionMode();
         void checkBuildSize(const vector<size_t>&) const;
         

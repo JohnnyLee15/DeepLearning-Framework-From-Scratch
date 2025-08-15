@@ -23,6 +23,7 @@ class Conv2D : public Layer {
         size_t numKernels;
         size_t kRows;
         size_t kCols;
+        size_t inDepth;
 
         Tensor paddedInput;
         Tensor im2ColInBuf;
@@ -49,18 +50,18 @@ class Conv2D : public Layer {
         float kernelL2;
 
         // Methods
-        void initKernels(size_t);
+        void initKernels();
         void initBiases();
         void initGradBuf(bool);
         void initStride(size_t);
-        void initParams(size_t);
+        void initParams();
         void initExecutionMode(size_t, size_t);
 
         void flattenKernels();
         void unflattenKernels();
 
-        void allocateGradientBuffers(size_t, size_t, size_t, bool);
-        void allocateForwardBuffers(size_t, size_t, size_t);
+        void allocateGradientBuffers(size_t, size_t, bool);
+        void allocateForwardBuffers(size_t, size_t);
         void deallocateGradientBuffers(bool);
         
         void checkBuildSize(const vector<size_t>&) const;
