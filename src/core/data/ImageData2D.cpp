@@ -95,6 +95,16 @@ void ImageData2D::readTest(const string &path, size_t channels) {
     read(testFeatures, testTargets, path, channels);
 }
 
+void ImageData2D::clearTrain() {
+    trainFeatures.clear();
+    vector<float>().swap(trainTargets);
+}
+
+void ImageData2D::clearTest() {
+    testFeatures.clear();
+    vector<float>().swap(testTargets);
+}
+
 const vector<RawImage>& ImageData2D::getTrainFeatures() const {
     return trainFeatures;
 }

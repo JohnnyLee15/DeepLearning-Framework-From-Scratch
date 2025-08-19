@@ -28,6 +28,7 @@ class MetalBuffer {
 
         void downloadToHost(void*, size_t) const;
         void uploadFromHost(const void*, size_t);
+        void clear();
 
         #ifdef __OBJC__
             id<MTLBuffer> getBuffer();

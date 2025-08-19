@@ -45,7 +45,7 @@ int main() {
     const size_t CHANNELS = 1;
 
     // Data Paths
-    const string dataPath = "DataFiles/chest_xray/data";
+    const string dataPath = "DataFiles/chest_xray";
 
     // Data Reading
     ImageData2D *data = new ImageData2D();
@@ -68,6 +68,13 @@ int main() {
     const vector<float> &yTrain= splitVal.yTrain;
     const vector<float> &yVal = splitVal.yVal;
 
+    // Clearing unused data
+    data->clearTrain();
+    x.clear();
+    y.clear();
+    splitTest.xTrain.clear();
+    splitTest.yTrain.clear();
+
     // Defining Model Architecture
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
@@ -85,18 +92,15 @@ int main() {
 
         new Conv2D(256, 3, 3, 1, "same", new ReLU(), 5e-4f),
         new Conv2D(256, 3, 3, 1, "same", new ReLU(), 5e-4f),
+        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 5e-4f),
         new MaxPooling2D(2, 2, 2, "none"),
 
-        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 5e-4f),
-        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 5e-4f),
-        new MaxPooling2D(2, 2, 2, "none"),
-
-        new Flatten(),             
-        new Dense(128, new ReLU(), 5e-4f),
-        new Dropout(0.5f),
-        new Dense(64, new ReLU(), 5e-4f),
-        new Dropout(0.5f),
-        new Dense(2, new Softmax())               
+        new Conv2D(128, 1, 1, 1, "same", new ReLU(), 5e-4f),
+        new GlobalAveragePooling2D(),
+        new Dropout(0.4f),
+        new Dense(256, new ReLU(), 5e-4f),
+        new Dropout(0.4f),
+        new Dense(6, new Softmax())
     };
 
     // Creating Neural Network
@@ -111,9 +115,9 @@ int main() {
         xTrain, // Features
         yTrain, // Targets
         0.005f,  // Learning rate
-        0.02f,    // Learning rate decay
+        0.0f,    // Learning rate decay
         50,      // Number of epochs
-        16,     // Batch Size
+        8,     // Batch Size
         *metric, // Progress metric
         xVal,  // Validation features
         yVal,   // Validation targets

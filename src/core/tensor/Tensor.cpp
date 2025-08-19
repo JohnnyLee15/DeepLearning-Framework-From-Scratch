@@ -89,6 +89,17 @@ void Tensor::zero() {
     ensureGpu();
 }
 
+void Tensor::clear() {
+    vector<size_t>().swap(shape);
+    vector<float>().swap(data);
+
+    if (GpuEngine::isUsingGpu()) {
+        #ifdef __APPLE__
+            dataGpu.clear();
+        #endif 
+    }
+}
+
 void Tensor::reShapeInPlace(const vector<size_t> &newShape) {
     shape = newShape;
 }

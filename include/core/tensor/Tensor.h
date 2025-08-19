@@ -85,6 +85,7 @@ class Tensor {
         void reShapeInPlace(const vector<size_t>&);
 
         void zero();
+        void clear();
 
         void printShape(const string&) const;
 

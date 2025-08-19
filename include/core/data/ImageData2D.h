@@ -34,6 +34,8 @@ class ImageData2D : public Data {
         // Methods
         void readTrain(const string&, size_t);
         void readTest(const string&, size_t);
+        void clearTrain();
+        void clearTest();
 
         const vector<RawImage>& getTrainFeatures() const;
         const vector<RawImage>& getTestFeatures() const;

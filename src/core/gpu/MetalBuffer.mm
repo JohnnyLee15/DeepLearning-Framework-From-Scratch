@@ -46,3 +46,11 @@ id<MTLBuffer> MetalBuffer::getBuffer() {
 const id<MTLBuffer> MetalBuffer::getBuffer() const {
     return buffer;
 }
+
+void MetalBuffer::clear() {
+    #if __has_feature(objc_arc)
+        buffer = nil;   
+    #else
+        if (buffer) { [buffer release]; buffer = nil; }
+    #endif
+}
