@@ -95,7 +95,11 @@ int main() {
         new Conv2D(256, 3, 3, 1, "same", new ReLU(), 5e-4f),
         new MaxPooling2D(2, 2, 2, "none"),
 
-        new Conv2D(128, 1, 1, 1, "same", new ReLU(), 5e-4f),
+        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 5e-4f),
+        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 5e-4f),
+        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 5e-4f),
+        new MaxPooling2D(2, 2, 2, "none"),
+
         new GlobalAveragePooling2D(),
         new Dropout(0.4f),
         new Dense(256, new ReLU(), 5e-4f),
@@ -124,12 +128,12 @@ int main() {
         stop    // Early stop object
     );
 
-    // Saving Model
-    Pipeline pipe;
-    pipe.setData(data);
-    pipe.setModel(nn);
-    pipe.setImageTransformer2D(transformer);
-    pipe.saveToBin("models/XrayCNNTrain");
+    // // Saving Model
+    // Pipeline pipe;
+    // pipe.setData(data);
+    // pipe.setModel(nn);
+    // pipe.setImageTransformer2D(transformer);
+    // pipe.saveToBin("models/XrayCNNTrain");
 
     // Testing Model
     Tensor output = nn->predict(xTest);

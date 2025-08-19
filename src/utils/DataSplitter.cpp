@@ -4,6 +4,8 @@
 #include <random>
 #include <algorithm>
 #include <numeric>
+#include "utils/ConsoleUtils.h"
+#include <iostream>
 
 float DataSplitter::clampRatio(float ratio) {
     return min(max(ratio, 0.0f), 0.999999f);
@@ -66,6 +68,10 @@ Split DataSplitter::stratifiedSplit(
         nTrain += indices.size() - valToAdd;
     }
 
+    cout << endl << "✂️  Splitting " << size << " samples: "
+         << nTrain << " | " << nVal << endl;
+    ConsoleUtils::loadMessage("Splitting data with stratification.");
+
     Split split = prepareSplit(sampleFloats, nTrain, nVal, x);
 
     vector<float> &xTrain = split.xTrain.getFlat();
@@ -94,6 +100,9 @@ Split DataSplitter::stratifiedSplit(
         }
     }
 
+    ConsoleUtils::completeMessage();
+    ConsoleUtils::printSepLine();
+    
     return split;
 }
 
@@ -102,6 +111,8 @@ Split DataSplitter::randomSplit(
     const vector <float> &y,
     float valRatio
 ) {
+    
+
     valRatio = clampRatio(valRatio);
     size_t size = y.size();
 
@@ -110,7 +121,11 @@ Split DataSplitter::randomSplit(
 
     size_t nVal = (size_t) (valRatio * size);
     size_t nTrain = size - nVal;
-    
+
+    cout << endl << "✂️  Splitting " << size << " samples: "
+         << nTrain << " | " << nVal << endl;
+    ConsoleUtils::loadMessage("Randomly splitting data.");
+
     random_device rd;
     mt19937 gen(rd());
 
@@ -136,6 +151,9 @@ Split DataSplitter::randomSplit(
         xTrain.insert(xTrain.end(), xFlat.begin() + idx, xFlat.begin() + idx + sampleFloats);
         yTrain.push_back(y[indices[i]]);
     }
+
+    ConsoleUtils::completeMessage();
+    ConsoleUtils::printSepLine();
 
     return split;
 }
