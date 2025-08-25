@@ -1,77 +1,77 @@
 # DeepLearning Framework in C++/Objective-C++ with Metal GPU Acceleration 🤖
 
-This project is a **from-scratch, modular implementation of a DeepLearning framework** written in modern C++ and Objective-C++, with custom Metal GPU kernels for acceleration on macOS. It now supports both tabular and image data, and includes a full training pipeline. No external ML libraries required.
+This project is a **from-scratch, modular implementation of a DeepLearning framework** written in modern **C++** and **Objective-C++**, with custom **Metal GPU kernels** for acceleration on macOS. It now supports both **tabular** and **image data**, and includes a full **training pipeline**. No external ML libraries required.
 
 ## What Makes This Project Unique 🌟
 
-This project started as a from-scratch MLP experiment and has grown into a transparent, high-performance deep learning framework.  
+This project started as a **from-scratch MLP experiment** and has grown into a **transparent, high-performance deep learning framework**.  
 A few aspects that make it noteworthy:  
 
-- **Truly from scratch** – implemented entirely in modern C++ and Objective-C++, with no external ML libraries  
-- **Custom GPU acceleration** – Metal GPU kernels on macOS, with OpenMP fallback on other platforms  
+- **Truly from scratch** – implemented entirely in modern **C++** and **Objective-C++**, with no external ML libraries  
+- **Custom GPU acceleration** – **Metal GPU kernels** on macOS, with **OpenMP fallback** on other platforms  
 - **End-to-end pipelines** – save and load models, weights, scalers, and image transforms in a single compact `.nn` file  
 - **Full training workflow** – learning rate decay, validation monitoring, early stopping, and multiple evaluation metrics  
-- **Versatile data support** – works with both tabular (CSV) and image datasets, with preprocessing utilities included  
+- **Versatile data support** – works with both **tabular (CSV)** and **image datasets**, with preprocessing utilities included  
 
 The goal is to bridge **learning-by-building** with **practical tools** for reproducible machine learning experiments.
 
 ## Features ✨
 
-- Core Layers
-  - Dense 
-  - Conv2D 
-  - MaxPooling2D 
-  - Dropout 
-  - GlobalAveragePooling2D
-  - Flatten
+- **Core Layers**
+  - **Dense**
+  - **Conv2D**
+  - **MaxPooling2D**
+  - **Dropout**
+  - **GlobalAveragePooling2D**
+  - **Flatten**
 
-- Regularization & Optimization
-  - L2 weight regularization for Dense and Conv2D layers
-  - Mini-batch SGD with learning rate decay
-  - Validation set support during training
-  - Early stopping with automatic saving of best weights (based on validation loss)
+- **Regularization & Optimization**
+  - **L2 weight regularization** for Dense and Conv2D layers
+  - **Mini-batch SGD** with learning rate decay
+  - **Validation set support** during training
+  - **Early stopping** with automatic saving of best weights (based on validation loss)
 
-- Data Handling
-  - Tabular and image data support
-  - Built-in data splitters for training, validation, and test sets
-  - CSV parsing, image transforms, scalers (min-max, greyscale normalization)
+- **Data Handling**
+  - **Tabular and image data support**
+  - **Built-in data splitters** for training, validation, and test sets
+  - **CSV parsing, image transforms, scalers** (min-max, greyscale normalization)
 
-- Pipeline Management
+- **Pipeline Management**
   - Save & load entire pipelines, including:
-  - Feature scalers
-  - Target scalers
-  - Data type (tabular / image)
-  - Model architecture & weights
-  - Image transformer
+  - **Feature scalers**
+  - **Target scalers**
+  - **Data type (tabular / image)**
+  - **Model architecture & weights**
+  - **Image transformer**
 
-- Training & Evaluation Utilities
-  - Progress bars with accuracy/loss reporting
-  - Validation monitoring for early stopping
-  - Metrics: accuracy, MAPE, RMSE, etc.
-  - Console UI for training & error handling
+- **Training & Evaluation Utilities**
+  - **Progress bars** with accuracy/loss reporting
+  - **Validation monitoring** for early stopping
+  - **Metrics:** accuracy, MAPE, RMSE, etc.
+  - **Console UI** for training & error handling
 
-- Performance
-  - Custom Metal GPU kernels for macOS GPU acceleration
-  - Optimized C++ matrix operations with OpenMP if not using macOS GPU acceleration
-  - 100% from scratch — no TensorFlow, PyTorch, or external ML libs
+- **Performance**
+  - **Custom Metal GPU kernels** for macOS GPU acceleration
+  - **Optimized C++ matrix operations** with OpenMP if not using macOS GPU acceleration
+  - **100% from scratch** — no TensorFlow, PyTorch, or external ML libs
 
 ## Requirements ⚙️
 
-- C++17 or later
-- OpenMP for CPU multithreading
-- `make` for building the project
-- macOS with Xcode Command Line Tools and Metal support for GPU acceleration
-- Standard libraries only – no third-party dependencies
+- **C++17 or later**
+- **OpenMP** for CPU multithreading
+- **`make`** for building the project
+- **macOS** with Xcode Command Line Tools and Metal support for GPU acceleration
+- **Standard libraries only** – no third-party dependencies
 
 ## Supported Platforms 🖥️
 
-- **macOS** 
-- **Linux** 
-- **Windows via WSL2** 
+- **macOS**  
+- **Linux**  
+- **Windows via WSL2**
 
 ## Installing OpenMP 🧩
 
-If you're compiling with g++, OpenMP is typically included. To install it manually:
+If you're compiling with `g++`, OpenMP is typically included. To install it manually:
 
 - **macOS**:
 
@@ -87,7 +87,7 @@ If you're compiling with g++, OpenMP is typically included. To install it manual
   sudo apt install libomp-dev
   ```
 
-- Native Windows builds are not supported — use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/).
+- **Native Windows builds are not supported** — use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/).
 
 ## Installing Xcode Command Line Tools 🛠️
 
@@ -134,7 +134,7 @@ xcode-select --install
 
 ### Tabular Data
 - Input files must be in **CSV format**.
-- Datasets must be complete: All rows should contain the same number of columns with no missing values. Incomplete datasets will cause parsing errors.
+- Datasets must be complete: **All rows should contain the same number of columns with no missing values**. Incomplete datasets will cause parsing errors.
 - The file must contain a **target column** (label or value).
 - You can specify the **column name or index** for the target in the API:
   ```cpp
@@ -152,24 +152,22 @@ xcode-select --install
       class1/
       class2/
   ```
-- Images can be preprocessed (resized, normalized, greyscale/RGB) through the built-in image transformer.
-- Targets are automatically inferred from the folder names.
-
-
+- Images can be **preprocessed** (resized, normalized, greyscale/RGB) through the built-in image transformer.
+- Targets are **automatically inferred** from the folder names.
 
 ## Model Saving / Loading 📂
 
-Models are managed through a **Pipeline** object, which can encapsulate everything needed to reproduce training and inference. A pipeline may include:  
+Models are managed through a **Pipeline** object, which can encapsulate everything needed to reproduce training and inference. A pipeline may include:   
 
-- Model architecture + trained weights  
-- Data object (tabular or image)  
-- Feature scalar (optional)  
-- Target scalar (optional)  
-- Image transformer (optional, for image data)  
+- **Model architecture + trained weights**  
+- **Data object** (tabular or image)  
+- **Feature scalar (optional)**  
+- **Target scalar (optional)**  
+- **Image transformer (optional, for image data)**  
 
 No parameters are strictly required (you can save an empty pipeline), but in practice you will usually set at least a **model** and the **data object** used during training.  
 
-Pipelines are stored in compact binary format (`.nn`).  
+Pipelines are stored in **compact binary format (`.nn`)**.  
 
 ### Saving
 ```cpp
@@ -187,24 +185,24 @@ pipe.saveToBin("ExampleModel");              // Saves to ExampleModel.nn
 Pipeline pipe = Pipeline::loadFromBin("ExampleModel");        
 
 // Access components as needed:
-ImageData2D data = *dynamic_cast<ImageData2D*>(pipe.getData()); 
+ImageData2D data = *dynamic_cast<ImageData2D*>(pipe.getData());
 ImageTransform2D transformer = *pipe.getImageTransformer();
 Scalar *featureScalar = pipe.getFeatureScalar();
 Scalar *targetScalar = pipe.getTargetScalar();      
 NeuralNet *nn = pipe.getModel();
 ```
 
-### Notes 
-- All pipeline components are optional.
-  - Image tasks (CNNs): usually include an ImageTransformer, but not scalars.
-  - Tabular tasks: often include feature/target scalars, but not an image transformer.
-- Pipelines automatically restore all saved components for consistent inference.
+### Notes
+- All pipeline components are **optional**.
+  - **Image tasks (CNNs):** usually include an ImageTransformer, but not scalars.
+  - **Tabular tasks:** often include feature/target scalars, but not an image transformer.
+- Pipelines automatically **restore all saved components** for consistent inference.
 - If a file already exists, you’ll be prompted:
   - `[q]` Cancel
   - `[o]` Overwrite
   - `[r]` Rename
 
-### **Important when loading** 
+### **Important when loading**
 
 - **Tabular data:**  
   - Your training and testing datasets must use the **same columns in the same order** as the data used when the model was originally trained.  
@@ -214,7 +212,7 @@ NeuralNet *nn = pipe.getModel();
   - When using scalars, call `scalar->transform()` to scale input data before training or testing, and `scalar->reverseTransform()` on model outputs if you need results back in the original scale.  
 
 - **Image data:**  
-  - Do not rely on auto-transforming, you must apply your image transforms manually before training and testing.  
+  - Do not rely on auto-transforming, you must apply your **image transforms manually** before training and testing.  
 
 - **General:**  
   - To save memory, call `.clear()` on unused raw data or tensors once you’ve prepared your transformed versions. This prevents holding multiple large copies of the same dataset in memory.  
@@ -227,7 +225,7 @@ You can customize the framework in several ways:
 - **Available layers** – `Dense`, `Conv2D`, `MaxPooling2D`, `Dropout`, `GlobalAveragePooling2D (GAP)`, and `Flatten`.
 - **Activations** – `ReLU`, `Softmax`, `Linear`.
 - **Loss functions** – `SoftmaxCrossEntropy`, `MSE`.
-- **Regularization** – optional L2 weight regularization for `Dense` and `Conv2D`.
+- **Regularization** – optional **L2 weight regularization** for `Dense` and `Conv2D`.
 - **Training parameters** – learning rate, decay, epochs, batch size.
 - **Validation & early stopping** – monitor validation performance and stop automatically when the model stops improving.
 - **Data transforms** – apply scalars for tabular data, or image transforms (resize, normalize, greyscale/RGB) for image tasks.
