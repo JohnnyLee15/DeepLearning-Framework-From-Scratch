@@ -114,6 +114,16 @@ void TabularData::headTest(size_t numRows) const {
     head(numRows, testFeatures);
 }
 
+void TabularData::clearTrain() {
+    trainFeatures.clear();
+    vector<float>().swap(trainTargets);
+}
+
+void TabularData::clearTest() {
+    testFeatures.clear();
+    vector<float>().swap(testTargets);
+}
+
 void TabularData::head(
     size_t numRows,
     const Tensor &mat

@@ -60,16 +60,20 @@
 //     const Tensor xTest = scalar->transform(data->getTestFeatures());
 //     const Tensor xVal = scalar->transform(split.xVal);
 
-//     const vector<float> &yTrain = split.yTrain;
-//     const vector<float> &yTest = data->getTestTargets();
-//     const vector<float> &yVal = split.yVal;
+//     const vector<float> yTrain = split.yTrain;
+//     const vector<float> yTest = data->getTestTargets();
+//     const vector<float> yVal = split.yVal;
+
+//     // Clearing unused data to save memory
+//     data->clearTrain();
+//     data->clearTest();
+//     split.clear();
 
 //     // Defining Model Architecture
 //     Loss *loss = new SoftmaxCrossEntropy();
 //     vector<Layer*> layers = {
-//         new Dense(512, new ReLU()),
-//         new Dropout(0.5), 
-//         new Dense(128, new ReLU()),
+//         new Dense(512, new ReLU(), 1e-4f), // last parameter is l2 regularization
+//         new Dense(128, new ReLU(), 1e-4f), // last parameter is l2 regularization
 //         new Dropout(0.5), 
 //         new Dense(10, new Softmax())
 //     };
@@ -78,7 +82,7 @@
 //     NeuralNet *nn = new NeuralNet(layers, loss);
 
 //     // Creating Early Stop Object
-//     EarlyStop *stop = new EarlyStop(1, 1e-4, 5);
+//     EarlyStop *stop = new EarlyStop(1, 1e-4, 5); // (patience, min delta, warm-up)
 
 //     // Training Model
 //     ProgressMetric *metric = new ProgressAccuracy();
@@ -87,14 +91,13 @@
 //         yTrain, // Targets
 //         0.01,   // Learning rate
 //         0.01,   // Learning rate decay
-//         50,      // Number of epochs
+//         2,      // Number of epochs
 //         32,     // Batch Size
 //         *metric, // Progress metric
 //         xVal,  // Validation features
 //         yVal,   // Validation targets
 //         stop    // Early stop object
 //     );
-
 
 //     // Saving Model
 //     Pipeline pipe;
@@ -107,5 +110,9 @@
 //     Tensor output = nn->predict(xTest);
 //     vector<float> predictions = TrainingUtils::getPredictions(output);
 //     float accuracy = 100.0f * TrainingUtils::getAccuracy(yTest, predictions);
-//     printf("\nTest Accuracy: %.2f.\n", accuracy);
+//     printf("\nTest Accuracy: %.2f%%.\n", accuracy);
+
+//     // Delete pointers that don't belong to pipe
+//     delete stop;
+//     delete metric;
 // }

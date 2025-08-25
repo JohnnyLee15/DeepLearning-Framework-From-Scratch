@@ -157,3 +157,10 @@ Split DataSplitter::randomSplit(
 
     return split;
 }
+
+void Split::clear() {
+    xTrain.clear();
+    xVal.clear();
+    vector<float>().swap(yTrain);
+    vector<float>().swap(yVal);
+}

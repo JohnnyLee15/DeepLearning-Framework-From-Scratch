@@ -10,6 +10,8 @@ struct Split {
     Tensor xVal;
     vector<float> yTrain;
     vector<float> yVal;
+
+    void clear();
 };
 
 class DataSplitter {

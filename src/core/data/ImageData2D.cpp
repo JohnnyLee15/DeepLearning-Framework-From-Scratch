@@ -11,6 +11,10 @@
 using namespace std;
 namespace fs = filesystem;
 
+ImageData2D::ImageData2D(size_t channels) : channels(channels) {}
+
+ImageData2D::ImageData2D() : channels(0) {}
+
 void ImageData2D::scanDirectory(
     vector<string> &paths,
     vector<string> &labels,
@@ -32,8 +36,7 @@ void ImageData2D::scanDirectory(
 
 void ImageData2D::extractImages(
     vector<RawImage> &features, 
-    const vector<string> &paths,
-    size_t channels
+    const vector<string> &paths
 ) const{
     ConsoleUtils::loadMessage("Extracting Images.");
     features.reserve(paths.size());
@@ -74,25 +77,24 @@ void ImageData2D::extractLabels(vector<float> &targets, const vector<string> &la
 void ImageData2D::read(
     vector<RawImage> &features, 
     vector<float> &targets, 
-    const string &path,
-    size_t channels
+    const string &path
 ) {
     vector<string> paths;
     vector<string> labels;
     scanDirectory(paths, labels, path);
-    extractImages(features, paths, channels);
+    extractImages(features, paths);
     extractLabels(targets, labels);
     ConsoleUtils::printSepLine();
 }
 
-void ImageData2D::readTrain(const string &path, size_t channels) {
+void ImageData2D::readTrain(const string &path) {
     cout << endl << "📥 Loading training data from: \"" << CsvUtils::trimFilePath(path) << "\"." << endl;
-    read(trainFeatures, trainTargets, path, channels);
+    read(trainFeatures, trainTargets, path);
 }
 
-void ImageData2D::readTest(const string &path, size_t channels) {
+void ImageData2D::readTest(const string &path) {
     cout << endl << "📥 Loading testing data from: \"" << CsvUtils::trimFilePath(path) << "\"." << endl;
-    read(testFeatures, testTargets, path, channels);
+    read(testFeatures, testTargets, path);
 }
 
 void ImageData2D::clearTrain() {
@@ -132,6 +134,9 @@ Data::Encodings ImageData2D::getEncoding() const {
 void ImageData2D::writeBin(ofstream &modelBin) const {
     Data::writeBin(modelBin);
 
+    uint32_t writeChannels = (uint32_t) channels;
+    modelBin.write((char*) &writeChannels, sizeof(uint32_t));
+
     uint32_t mapSize = labelMap.size();
     modelBin.write((char*) &mapSize, sizeof(uint32_t));
     for (const pair<const string, int > &pair : labelMap) {
@@ -145,6 +150,10 @@ void ImageData2D::writeBin(ofstream &modelBin) const {
 }
 
 void ImageData2D::loadFromBin(ifstream &modelBin) {
+    uint32_t readChannels;
+    modelBin.read((char*) &readChannels, sizeof(uint32_t));
+    channels = readChannels;
+
     uint32_t mapSize;
     modelBin.read((char*) &mapSize, sizeof(uint32_t));
 

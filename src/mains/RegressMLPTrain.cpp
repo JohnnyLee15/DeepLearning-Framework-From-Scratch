@@ -39,33 +39,40 @@
 //     GpuEngine::init();
 
 //     // Data Reading
-//     const string trainPath = "DataFiles/California_Housing/housing_clean.csv";
-//     const string testPath = "DataFiles/California_Housing/housing_clean.csv";
+//     const string dataPath = "DataFiles/California_Housing/housing_clean.csv";
 //     const string targetColumn = "median_house_value";
 
 //     TabularData *data = new TabularData("regression");
-//     data->readTrain(trainPath, targetColumn);
-//     data->readTest(testPath, targetColumn);
+//     data->readTrain(dataPath, targetColumn);
 
-//     // Splitting training data into train and validation sets
-//     Split split = DataSplitter::stratifiedSplit(
-//         data->getTrainFeatures(), data->getTrainTargets(), 0.1f
+//     // Splitting training data into train, test, and validation sets
+//     Split splitTest = DataSplitter::stratifiedSplit(
+//         data->getTrainFeatures(), data->getTrainTargets(), 0.2f
+//     );
+
+//     Split splitVal = DataSplitter::stratifiedSplit(
+//         splitTest.xTrain, splitTest.yTrain, 0.1f
 //     );
 
 //     // Scaling Features
 //     Scalar *featureScalar = new Minmax();
-//     featureScalar->fit(split.xTrain);
-//     const Tensor xTrain = featureScalar->transform(split.xTrain);
-//     const Tensor xTest = featureScalar->transform(data->getTestFeatures());
-//     const Tensor xVal = featureScalar->transform(split.xVal);
+//     featureScalar->fit(splitVal.xTrain);
+//     const Tensor xTrain = featureScalar->transform(splitVal.xTrain);
+//     const Tensor xTest = featureScalar->transform(splitTest.xVal);
+//     const Tensor xVal = featureScalar->transform(splitVal.xVal);
 
 
 //     // Scaling Targets
 //     Scalar *targetScalar = new Minmax();
-//     targetScalar->fit(split.yTrain);
-//     const vector<float> yTrain = targetScalar->transform(split.yTrain);
-//     const vector<float> &yVal = targetScalar->transform(split.yVal);
-//     const vector<float> &yTest = data->getTestTargets();
+//     targetScalar->fit(splitVal.yTrain);
+//     const vector<float> yTrain = targetScalar->transform(splitVal.yTrain);
+//     const vector<float> yVal = targetScalar->transform(splitVal.yVal);
+//     const vector<float> yTest = splitTest.yVal;
+
+//     // Clearing unused data to save memory
+//     data->clearTrain();
+//     splitTest.clear();
+//     splitVal.clear();
 
 //     // Defining Model Architecture
 //     Loss *loss = new MSE();
@@ -78,7 +85,7 @@
 //     };
 
 //     // Creating Early Stop Object
-//     EarlyStop *stop = new EarlyStop(1, 1e-4, 5);
+//     EarlyStop *stop = new EarlyStop(1, 1e-4, 0); // (patience, min delta, warm-up)
 
 //     // Creating Neural Network
 //     NeuralNet *nn = new NeuralNet(layers, loss);
@@ -88,9 +95,9 @@
 //     nn->fit(
 //         xTrain,  // Features
 //         yTrain,  // Targets
-//         0.001,   // Learning rate
-//         0.0001,  // Learning rate decay
-//         300,     // Number of epochs
+//         0.01,   // Learning rate
+//         0.01,  // Learning rate decay
+//         2,     // Number of epochs
 //         32,      // Batch Size
 //         *metric,  // Progress metric
 //         xVal,  // Validation features

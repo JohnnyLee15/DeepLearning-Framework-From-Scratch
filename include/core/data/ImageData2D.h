@@ -16,6 +16,8 @@ struct RawImage {
 class ImageData2D : public Data {
     private:
         // Instance Variables
+        size_t channels;
+
         vector<RawImage> trainFeatures;
         vector<float> trainTargets;
 
@@ -25,17 +27,21 @@ class ImageData2D : public Data {
         unordered_map<string, int> labelMap;
 
         // Methods
-        void read(vector<RawImage>&, vector<float>&, const string&, size_t);
+        void read(vector<RawImage>&, vector<float>&, const string&);
         void scanDirectory(vector<string>&, vector<string>&, const string&) const;
-        void extractImages(vector<RawImage>&, const vector<string>&, size_t) const;
+        void extractImages(vector<RawImage>&, const vector<string>&) const;
         void extractLabels(vector<float>&, const vector<string>&);
 
     public:
+        // Constructors
+        ImageData2D(size_t);
+        ImageData2D();
+
         // Methods
-        void readTrain(const string&, size_t);
-        void readTest(const string&, size_t);
-        void clearTrain();
-        void clearTest();
+        void readTrain(const string&);
+        void readTest(const string&);
+        void clearTrain() override;
+        void clearTest() override;
 
         const vector<RawImage>& getTrainFeatures() const;
         const vector<RawImage>& getTestFeatures() const;

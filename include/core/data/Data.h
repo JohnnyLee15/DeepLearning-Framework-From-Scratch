@@ -23,6 +23,9 @@ class Data {
         virtual const vector<float>& getTrainTargets() const = 0;
         virtual const vector<float>& getTestTargets() const = 0;
 
+        virtual void clearTrain() = 0;
+        virtual void clearTest() = 0;
+
         virtual size_t getNumTrainSamples() const = 0;
         virtual Encodings getEncoding() const = 0;
 
