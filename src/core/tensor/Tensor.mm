@@ -24,6 +24,9 @@ void Tensor::uploadToGpu() {
 
 void Tensor::downloadFromGpu() {
     size_t bytes = getSize() * sizeof(float);
+    if (getSize() > data.size()) {
+        data.resize(getSize(), 0.0f);
+    }
     dataGpu.downloadToHost(data.data(), bytes);
 }
 

@@ -14,6 +14,7 @@ class Layer {
         size_t maxBatchSize;
 
         virtual void syncBuffers();
+        virtual void clearCpuBuffers() = 0;
         virtual void writeBinInternal(ofstream&) const = 0;
 
     public:

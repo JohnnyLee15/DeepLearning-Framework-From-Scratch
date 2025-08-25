@@ -86,6 +86,7 @@ class Tensor {
 
         void zero();
         void clear();
+        void clearCpu();
 
         void printShape(const string&) const;
 

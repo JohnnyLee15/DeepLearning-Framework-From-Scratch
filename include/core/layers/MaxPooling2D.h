@@ -35,6 +35,8 @@ class MaxPooling2D : public Layer {
 
         void writeBinInternal(ofstream&) const override;
 
+        void clearCpuBuffers() override;
+
     public:
         // Constructors
         MaxPooling2D(size_t, size_t, size_t, const string&);

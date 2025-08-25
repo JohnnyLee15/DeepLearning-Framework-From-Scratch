@@ -94,6 +94,24 @@ void Conv2D::ensureGpu() {
     }
 }
 
+void Conv2D::clearCpuBuffers() {
+    if (GpuEngine::isUsingGpu()) {
+        paddedInput.clearCpu();
+        im2ColInBuf.clearCpu();
+        kernels.clearCpu();
+        fastKernels.clearCpu();
+        activations.clearCpu();
+        preActivations.clearCpu();
+        dB.clearCpu();
+        dW.clearCpu();
+        dA.clearCpu();
+        dX.clearCpu();
+        gradIm2ColBuf.clearCpu();
+        gradBuf.clearCpu();
+        biases.clearCpu();
+    }
+}
+
 void Conv2D::checkBuildSize(const vector<size_t> &inShape) const {
     if (inShape.size() != 4) {
         ConsoleUtils::fatalError(
@@ -184,7 +202,7 @@ void Conv2D::flattenKernels() {
         #endif
     }
 
-    kernels = Tensor();
+    kernels.clear();
 }
 
 vector<uint32_t> Conv2D::generateThreadSeeds() const {
@@ -286,10 +304,10 @@ void Conv2D::deallocateGradientBuffers(bool isInference) {
     if (!isInference)
         return;
 
-    dB = Tensor();
-    dW = Tensor();
-    dA = Tensor();
-    dX = Tensor();
+    dB.clear();
+    dW.clear();
+    dA.clear();
+    dX.clear();
 }
 
 void Conv2D::build(const vector<size_t> &inShape, bool isInference) {
@@ -308,6 +326,7 @@ void Conv2D::build(const vector<size_t> &inShape, bool isInference) {
     initGradBuf(isInference);
     initParams();
     deallocateGradientBuffers(isInference);
+    clearCpuBuffers();
 }
 
 vector<size_t> Conv2D::getBuildOutShape(const vector<size_t> &inShape) const {

@@ -2,11 +2,19 @@
 #include <random>
 #include <algorithm>
 #include <omp.h>
+#include "core/gpu/GpuEngine.h"
 
 Dropout::Dropout() : rate(0.0f) {}
 
 Dropout::Dropout(float r) {
     rate = max(0.0f, min(r, 0.999999f));
+}
+
+void Dropout::clearCpuBuffers() {
+    if (GpuEngine::isUsingGpu()) {
+        output.clearCpu();
+        dX.clearCpu();
+    }
 }
 
 void Dropout::build(const vector<size_t> &inShape, bool isInference) {
@@ -19,6 +27,7 @@ void Dropout::build(const vector<size_t> &inShape, bool isInference) {
         dX = Tensor(inShape);
         mask = Tensor(inShape);
     }
+    clearCpuBuffers();
 }
 
 vector<size_t> Dropout::getBuildOutShape(const vector<size_t> &inShape) const {

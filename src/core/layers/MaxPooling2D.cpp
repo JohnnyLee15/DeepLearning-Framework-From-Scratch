@@ -23,6 +23,13 @@ void MaxPooling2D::checkBuildSize(const vector<size_t> &inShape) const {
     }
 }
 
+void MaxPooling2D::clearCpuBuffers() {
+    if (GpuEngine::isUsingGpu()) {
+        paddedInput.clearCpu();
+        dX.clearCpu();
+    }
+}
+
 void MaxPooling2D::build(const vector<size_t> &inShape, bool isInference) {
     checkBuildSize(inShape);
 
@@ -42,6 +49,7 @@ void MaxPooling2D::build(const vector<size_t> &inShape, bool isInference) {
     }
     
     initMaxIndices();
+    clearCpuBuffers();
 }
 
 void MaxPooling2D::initStride(size_t strideIn) {

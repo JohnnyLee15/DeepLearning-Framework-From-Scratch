@@ -30,6 +30,8 @@ class GlobalAveragePooling2D : public Layer {
 
         Layer* clone() const override;
 
+        void clearCpuBuffers() override;
+
         // GPU Interface
         #ifdef __APPLE__
             void forwardGpu(const Tensor&, GpuCommandBuffer) override;

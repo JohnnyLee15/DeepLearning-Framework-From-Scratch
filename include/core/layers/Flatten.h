@@ -17,6 +17,7 @@ class Flatten : public Layer {
         // Methods
         void checkInputSize(const vector<size_t>&) const;
         void writeBinInternal(ofstream&) const override;
+        void clearCpuBuffers() override;
 
     public:
         // Methods

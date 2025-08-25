@@ -100,6 +100,10 @@ void Tensor::clear() {
     }
 }
 
+void Tensor::clearCpu() {
+    vector<float>().swap(data);
+}
+
 void Tensor::reShapeInPlace(const vector<size_t> &newShape) {
     shape = newShape;
 }

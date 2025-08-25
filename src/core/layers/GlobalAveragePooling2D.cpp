@@ -1,6 +1,7 @@
 #include "core/layers/GlobalAveragePooling2D.h"
 #include "utils/ConsoleUtils.h"
 #include <omp.h>
+#include "core/gpu/GpuEngine.h"
 
 void GlobalAveragePooling2D::checkBuildSize(const vector<size_t> &inShape) const {
     if (inShape.size() != 4) {
@@ -8,6 +9,13 @@ void GlobalAveragePooling2D::checkBuildSize(const vector<size_t> &inShape) const
             "GlobalAveragePooling2D build error: Expected 4D input (batch_size, height, width, channels), "
             "but got tensor with " + to_string(inShape.size()) + " dimensions."
         );
+    }
+}
+
+void GlobalAveragePooling2D::clearCpuBuffers() {
+    if (GpuEngine::isUsingGpu()) {
+        output.clearCpu();
+        dX.clearCpu();
     }
 }
 
@@ -20,10 +28,11 @@ void GlobalAveragePooling2D::build(const vector<size_t> &inShape, bool isInferen
     output= Tensor({getMaxBatchSize(), depth});
 
     if (isInference) {
-        dX = Tensor();
+        dX.clear();
     } else {
         dX = Tensor(inShape);
     }
+    clearCpuBuffers();
 }   
 
 vector<size_t> GlobalAveragePooling2D::getBuildOutShape(const vector<size_t> &inShape) const {

@@ -68,6 +68,7 @@ class Conv2D : public Layer {
 
         void ensureGpu();
         void syncBuffers() override;
+        void clearCpuBuffers() override;
 
         vector<uint32_t> generateThreadSeeds() const;
         void loadActivation(ifstream&);

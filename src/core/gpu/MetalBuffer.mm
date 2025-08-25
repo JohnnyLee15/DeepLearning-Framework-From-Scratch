@@ -32,6 +32,11 @@ void MetalBuffer::downloadToHost(void *host, size_t numBytes) const {
 }
 
 void MetalBuffer::uploadFromHost(const void *host, size_t numBytes) {
+    if (buffer == nil || buffer.length < numBytes) {
+        buffer = [GpuEngine::getGpuDevice()
+                newBufferWithLength:numBytes
+                options:MTLResourceStorageModeShared];
+    }
     memcpy([buffer contents], host, numBytes);
 }
 

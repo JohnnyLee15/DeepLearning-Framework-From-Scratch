@@ -1,5 +1,6 @@
 #include "core/layers/Flatten.h"
 #include "utils/ConsoleUtils.h"
+#include "core/gpu/GpuEngine.h"
 
 void Flatten::checkInputSize(const vector<size_t> &givenShape) const {
     if (givenShape.size() < 2) {
@@ -7,6 +8,13 @@ void Flatten::checkInputSize(const vector<size_t> &givenShape) const {
             "Flatten build error: Expected input rank at least 2, "
             "but got tensor with " + to_string(givenShape.size()) + " dimensions."
         );
+    }
+}
+
+void Flatten::clearCpuBuffers() {
+    if (GpuEngine::isUsingGpu()) {
+        output.clearCpu();
+        dX.clearCpu();
     }
 }
 
@@ -62,6 +70,7 @@ void Flatten::build(const vector<size_t> &givenShape, bool isInference) {
     if (isInference) {
         dX = Tensor();
     }
+    clearCpuBuffers();
 }
 
 vector<size_t> Flatten::getBuildOutShape(const vector<size_t> &givenShape) const {

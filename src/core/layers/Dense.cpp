@@ -47,6 +47,19 @@ void Dense::ensureGpu() {
     }
 }
 
+void Dense::clearCpuBuffers() {
+    if (GpuEngine::isUsingGpu()) {
+        activations.clearCpu();
+        preActivations.clearCpu();
+        weights.clearCpu();
+        dB.clearCpu();
+        dW.clearCpu();
+        dX.clearCpu();
+        dA.clearCpu();
+        biases.clearCpu();
+    }
+}
+
 void Dense::checkBuildSize(const vector<size_t> &inShape) const {
     if (inShape.size() != 2) {
         ConsoleUtils::fatalError(
@@ -93,10 +106,10 @@ void Dense::deallocateGradientBuffers(bool isInference) {
     if (!isInference)
         return;
 
-    dB = Tensor();
-    dW = Tensor();
-    dA = Tensor();
-    dX = Tensor();
+    dB.clear();
+    dW.clear();
+    dA.clear();
+    dX.clear();
 }
 
 vector<uint32_t> Dense::generateThreadSeeds() const {
@@ -169,6 +182,7 @@ void Dense::build(const vector<size_t> &inShape, bool isInference) {
     allocateGradientBuffers(weightsPerNeuron, isInference);
     initParams(weightsPerNeuron);
     deallocateGradientBuffers(isInference);
+    clearCpuBuffers();
 }
 
 

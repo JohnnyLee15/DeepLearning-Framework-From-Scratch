@@ -19,6 +19,7 @@ class Dropout : public Layer {
         void generateMask();
         void writeBinInternal(ofstream&) const override;
         void reShapeBatch(size_t);
+        void clearCpuBuffers() override;
 
     public:
         // Constructors
