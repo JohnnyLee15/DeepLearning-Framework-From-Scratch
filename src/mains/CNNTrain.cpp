@@ -30,6 +30,7 @@
 #include "core/gpu/GpuEngine.h"
 #include "utils/EarlyStop.h"
 #include "utils/DataSplitter.h"
+#include "core/data/BinLoader.h"
 
 int main() {
     // Welcome Message
@@ -39,13 +40,13 @@ int main() {
     GpuEngine::init();
 
     // Image Resize Dims
-    const size_t SIZE = 224;
+    const size_t SIZE = 28;
 
     // Number of channels to read in
     const size_t CHANNELS = 1;
 
     // Data Paths
-    const string dataPath = "DataFiles/chest_xray";
+    const string dataPath = "DataFiles/mnist_png";
 
     // Data Reading
     ImageData2D *data = new ImageData2D(CHANNELS);
@@ -60,13 +61,18 @@ int main() {
     Split splitTest = DataSplitter::stratifiedSplit(x, y, 0.2f);
     Split splitVal = DataSplitter::stratifiedSplit(splitTest.xTrain, splitTest.yTrain, 0.1f);
 
-    const Tensor xTrain = splitVal.xTrain;
-    const Tensor xTest = splitTest.xVal;
-    const Tensor xVal = splitVal.xVal;
+    Tensor xTrain = splitVal.xTrain;
+    Tensor xTest = splitTest.xVal;
+    Tensor xVal = splitVal.xVal;
 
-    const vector<float> yTrain = splitVal.yTrain;
-    const vector<float> yTest = splitTest.yVal;
-    const vector<float> yVal = splitVal.yVal;
+    vector<float> yTrain = splitVal.yTrain;
+    vector<float> yTest = splitTest.yVal;
+    vector<float> yVal = splitVal.yVal;
+
+    // Write splits to .bin for streaming; BinLoader consumes and frees RAM.
+    BinLoader train("transformedData/train", xTrain, yTrain);
+    BinLoader test("transformedData/test", xTest, yTest);
+    BinLoader val("transformedData/val", xVal, yVal);
 
     // Clearing unused data
     data->clearTrain();
@@ -86,24 +92,12 @@ int main() {
         new Conv2D(64, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
         new MaxPooling2D(2, 2, 2, "none"),
 
-        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-        new MaxPooling2D(2, 2, 2, "none"),
-
-        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-        new MaxPooling2D(2, 2, 2, "none"),
-
-        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-        new MaxPooling2D(2, 2, 2, "none"),
-
         new GlobalAveragePooling2D(),
         new Dense(128, new ReLU(), 1e-4f), // last parameter is l2 regularization
         new Dropout(0.4f),
         new Dense(64, new ReLU(), 1e-4f), // last parameter is l2 regularization
         new Dropout(0.3f),
-        new Dense(2, new Softmax())
+        new Dense(10, new Softmax())
     };
 
     // Creating Neural Network
@@ -115,15 +109,13 @@ int main() {
     // Training Model
     ProgressMetric *metric = new ProgressAccuracy();
     nn->fit(
-        xTrain, // Features
-        yTrain, // Targets
+        train,  // Train bin loader
         0.005f,  // Learning rate
         0.0f,    // Learning rate decay
         50,      // Number of epochs
-        32,     // Batch Size
+        16,     // Batch Size
         *metric, // Progress metric
-        xVal,  // Validation features
-        yVal,   // Validation targets
+        val,    // Validation bin loader
         stop    // Early stop object
     );
 
@@ -135,8 +127,9 @@ int main() {
     pipe.saveToBin("models/XrayCNNTrain");
 
     // Testing Model
-    Tensor output = nn->predict(xTest);
+    Tensor output = nn->predict(test);
     vector<float> predictions = TrainingUtils::getPredictions(output);
+    yTest = test.loadTargets();
     float accuracy = 100.0f * TrainingUtils::getAccuracy(yTest, predictions);
     printf("\nTest Accuracy: %.2f%%.\n", accuracy);
 

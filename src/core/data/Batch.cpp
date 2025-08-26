@@ -6,11 +6,21 @@
 #include "core/gpu/GpuEngine.h"
 #include <cstring>
 
-Batch::Batch(size_t numLayers, size_t batchSize) :
-    batchSize(batchSize),
-    indices(batchSize),
-    targets({batchSize})
-{}
+Batch::Batch(size_t maxBatchSize, vector<size_t> xShape) :
+    batchSize(maxBatchSize),
+    indices(maxBatchSize),
+    targets({maxBatchSize})
+{
+    xShape[0] = maxBatchSize;
+    data = Tensor(xShape);
+}
+
+void Batch::setBatchSize(size_t currBatchSize) {
+    batchSize = currBatchSize;
+    vector<size_t> shape = data.getShape();
+    shape[0] = currBatchSize;
+    data.reShapeInPlace(shape);
+}
 
 void Batch::setBatchIndices(
     size_t start,
@@ -23,7 +33,7 @@ void Batch::setBatchIndices(
     }
 }
 
-void Batch::ensureGpu() {
+void Batch::uploadToGpu() {
     if (GpuEngine::isUsingGpu()) {
         #ifdef __APPLE__
             data.uploadToGpu();
@@ -32,35 +42,11 @@ void Batch::ensureGpu() {
     }
 }
 
-void Batch::setBatch(
-    const Tensor &train,
-    const vector<float> &trainLabels
-) {
-    const vector<size_t> &trainShape = train.getShape();
-    vector<size_t> batchShape = trainShape;
-    batchShape[0] = batchSize;
-    data = Tensor(batchShape);
-    
-    size_t elementSize = data.getSize() / batchSize;
-
-    vector<float> &batchFlat = data.getFlat();
-    vector<float> &targetsFlat = targets.getFlat();
-    const vector<float> &trainFlat = train.getFlat();
-    
-    #pragma omp parallel for
-    for (size_t i = 0; i < batchSize; i++) {
-        size_t rdIdx = indices[i];
-        memcpy(
-            batchFlat.data() + (i * elementSize), 
-            trainFlat.data() + (rdIdx * elementSize), 
-            elementSize * sizeof(float)
-        );
-        targetsFlat[i] = trainLabels[rdIdx];
-    }
-    ensureGpu();
+const Tensor& Batch::getData() const {
+    return data;
 }
 
-const Tensor& Batch::getData() const {
+Tensor& Batch::getData() {
     return data;
 }
 
@@ -68,7 +54,11 @@ const Tensor& Batch::getTargets() const {
     return targets;
 }
 
-size_t Batch::getSize() const {
+Tensor& Batch::getTargets() {
+    return targets;
+}
+
+size_t Batch::getBatchSize() const {
     return data.getShape()[0];
 }
 

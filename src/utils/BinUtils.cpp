@@ -19,7 +19,7 @@ const char BinUtils::RENAME = 'r';
 const string BinUtils::MODEL_EXTENSION = ".nn";
 
 void BinUtils::savePipeline(const Pipeline &pipe, const string &filepath) {
-    string fileToWrite = addExtension(filepath);
+    string fileToWrite = addExtension(filepath, MODEL_EXTENSION);
     bool done = !fileExists(fileToWrite, false);
     bool shouldWrite = done;
     while (!done) {
@@ -32,7 +32,7 @@ void BinUtils::savePipeline(const Pipeline &pipe, const string &filepath) {
             shouldWrite = true; 
             ConsoleUtils::printWarning("Overwriting existing model.");
         } else if (choice == RENAME) {
-            fileToWrite = addExtension(getNewModelPath());
+            fileToWrite = addExtension(getNewModelPath(), MODEL_EXTENSION);
             done = !fileExists(fileToWrite, true);
             if (done) {
                 shouldWrite = true;
@@ -50,15 +50,14 @@ void BinUtils::savePipeline(const Pipeline &pipe, const string &filepath) {
 }
 
 bool BinUtils::fileExists(string filepath, bool showLineSep) {
-    ifstream file(filepath);
-    if (file.good()) {
+    if (fs::exists(filepath)) {
         if (showLineSep) {
             ConsoleUtils::printSepLine();
         }
         cout << endl;
         ConsoleUtils::printWarning("File \"" + filepath + "\"" + " already exists.");
     }
-    return file.good();
+    return fs::exists(filepath);
 }
 
 void BinUtils::printOptions() {
@@ -147,7 +146,7 @@ string BinUtils::getNewModelPath() {
 
 
 Pipeline BinUtils::loadPipeline(const string &filepath) {
-    string fullFilepath = addExtension(filepath);
+    string fullFilepath = addExtension(filepath, MODEL_EXTENSION);
 
     ifstream modelBin(fullFilepath, ios::in | ios::binary);
     if (!modelBin) {
@@ -173,20 +172,16 @@ Pipeline BinUtils::loadPipeline(const string &filepath) {
     return pipe;
 }
 
-string BinUtils::addExtension(const string &modelName) {
-    size_t extLength = MODEL_EXTENSION.length();
+string BinUtils::addExtension(const string &modelName, const string &ext) {
+    size_t extLength = ext.length();
     size_t nameLength = modelName.length();
 
-    if (nameLength >= extLength) {
-        bool isMatching = true;
-        for (size_t i = 0; i < extLength && isMatching; i++) {
-            if (modelName[i + nameLength - extLength] != MODEL_EXTENSION[i]) {
-                isMatching = false;
-            }
-        }
+    if (nameLength < extLength)
+        return modelName + ext;
 
-        if (!isMatching) {
-            return modelName + MODEL_EXTENSION;
+    for (size_t i = 0; i < extLength; i++) {
+        if (modelName[i + nameLength - extLength] != ext[i]) {
+            return modelName + ext;
         }
     }
 

@@ -24,8 +24,8 @@ void NeuralNet::forwardPassGpu(const Tensor &batch, GpuCommandBuffer cmdBuf) {
 }
 
 void NeuralNet::backpropGpu(const Batch &batch, float learningRate, GpuCommandBuffer cmdBuf) {
-    if (batch.getSize() != dL.getShape()[0]) {
-        reShapeDL(batch.getSize());
+    if (batch.getBatchSize() != dL.getShape()[0]) {
+        reShapeDL(batch.getBatchSize());
     }
 
     loss->calculateGradientGpu(batch.getTargets(),layers.back()->getOutput(), dL, cmdBuf);

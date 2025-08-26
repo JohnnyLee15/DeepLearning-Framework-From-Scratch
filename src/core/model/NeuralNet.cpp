@@ -20,6 +20,7 @@
 #include "core/layers/GlobalAveragePooling2D.h"
 #include <cerrno>
 #include "utils/EarlyStop.h"
+#include "core/data/Dataset.h"
 
 const size_t NeuralNet::INFERENCE_BATCH_SIZE = 8;
 
@@ -59,24 +60,60 @@ void NeuralNet::fit(
     const vector<float> &yVal,
     EarlyStop *stop
 ) {
+    Dataset train(features, targets);
+    Dataset val(xVal, yVal);
+    fitInternal(
+        train, val, learningRate, learningDecay,
+        numEpochs, batchSize, metric, stop
+    );
+}
+
+void NeuralNet::fit(
+    const BinLoader &train,
+    float learningRate,
+    float learningDecay,
+    size_t numEpochs,
+    size_t batchSize,
+    ProgressMetric &metric,
+    const BinLoader &val,
+    EarlyStop *stop
+) {
+    Dataset trainBin(train);
+    Dataset valBin(val);
+    fitInternal(
+        trainBin, valBin, learningRate, learningDecay,
+        numEpochs, batchSize, metric, stop
+    );
+}
+
+void NeuralNet::fitInternal(
+    const Dataset &train,
+    const Dataset &val,
+    float learningRate,
+    float learningDecay,
+    size_t numEpochs,
+    size_t batchSize,
+    ProgressMetric &metric,
+    EarlyStop *stop
+) {
     float initialLR = learningRate;
     avgLosses.resize(numEpochs);
-    bool hasVal = (xVal.getSize() != 0 && yVal.size() != 0);
+    bool hasVal = (val.sampleCount());
 
     if (!hasVal) {
-        build(batchSize, features);
+        build(batchSize, train.xShape());
     }
 
     bool stopEpochs = false;
     for (size_t k = 0; k < numEpochs && !stopEpochs; k++) {
         if (hasVal) {
-            build(batchSize, features);
+            build(batchSize, train.xShape());
         }
         
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
 
-        float avgLoss = runEpoch(features, targets, learningRate, batchSize, metric);
-        stopEpochs = validateEpoch(xVal, yVal, metric, stop, k);
+        float avgLoss = runEpoch(train, learningRate, batchSize, metric);
+        stopEpochs = validateEpoch(val, metric, stop, k);
 
         avgLosses[k] = avgLoss;
         learningRate = initialLR/(1 + learningDecay*k);
@@ -86,10 +123,9 @@ void NeuralNet::fit(
     ConsoleUtils::printSepLine();
 }
 
-void NeuralNet::build(size_t batchSize, const Tensor &features, bool isInference) {
+void NeuralNet::build(size_t batchSize, vector<size_t> inShape, bool isInference) {
     size_t numLayers = layers.size();
     maxBatchSize = batchSize;
-    vector<size_t> inShape = features.getShape();
     inShape[0] = maxBatchSize;
 
     for (size_t i = 0; i < numLayers; i++) {
@@ -108,20 +144,21 @@ void NeuralNet::build(size_t batchSize, const Tensor &features, bool isInference
 }
 
 float NeuralNet::runEpoch(
-    const Tensor &features,
-    const vector<float> &targets,
+    const Dataset &train,
     float learningRate,
     size_t batchSize,
     ProgressMetric &metric
 ) {
-    metric.init(targets.size());
-    size_t numBatches = (targets.size() + batchSize - 1)/batchSize;
-    vector<size_t> shuffledIndices = generateShuffledIndices(features);
+    size_t N = train.sampleCount();
+    metric.init(N);
+    size_t numBatches = (N + batchSize - 1)/batchSize;
+    vector<size_t> shuffledIndices = generateShuffledIndices(N);
+    Batch batch(batchSize, train.xShape());
 
     for (size_t b = 0; b < numBatches; b++) {
         size_t start = b * batchSize;
-        size_t end = min((b + 1) * batchSize, targets.size());
-        Batch batch = makeBatch(start, end, features, targets, shuffledIndices);
+        size_t end = min((b + 1) * batchSize, N);
+        train.fillBatch(batch, start, end, shuffledIndices);
         
         fitBatch(batch, learningRate);
         float batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getOutput());
@@ -130,7 +167,7 @@ float NeuralNet::runEpoch(
         ConsoleUtils::printProgressBar(metric);
     }
 
-    return metric.getTotalLoss()/targets.size();
+    return metric.getTotalLoss()/N;
 }
 
 void NeuralNet::fitBatch(const Batch &batch, float learningRate) {
@@ -142,21 +179,6 @@ void NeuralNet::fitBatch(const Batch &batch, float learningRate) {
         forwardPass(batch.getData());
         backprop(batch, learningRate);
     }
-}
-
-Batch NeuralNet::makeBatch(
-    size_t start,
-    size_t end,
-    const Tensor &features,
-    const vector<float> &targets,
-    const vector<size_t> &shuffledIndices
-) const {
-    size_t batchSize = end - start;
-    Batch batch = Batch(layers.size() + 1, batchSize);
-    batch.setBatchIndices(start, end, shuffledIndices);
-    batch.setBatch(features, targets);
-
-    return batch;
 }
 
 void NeuralNet::forwardPass(const Tensor &batch) {
@@ -179,8 +201,8 @@ void NeuralNet::reShapeDL(size_t currBatchSize) {
 }
 
 void NeuralNet::backprop(const Batch &batch, float learningRate) {
-    if (batch.getSize() != dL.getShape()[0]) {
-        reShapeDL(batch.getSize());
+    if (batch.getBatchSize() != dL.getShape()[0]) {
+        reShapeDL(batch.getBatchSize());
     }
 
     loss->calculateGradient(batch.getTargets(),layers.back()->getOutput(), dL);
@@ -200,45 +222,40 @@ void NeuralNet::backprop(const Batch &batch, float learningRate) {
 }
 
 bool NeuralNet::validateEpoch(
-    const Tensor &xVal,
-    const vector<float> &yVal,
+    const Dataset &val,
     ProgressMetric &metric,
     EarlyStop *stop,
     size_t epoch
 ) {
-    if (xVal.getSize() == 0 || yVal.size() == 0)
+    size_t N = val.sampleCount();
+    if (N == 0)
         return false;
 
-    metric.init(yVal.size());
-    Tensor preds = predict(xVal);
+    build(INFERENCE_BATCH_SIZE, val.xShape(), true);
+    metric.init(N);
+    size_t numBatches = (N + INFERENCE_BATCH_SIZE - 1)/INFERENCE_BATCH_SIZE;
 
-    Tensor yValTensor = Tensor(yVal, {yVal.size()});
-    float totalLoss = loss->calculateTotalLoss(yValTensor, preds);
+    vector<size_t> indices(N);
+    iota(indices.begin(), indices.end(), 0);
+    Batch batch(INFERENCE_BATCH_SIZE, val.xShape());
 
-    metric.update(xVal, yVal, loss, preds, totalLoss);
+    for (size_t b = 0; b < numBatches; b++) {
+        size_t start = b * INFERENCE_BATCH_SIZE;
+        size_t end = min((b + 1) * INFERENCE_BATCH_SIZE, N);
+        val.fillBatch(batch, start, end, indices);
+
+        forwardPassInference(batch.getData());
+        float batchTotalLoss = loss->calculateTotalLoss(batch.getTargets(), layers.back()->getOutput());
+
+        metric.update(batch, loss, layers.back()->getOutput(), batchTotalLoss);
+    }
+
     ConsoleUtils::printValidationMetrics(metric);
 
     if (stop == nullptr)
         return false;
 
     return stop->shouldStop(metric.getAvgLoss(), epoch, *this);
-}
-
-Tensor NeuralNet::makeInferenceBatch(
-    size_t start,
-    size_t batchSize,
-    size_t sampleFloats,
-    const Tensor &features
-) const {
-    vector<size_t> batchShape = features.getShape();
-    batchShape[0] = batchSize;
-    Tensor batch = Tensor(batchShape);
-
-    size_t sampleStartFloat = start * sampleFloats;
-    size_t bytes = batchSize * sampleFloats * sizeof(float);
-    memcpy(batch.getFlat().data(), features.getFlat().data() + sampleStartFloat, bytes);
-
-    return batch;
 }
 
 void NeuralNet::forwardPassInference(const Tensor &batch) {
@@ -256,7 +273,6 @@ void NeuralNet::cpyBatchToOutput(
     size_t batchSize,
     size_t batchIdx,
     size_t numSamples,
-    const Tensor &batch,
     Tensor &output
 ) const {
     const Tensor &endLayerOutput = layers.back()->getOutput();
@@ -272,36 +288,48 @@ void NeuralNet::cpyBatchToOutput(
     memcpy(output.getFlat().data() + (outputStartFloat), endLayerOutput.getFlat().data(), outBytes);
 }
 
-Tensor NeuralNet::predict(const Tensor &features) {
-    build(INFERENCE_BATCH_SIZE, features, true);
+Tensor NeuralNet::predictInternal(const Dataset &x) {
+    build(INFERENCE_BATCH_SIZE, x.xShape(), true);
 
-    size_t numSamples = features.getShape()[0];
+    size_t numSamples = x.sampleCount();
     size_t numBatches = (numSamples + INFERENCE_BATCH_SIZE - 1) / INFERENCE_BATCH_SIZE;
-    size_t sampleFloats = features.getSize() / numSamples;
+    vector<size_t> batchShape = x.xShape();
+    batchShape[0] = INFERENCE_BATCH_SIZE;
 
     Tensor output;
+    Tensor batch(batchShape);
+
     for (size_t i = 0; i < numBatches; i++) {
         size_t start = i * INFERENCE_BATCH_SIZE;
         size_t end = min((i + 1) * INFERENCE_BATCH_SIZE, numSamples);
         size_t batchSize = end - start;
 
-        Tensor batch = makeInferenceBatch(start, batchSize, sampleFloats, features);
+        x.fillInferenceBatch(batch, start, batchSize);
         forwardPassInference(batch);
-        cpyBatchToOutput(start, batchSize, i, numSamples, batch, output);
+        cpyBatchToOutput(start, batchSize, i, numSamples, output);
     }
 
     return output;
 }
 
-vector<size_t> NeuralNet::generateShuffledIndices(const Tensor &features) const {
-    if (features.getShape().size() == 0) {
+Tensor NeuralNet::predict(const Tensor &x) {
+    Dataset xMem(x);
+    return predictInternal(xMem);
+}
+
+Tensor NeuralNet::predict(const BinLoader &x) {
+    Dataset xBin(x);
+    return predictInternal(x);
+}
+
+vector<size_t> NeuralNet::generateShuffledIndices(size_t sampleCount) const {
+    if (sampleCount == 0) {
         return vector<size_t>();
     }
 
-    size_t size = features.getShape()[0];
-    vector<size_t> indices(size, 0);
+    vector<size_t> indices(sampleCount, 0);
     
-    for (size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < sampleCount; i++) {
         indices[i] = i;
     }
 

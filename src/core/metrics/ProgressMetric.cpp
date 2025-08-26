@@ -18,7 +18,7 @@ void ProgressMetric::update(
     const Tensor &outputActivations,
     float batchTotalLoss
 ) {
-    samplesProcessed += batch.getSize();
+    samplesProcessed += batch.getBatchSize();
     updateCommon(loss, outputActivations, batchTotalLoss);
 }
 

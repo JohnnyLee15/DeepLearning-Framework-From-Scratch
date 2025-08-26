@@ -5,6 +5,7 @@
 #include <fstream>
 #include <random>
 #include "core/tensor/Tensor.h"
+#include "core/data/BinLoader.h"
 #include "core/gpu/GpuTypes.h"
 
 class Loss;
@@ -12,6 +13,7 @@ class Activation;
 class Batch;
 class ProgressMetric;
 class EarlyStop;
+class Dataset;
 
 using namespace std;
 
@@ -32,27 +34,34 @@ class NeuralNet {
         static mt19937 generator;
 
         // Methods
-        void build(size_t, const Tensor&, bool isInference = false);
+        void build(size_t, vector<size_t>, bool isInference = false);
 
-        float runEpoch(const Tensor&, const vector<float>&, float, size_t, ProgressMetric&);
+        void fitInternal(
+            const Dataset&, const Dataset&, float, 
+            float, size_t, size_t, ProgressMetric&, EarlyStop*
+        );
+
+        Tensor predictInternal(const Dataset&);
+
+        float runEpoch(const Dataset&, float, size_t, ProgressMetric&);
+
         void forwardPass(const Tensor&);
         void backprop(const Batch&, float);
         
         void fitBatch(const Batch&, float);
-        Batch makeBatch(size_t, size_t, const Tensor&, const vector<float>&, const vector<size_t>&) const;
 
         void loadLoss(ifstream&);
         Layer* loadLayer(ifstream&);
 
-        vector<size_t> generateShuffledIndices(const Tensor&) const;
+        vector<size_t> generateShuffledIndices(size_t) const;
 
         void reShapeDL(size_t);
 
-        Tensor makeInferenceBatch(size_t, size_t, size_t, const Tensor&) const;
         void forwardPassInference(const Tensor&);
-        void cpyBatchToOutput(size_t, size_t, size_t, size_t, const Tensor&, Tensor&) const;
+        void cpyBatchToOutput(size_t, size_t, size_t, size_t, Tensor&) const;
 
-        bool validateEpoch(const Tensor&, const vector<float>&, ProgressMetric&, EarlyStop*, size_t);
+        bool validateEpoch(const Dataset&, ProgressMetric&, EarlyStop*, size_t);
+
         void deleteLayers();
         void tryBestWeights(EarlyStop *stop);
 
@@ -78,11 +87,19 @@ class NeuralNet {
             const Tensor&, const vector<float>&, float, 
             float, size_t, size_t, ProgressMetric&,
             const Tensor& xVal = Tensor(),
-            const vector<float>& yVal = vector<float>(),
+            const vector<float>& yVal = {},
+            EarlyStop *stop = nullptr
+        );
+
+        void fit(
+            const BinLoader&, float, 
+            float, size_t, size_t, ProgressMetric&,
+            const BinLoader& val = BinLoader(),
             EarlyStop *stop = nullptr
         );
 
         Tensor predict(const Tensor&);
+        Tensor predict(const BinLoader&);
 
         void writeBin(ofstream&) const;
         void loadFromBin(ifstream&);

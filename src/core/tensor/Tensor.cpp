@@ -135,10 +135,6 @@ size_t Tensor::getSize() const {
 }
 
 size_t Tensor::getRank() const {
-    if (shape.empty() || (shape.size() == 1 && shape[0] == 1)) {
-        return 0;
-    }
-
     return shape.size();
 }
 

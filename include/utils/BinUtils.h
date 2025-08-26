@@ -19,9 +19,7 @@ class BinUtils {
         static char getUserChoice();
         static string getNewModelPath();
         static void printOptions();
-        static string addExtension(const string&);
-        static void checkParentDirs(const string&);
-
+        
     public:
         // Methods
         static void writeToBin(const Pipeline&, const string&);
@@ -29,4 +27,6 @@ class BinUtils {
         static void loadBestWeights(const string&, NeuralNet&);
         static void savePipeline(const Pipeline&, const string&);
         static Pipeline loadPipeline(const string&);
+        static void checkParentDirs(const string&);
+        static string addExtension(const string&, const string&);
 };

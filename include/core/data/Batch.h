@@ -15,19 +15,21 @@ class Batch {
         Tensor targets;
         Tensor data;
 
-        // Methods
-        void ensureGpu();
-
     public:
         // Constructor
-        Batch(size_t, size_t);
+        Batch(size_t, vector<size_t>);
 
         // Methods
-        void setBatch(const Tensor&, const vector<float> &);
+        void setBatchSize(size_t);
         void setBatchIndices(size_t, size_t, const vector<size_t>&);
+        void uploadToGpu();
 
         const Tensor& getData() const;
+        Tensor& getData();
+
         const Tensor& getTargets() const;
-        size_t getSize() const;
+        Tensor& getTargets();
+        
+        size_t getBatchSize() const;
         const vector<size_t>& getIndices() const;
 };
