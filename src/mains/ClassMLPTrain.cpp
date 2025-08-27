@@ -30,6 +30,7 @@
 // #include "core/gpu/GpuEngine.h"
 // #include "utils/DataSplitter.h"
 // #include "utils/EarlyStop.h"
+// #include "core/data/BinLoader.h"
 
 // int main() {
 
@@ -56,13 +57,18 @@
 //     // Scaling Data
 //     Scalar *scalar = new Greyscale();
 //     scalar->fit(split.xTrain);
-//     const Tensor xTrain = scalar->transform(split.xTrain);
-//     const Tensor xTest = scalar->transform(data->getTestFeatures());
-//     const Tensor xVal = scalar->transform(split.xVal);
+//     Tensor xTrain = scalar->transform(split.xTrain);
+//     Tensor xTest = scalar->transform(data->getTestFeatures());
+//     Tensor xVal = scalar->transform(split.xVal);
 
-//     const vector<float> yTrain = split.yTrain;
-//     const vector<float> yTest = data->getTestTargets();
-//     const vector<float> yVal = split.yVal;
+//     vector<float> yTrain = split.yTrain;
+//     vector<float> yTest = data->getTestTargets();
+//     vector<float> yVal = split.yVal;
+
+//     // Write splits to .bin for streaming; BinLoader consumes and frees RAM.
+//     BinLoader train("transformedData/train");
+//     BinLoader test("transformedData/test");
+//     BinLoader val("transformedData/val");
 
 //     // Clearing unused data to save memory
 //     data->clearTrain();
@@ -87,15 +93,13 @@
 //     // Training Model
 //     ProgressMetric *metric = new ProgressAccuracy();
 //     nn->fit(
-//         xTrain, // Features
-//         yTrain, // Targets
+//         train,
 //         0.01,   // Learning rate
 //         0.01,   // Learning rate decay
-//         2,      // Number of epochs
+//         50,      // Number of epochs
 //         32,     // Batch Size
 //         *metric, // Progress metric
-//         xVal,  // Validation features
-//         yVal,   // Validation targets
+//         val,
 //         stop    // Early stop object
 //     );
 
@@ -107,8 +111,9 @@
 //     pipe.saveToBin("models/ClassMnistTrain.nn");
 
 //     // Testing Model
-//     Tensor output = nn->predict(xTest);
+//     Tensor output = nn->predict(test);
 //     vector<float> predictions = TrainingUtils::getPredictions(output);
+//     yTest = test.loadTargets();
 //     float accuracy = 100.0f * TrainingUtils::getAccuracy(yTest, predictions);
 //     printf("\nTest Accuracy: %.2f%%.\n", accuracy);
 
