@@ -29,6 +29,7 @@
 // #include "core/gpu/GpuEngine.h"
 // #include "utils/DataSplitter.h"
 // #include "utils/EarlyStop.h"
+// #include "core/data/BinLoader.h"
 
 // int main() {
 
@@ -57,17 +58,22 @@
 //     // Scaling Features
 //     Scalar *featureScalar = new Minmax();
 //     featureScalar->fit(splitVal.xTrain);
-//     const Tensor xTrain = featureScalar->transform(splitVal.xTrain);
-//     const Tensor xTest = featureScalar->transform(splitTest.xVal);
-//     const Tensor xVal = featureScalar->transform(splitVal.xVal);
+//     Tensor xTrain = featureScalar->transform(splitVal.xTrain);
+//     Tensor xTest = featureScalar->transform(splitTest.xVal);
+//     Tensor xVal = featureScalar->transform(splitVal.xVal);
 
 
 //     // Scaling Targets
 //     Scalar *targetScalar = new Minmax();
 //     targetScalar->fit(splitVal.yTrain);
-//     const vector<float> yTrain = targetScalar->transform(splitVal.yTrain);
-//     const vector<float> yVal = targetScalar->transform(splitVal.yVal);
-//     const vector<float> yTest = splitTest.yVal;
+//     vector<float> yTrain = targetScalar->transform(splitVal.yTrain);
+//     vector<float> yVal = targetScalar->transform(splitVal.yVal);
+//     vector<float> yTest = splitTest.yVal;
+
+//     // Write splits to .bin for streaming; BinLoader consumes and frees RAM.
+//     BinLoader train("transformedData/train", xTrain, yTrain);
+//     BinLoader test("transformedData/test", xTest, yTest);
+//     BinLoader val("transformedData/val", xVal, yVal);
 
 //     // Clearing unused data to save memory
 //     data->clearTrain();
@@ -85,7 +91,7 @@
 //     };
 
 //     // Creating Early Stop Object
-//     EarlyStop *stop = new EarlyStop(1, 1e-4, 0); // (patience, min delta, warm-up)
+//     EarlyStop *stop = new EarlyStop(8, 1e-4, 10); // (patience, min delta, warm-up)
 
 //     // Creating Neural Network
 //     NeuralNet *nn = new NeuralNet(layers, loss);
@@ -93,15 +99,13 @@
 //     // Training Model
 //     ProgressMetric *metric = new ProgressMAPE();
 //     nn->fit(
-//         xTrain,  // Features
-//         yTrain,  // Targets
+//         train,
 //         0.01,   // Learning rate
 //         0.01,  // Learning rate decay
-//         2,     // Number of epochs
-//         32,      // Batch Size
+//         200,     // Number of epochs
+//         512,      // Batch Size
 //         *metric,  // Progress metric
-//         xVal,  // Validation features
-//         yVal,   // Validation targets
+//         val,
 //         stop    // Early stop object
 //     );
 
@@ -114,8 +118,9 @@
 //     pipe.saveToBin("models/RegressHousingTrain");
 
 //     // Testing Model
-//     Tensor output = nn->predict(xTest);
+//     Tensor output = nn->predict(test);
 //     Tensor predictions = targetScalar->reverseTransform(output);
+//     yTest = test.loadTargets();
 //     float rmse = TrainingUtils::getRMSE(predictions, yTest);
 //     printf("\nTest RMSE: %.2f.\n", rmse);
 // }

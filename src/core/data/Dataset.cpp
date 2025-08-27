@@ -12,8 +12,13 @@ Dataset::Dataset(const BinLoader &binData) :
 
 
 size_t Dataset::sampleCount() const {
-    if (isMemory) 
+    if (isMemory) {
+        if (features->getRank() == 0) 
+            return 0;
+        
         return features->getShape()[0];
+        
+    }
 
     return binData->sampleCount();
 }

@@ -134,6 +134,10 @@ void BinLoader::calculateOffsets() {
 }
 
 size_t BinLoader::sampleCount() const {
+    if (xShape.size() == 0) {
+        return 0;
+    }
+    
     return xShape[0];
 }
 
