@@ -35,6 +35,7 @@ The goal is to bridge **learning-by-building** with **practical tools** for repr
   - **Tabular and image data support**
   - **Built-in data splitters** for training, validation, and test sets
   - **CSV parsing, image transforms, scalers** (min-max, greyscale normalization)
+  - Offload transformed datasets into a **binary loader** to free RAM and enable efficient streaming during training
 
 - **Pipeline Management**
   - Save & load entire pipelines, including:

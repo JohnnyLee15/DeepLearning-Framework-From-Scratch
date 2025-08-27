@@ -40,13 +40,13 @@ int main() {
     GpuEngine::init();
 
     // Image Resize Dims
-    const size_t SIZE = 28;
+    const size_t SIZE = 224;
 
     // Number of channels to read in
     const size_t CHANNELS = 1;
 
     // Data Paths
-    const string dataPath = "DataFiles/mnist_png";
+    const string dataPath = "DataFiles/chest_xray";
 
     // Data Reading
     ImageData2D *data = new ImageData2D(CHANNELS);
@@ -92,12 +92,24 @@ int main() {
         new Conv2D(64, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
         new MaxPooling2D(2, 2, 2, "none"),
 
+        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
+        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
+        new MaxPooling2D(2, 2, 2, "none"),
+
+        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
+        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
+        new MaxPooling2D(2, 2, 2, "none"),
+
+        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
+        new Conv2D(512, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
+        new MaxPooling2D(2, 2, 2, "none"),
+
         new GlobalAveragePooling2D(),
         new Dense(128, new ReLU(), 1e-4f), // last parameter is l2 regularization
         new Dropout(0.4f),
         new Dense(64, new ReLU(), 1e-4f), // last parameter is l2 regularization
         new Dropout(0.3f),
-        new Dense(10, new Softmax())
+        new Dense(6, new Softmax())
     };
 
     // Creating Neural Network
