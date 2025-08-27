@@ -4,3 +4,4 @@ models/
 .vscode
 *.o
 *.nn_tmp
+transformedData/
