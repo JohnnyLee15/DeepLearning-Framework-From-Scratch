@@ -48,7 +48,7 @@
 //     // Data Reading
 //     data->readTrain(dataPath);
 
-//     // Transform data (resize to 128x128 and normalize)
+//     // Transform data (resize and normalize)
 //     Tensor x = transformer->transform(data->getTrainFeatures());
 //     vector<float> y = data->getTrainTargets();
 
