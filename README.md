@@ -749,6 +749,11 @@ Test Accuracy: 93.25%.
 ```
 ---
 
+## Documentation 📑
+
+- [CNN_Presentation.pdf](./docs/CNN_Presentation.pdf) — view directly on GitHub  
+- [CNN_Presentation.pptx](./docs/CNN_Presentation.pptx) — original editable slides
+
 ## License 
 
 MIT License – see [LICENSE](./LICENSE)
