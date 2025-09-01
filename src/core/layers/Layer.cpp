@@ -1,5 +1,6 @@
 #include "core/layers/Layer.h"
 #include "core/tensor/Tensor.h"
+#include "utils/ConsoleUtils.h"
 
 Layer::Layer() : maxBatchSize(0) {}
 
@@ -29,13 +30,19 @@ size_t Layer::getMaxBatchSize() const {
 }
 
 const Tensor& Layer::getWeights() const {
-    return Tensor();
+    ConsoleUtils::fatalError(
+        "Layer::getWeights() called on base class. This must be overridden."
+    );
 }
 
 const Tensor& Layer::getBiases() const {
-    return Tensor();
+    ConsoleUtils::fatalError(
+        "Layer::getBiases() called on base class. This must be overridden."
+    );
 }
 
 const Tensor& Layer::getDeltaInputs() const {
-    return Tensor();
+    ConsoleUtils::fatalError(
+        "Layer::getDeltaInputs() called on base class. This must be overridden."
+    );
 }

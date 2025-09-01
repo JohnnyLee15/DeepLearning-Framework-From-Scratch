@@ -10,7 +10,7 @@ CXXFLAGS := -std=c++17 \
 LDFLAGS := -fopenmp
 
 # Source files: always .cpp
-CPP_SRC := $(shell find src tests -name '*.cpp')
+CPP_SRC := $(shell find src tests examples -name '*.cpp')
 CPP_OBJ := $(CPP_SRC:.cpp=.o)
 
 # macOS specifics

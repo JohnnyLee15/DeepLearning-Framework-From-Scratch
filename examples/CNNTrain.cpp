@@ -84,32 +84,29 @@
 //     // Defining Model Architecture
 //     Loss *loss = new SoftmaxCrossEntropy();
 //     vector<Layer*> layers = {
-//         new Conv2D(32, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization 
-//         new Conv2D(32, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new MaxPooling2D(2, 2, 2, "none"),
+//         // Stem: larger RF early
+//         new Conv2D(32, 7, 7, 2, "same", new ReLU(), 2e-4f),
+//         new MaxPooling2D(3, 2, 2, "none"),
 
-//         new Conv2D(64, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new Conv2D(64, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new MaxPooling2D(2, 2, 2, "none"),
+//         // Stage 1 (64 ch)
+//         new Conv2D(64, 3, 3, 1, "same", new ReLU(), 2e-4f),
+//         new Conv2D(64, 3, 3, 1, "same", new ReLU(), 2e-4f),
 
-//         new Conv2D(128, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new Conv2D(128, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new MaxPooling2D(2, 2, 2, "none"),
+//         // Stage 2 (128 ch) — downsample via stride-2 conv
+//         new Conv2D(128, 3, 3, 2, "same", new ReLU(), 2e-4f),
+//         new Conv2D(128, 3, 3, 1, "same", new ReLU(), 2e-4f),
 
-//         new Conv2D(256, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new Conv2D(256, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new MaxPooling2D(2, 2, 2, "none"),
+//         // Stage 3 (256 ch) — downsample
+//         new Conv2D(256, 3, 3, 2, "same", new ReLU(), 2e-4f),
+//         new Conv2D(256, 3, 3, 1, "same", new ReLU(), 2e-4f),
 
-//         new Conv2D(512, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new Conv2D(512, 3, 3, 1, "same", new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new MaxPooling2D(2, 2, 2, "none"),
+//         // Optional light Stage 4 (kept at 256 to avoid overfitting)
+//         new Conv2D(256, 3, 3, 2, "same", new ReLU(), 2e-4f),
+//         new Conv2D(256, 3, 3, 1, "same", new ReLU(), 2e-4f),
 
 //         new GlobalAveragePooling2D(),
-//         new Dense(128, new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new Dropout(0.4f),
-//         new Dense(64, new ReLU(), 1e-4f), // last parameter is l2 regularization
-//         new Dropout(0.3f),
-//         new Dense(6, new Softmax())
+//         new Dropout(0.35f),
+//         new Dense(6, new Softmax(), 2e-4f)
 //     };
 
 //     // Creating Neural Network

@@ -2,6 +2,8 @@
 
 This project is a **from-scratch, modular implementation of a DeepLearning framework** written in modern **C++** and **Objective-C++**, with custom **Metal GPU kernels** for acceleration on macOS. It now supports both **tabular** and **image data**, and includes a full **training pipeline**. No external ML libraries required.
 
+> 📌 See the **[FUTURE.md](./FUTURE.md)** for planned features and architectural improvements.
+
 ## What Makes This Project Unique 🌟
 
 This project started as a **from-scratch MLP experiment** and has grown into a **transparent, high-performance deep learning framework**.  
@@ -749,5 +751,5 @@ Test Accuracy: 93.25%.
 
 ## License 
 
-MIT License – see [LICENSE](https://opensource.org/licenses/MIT)
+MIT License – see [LICENSE](./LICENSE)
 
