@@ -36,6 +36,7 @@ NeuralNet::NeuralNet(const NeuralNet &other)
     : avgLosses(other.avgLosses),
       loss(other.loss ? other.loss->clone() : nullptr),
       maxBatchSize(other.maxBatchSize),
+      inputShape(other.inputShape),
       dL(other.dL)
 {
     layers.reserve(other.layers.size());
@@ -96,20 +97,15 @@ void NeuralNet::fitInternal(
     ProgressMetric &metric,
     EarlyStop *stop
 ) {
+    if (batchSize == 0 || train.sampleCount() == 0)
+        return;
+
     float initialLR = learningRate;
     avgLosses.resize(numEpochs);
-    bool hasVal = (val.sampleCount());
-
-    if (!hasVal) {
-        build(batchSize, train.xShape());
-    }
-
+    build(batchSize, train.xShape());
+    
     bool stopEpochs = false;
     for (size_t k = 0; k < numEpochs && !stopEpochs; k++) {
-        if (hasVal) {
-            build(batchSize, train.xShape());
-        }
-        
         cout << endl << "Epoch: " << k+1 << "/" << numEpochs << endl;
 
         float avgLoss = runEpoch(train, learningRate, batchSize, metric);
@@ -123,14 +119,23 @@ void NeuralNet::fitInternal(
     ConsoleUtils::printSepLine();
 }
 
-void NeuralNet::build(size_t batchSize, vector<size_t> inShape, bool isInference) {
+void NeuralNet::build(
+    size_t batchSize, 
+    const vector<size_t> &inShape, 
+    bool isInference
+) {
+    vector<size_t> inShapeLocal = inShape;
+    inShapeLocal[0] = batchSize;
+    if (inShapeLocal == inputShape && !isInference)
+        return;
+
     size_t numLayers = layers.size();
     maxBatchSize = batchSize;
-    inShape[0] = maxBatchSize;
+    inputShape = inShapeLocal;
 
     for (size_t i = 0; i < numLayers; i++) {
-        layers[i]->build(inShape, isInference);
-        inShape = layers[i]->getBuildOutShape(inShape);
+        layers[i]->build(inShapeLocal, isInference);
+        inShapeLocal = layers[i]->getBuildOutShape(inShapeLocal);
     }
 
     if (!isInference) {
@@ -139,7 +144,7 @@ void NeuralNet::build(size_t batchSize, vector<size_t> inShape, bool isInference
         dL = Tensor(lossShape);
 
     } else {
-        dL = Tensor();
+        dL.clear();
     }
 }
 
@@ -231,17 +236,16 @@ bool NeuralNet::validateEpoch(
     if (N == 0)
         return false;
 
-    build(INFERENCE_BATCH_SIZE, val.xShape(), true);
     metric.init(N);
-    size_t numBatches = (N + INFERENCE_BATCH_SIZE - 1)/INFERENCE_BATCH_SIZE;
+    size_t numBatches = (N + maxBatchSize - 1)/maxBatchSize;
 
     vector<size_t> indices(N);
     iota(indices.begin(), indices.end(), 0);
-    Batch batch(INFERENCE_BATCH_SIZE, val.xShape());
+    Batch batch(maxBatchSize, val.xShape());
 
     for (size_t b = 0; b < numBatches; b++) {
-        size_t start = b * INFERENCE_BATCH_SIZE;
-        size_t end = min((b + 1) * INFERENCE_BATCH_SIZE, N);
+        size_t start = b * maxBatchSize;
+        size_t end = min((b + 1) * maxBatchSize, N);
         val.fillBatch(batch, start, end, indices);
 
         forwardPassInference(batch.getData());
@@ -340,6 +344,36 @@ vector<size_t> NeuralNet::generateShuffledIndices(size_t sampleCount) const {
 NeuralNet::~NeuralNet() {
     delete loss;
     deleteLayers();
+}
+
+void NeuralNet::printParamCount(const BinLoader &train) {
+    Dataset trainData(train);
+    build(INFERENCE_BATCH_SIZE, trainData.xShape());
+    printParamCount();
+}
+
+void NeuralNet::printParamCount(const Tensor &train) {
+    Dataset trainData(train);
+    build(INFERENCE_BATCH_SIZE, trainData.xShape());
+    printParamCount();
+}
+
+void NeuralNet::printParamCount() {
+    size_t numLayers = layers.size();
+    size_t params = 0;
+    for (size_t i = 0; i < numLayers; i++) {
+        params += layers[i]->paramCount();
+    }
+
+    cout << endl << "📊 Number of Model Parameters: " 
+         << ConsoleUtils::integerWithCommas(params);
+
+    if (params == 0) {
+        cout << " (model not built yet)";
+    }
+
+    cout << endl;
+    ConsoleUtils::printSepLine();
 }
 
 void NeuralNet::deleteLayers() {

@@ -49,5 +49,7 @@ class ConsoleUtils {
 
         [[noreturn]]  
         static void fatalError(const string&);
+
+        static string integerWithCommas(size_t);
         
 };

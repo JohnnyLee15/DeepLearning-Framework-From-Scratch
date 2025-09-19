@@ -38,7 +38,7 @@ void ConsoleUtils::printProgressBar(ProgressMetric &metric){
 
     cout << fixed << setprecision(2) 
          << "| " << metric.getName() << ": " << metric.calculate() 
-         << "%| Avg Loss: " << metric.getAvgLoss() 
+         << "% | Avg Loss: " << metric.getAvgLoss() 
          << " | Elapsed: " << metric.getTimeElapsed() <<"s" 
          << defaultfloat << setprecision(6);
 
@@ -126,4 +126,14 @@ void ConsoleUtils::printError(const string &message) {
 void ConsoleUtils::fatalError(const string &message) {
     cerr << "Fatal Error: " << message << " Exiting." << endl;
     exit(1);
+}
+
+string ConsoleUtils::integerWithCommas(size_t integer) {
+    string s = to_string(integer);
+    int commaPosition = (int) s.length() - 3;
+    while (commaPosition > 0) {
+        s.insert(commaPosition, ",");
+        commaPosition -= 3;
+    }
+    return s;
 }

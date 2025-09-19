@@ -80,6 +80,8 @@ class Dense : public Layer {
 
         Layer* clone() const override;
 
+        size_t paramCount() const override;
+
         const Tensor& getWeights() const override;
         const Tensor& getBiases() const override;
         const Tensor& getDeltaInputs() const override;

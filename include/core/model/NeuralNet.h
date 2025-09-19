@@ -27,6 +27,7 @@ class NeuralNet {
         vector<float> avgLosses;
         Loss *loss;
         size_t maxBatchSize;
+        vector<size_t> inputShape;
         Tensor dL;
 
         // Static variables;
@@ -34,7 +35,7 @@ class NeuralNet {
         static mt19937 generator;
 
         // Methods
-        void build(size_t, vector<size_t>, bool isInference = false);
+        void build(size_t, const vector<size_t>&, bool isInference = false);
 
         void fitInternal(
             const Dataset&, const Dataset&, float, 
@@ -107,4 +108,8 @@ class NeuralNet {
         void loadBestWeights(ifstream&);
 
         NeuralNet* clone() const;
+
+        void printParamCount(const Tensor&);
+        void printParamCount(const BinLoader&);
+        void printParamCount();
 };

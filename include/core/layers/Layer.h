@@ -57,6 +57,8 @@ class Layer {
 
         virtual Layer* clone() const = 0;
 
+        virtual size_t paramCount() const;
+
         // GPU Interface
         #ifdef __APPLE__
             virtual void forwardGpu(const Tensor&, GpuCommandBuffer);

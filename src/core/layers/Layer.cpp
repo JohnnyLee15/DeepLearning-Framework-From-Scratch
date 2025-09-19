@@ -25,6 +25,10 @@ void Layer::build(const vector<size_t> &inShape, bool isInference) {
 
 void Layer::downloadOutputFromGpu() {}
 
+size_t Layer::paramCount() const {
+    return 0;
+}
+
 size_t Layer::getMaxBatchSize() const {
     return maxBatchSize;
 }

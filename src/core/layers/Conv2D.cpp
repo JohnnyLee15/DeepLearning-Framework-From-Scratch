@@ -541,6 +541,12 @@ const Tensor& Conv2D::getDeltaInputs() const {
     return dX;
 }
 
+size_t Conv2D::paramCount() const {
+    size_t kernelParams = (kernels.getSize() == 0) ? fastKernels.getSize() : kernels.getSize();
+    size_t biasParams = biases.getSize();
+    return kernelParams + biasParams;
+}
+
 Layer* Conv2D::clone() const {
     return new Conv2D(*this);
 }

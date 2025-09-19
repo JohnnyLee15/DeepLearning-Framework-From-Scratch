@@ -346,3 +346,7 @@ const Tensor& Dense::getBiases() const {
 const Tensor& Dense::getDeltaInputs() const {
     return dX;
 }
+
+size_t Dense::paramCount() const {
+    return weights.getSize() + biases.getSize();
+}

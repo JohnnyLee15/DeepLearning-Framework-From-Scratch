@@ -84,45 +84,58 @@ int main() {
     // Defining Model Architecture
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
-        // Stem: larger RF early
-        new Conv2D(32, 7, 7, 2, "same", new ReLU(), 2e-4f),
-        new MaxPooling2D(3, 2, 2, "none"),
+        new Conv2D(32,3,3,1, "same", new ReLU(), 1e-3f),   
+        new Conv2D(32,3,3,1, "same", new ReLU(), 1e-3f),  
+        new MaxPooling2D(2,2,2, "same"),                    
 
-        // Stage 1 (64 ch)
-        new Conv2D(64, 3, 3, 1, "same", new ReLU(), 2e-4f),
-        new Conv2D(64, 3, 3, 1, "same", new ReLU(), 2e-4f),
+        new Conv2D(64,3,3,1, "same", new ReLU(), 1e-3f),
+        new Conv2D(64,3,3,1, "same", new ReLU(), 1e-3f),
+        new Conv2D(64,3,3,1, "same", new ReLU(), 1e-3f),
+        new Dropout(0.10f),
+        new MaxPooling2D(2,2,2, "same"),                
 
-        // Stage 2 (128 ch) — downsample via stride-2 conv
-        new Conv2D(128, 3, 3, 2, "same", new ReLU(), 2e-4f),
-        new Conv2D(128, 3, 3, 1, "same", new ReLU(), 2e-4f),
+        new Conv2D(256,3,3,1, "same", new ReLU(), 1e-3f),
+        new Conv2D(256,3,3,1, "same", new ReLU(), 1e-3f),
+        new Conv2D(256,3,3,1, "same", new ReLU(), 1e-3f),
+        new Dropout(0.10f),
+        new MaxPooling2D(2,2,2, "same"),                   
 
-        // Stage 3 (256 ch) — downsample
-        new Conv2D(256, 3, 3, 2, "same", new ReLU(), 2e-4f),
-        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 2e-4f),
+        new Conv2D(384,3,3,1, "same", new ReLU(), 1e-3f),
+        new Conv2D(384,3,3,1, "same", new ReLU(), 1e-3f),
+        new Conv2D(384,3,3,1, "same", new ReLU(), 1e-3f),
+        new Dropout(0.15f),
+        new MaxPooling2D(2,2,2, "same"),         
+        
+        new Conv2D(512,3,3,1, "same", new ReLU(), 1e-3f),
+        new Conv2D(512,3,3,1, "same", new ReLU(), 1e-3f),
+        new Conv2D(512,3,3,1, "same", new ReLU(), 1e-3f),
+        new Dropout(0.20f),
+        new MaxPooling2D(2,2,2, "same"),  
 
-        // Optional light Stage 4 (kept at 256 to avoid overfitting)
-        new Conv2D(256, 3, 3, 2, "same", new ReLU(), 2e-4f),
-        new Conv2D(256, 3, 3, 1, "same", new ReLU(), 2e-4f),
-
-        new GlobalAveragePooling2D(),
-        new Dropout(0.35f),
-        new Dense(6, new Softmax(), 2e-4f)
+        new GlobalAveragePooling2D(),                       
+        new Dropout(0.50f),   
+        new Dense(1024, new ReLU(), 1e-3f),    
+        new Dropout(0.50f),               
+        new Dense(6, new Softmax())
     };
 
     // Creating Neural Network
     NeuralNet *nn = new NeuralNet(layers, loss);
 
+    // Counting Parameters:
+    nn->printParamCount(train);
+
     // Creating Early Stop Object
-    EarlyStop *stop = new EarlyStop(8, 5e-4f, 5); // (patience, min delta, warm-up)
+    EarlyStop *stop = new EarlyStop(8, 1e-4f, 5); // (patience, min delta, warm-up)
 
     // Training Model
     ProgressMetric *metric = new ProgressAccuracy();
     nn->fit(
         train,  // Train bin loader
-        0.005f,  // Learning rate
-        0.0f,    // Learning rate decay
-        50,      // Number of epochs
-        16,     // Batch Size
+        0.006f,  // Learning rate
+        0.03f,    // Learning rate decay
+        60,      // Number of epochs
+        8,     // Batch Size
         *metric, // Progress metric
         val,    // Validation bin loader
         stop    // Early stop object
@@ -133,7 +146,7 @@ int main() {
     pipe.setData(data);
     pipe.setModel(nn);
     pipe.setImageTransformer2D(transformer);
-    pipe.saveToBin("models/XrayCNNTrain");
+    pipe.saveToBin("models/XrayNetXXL");
 
     // Testing Model
     Tensor output = nn->predict(test);
