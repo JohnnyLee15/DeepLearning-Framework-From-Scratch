@@ -84,8 +84,9 @@ int main() {
     // Defining Model Architecture
     Loss *loss = new SoftmaxCrossEntropy();
     vector<Layer*> layers = {
-        new Conv2D(32,3,3,1, "same", new ReLU(), 1e-3f),   
-        new Conv2D(32,3,3,1, "same", new ReLU(), 1e-3f),  
+        new Conv2D(24,3,3,1, "same", new ReLU(), 1e-3f),   
+        new Conv2D(16,1,1,1, "same", new ReLU(), 1e-3f),
+        new Conv2D(64,3,3,2, "same", new ReLU(), 1e-3f),  
         new MaxPooling2D(2,2,2, "same"),                    
 
         new Conv2D(64,3,3,1, "same", new ReLU(), 1e-3f),
